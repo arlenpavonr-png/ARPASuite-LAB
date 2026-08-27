@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía de inicio — ARPA Suite</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=DM+Sans:wght@400;500;600&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --navy:#1a2a4a;--navy-dark:#0f1a2e;--navy-mid:#243558;
+    --gold:#c9a84c;--gold-light:#e8c96a;
+    --white:#fff;--gray:#8a9bb0;--light:#f0f4f8;
+    --green:#4caf80;--red:#e05252;
+  }
+  html{scroll-behavior:smooth;}
+  body{font-family:'DM Sans',sans-serif;background:var(--light);color:#222;line-height:1.6;}
+  /* ── HEADER ── */
+  .header{background:var(--navy-dark);padding:0 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,0.3);}
+  .header-inner{max-width:680px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px;}
+  .header-logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--gold);letter-spacing:1px;}
+  .header-logo span{color:rgba(255,255,255,0.5);font-weight:400;font-size:14px;margin-left:6px;}
+  .header-btn{background:var(--gold);color:var(--navy-dark);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;padding:8px 18px;border-radius:6px;border:none;cursor:pointer;letter-spacing:1px;text-decoration:none;}
+  /* ── HERO ── */
+  .hero{background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 100%);padding:48px 20px 40px;text-align:center;}
+  .hero-tag{display:inline-block;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;padding:5px 16px;border-radius:20px;margin-bottom:16px;}
+  .hero h1{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:900;color:var(--white);line-height:1.05;margin-bottom:12px;}
+  .hero h1 em{color:var(--gold);font-style:normal;}
+  .hero p{font-size:15px;color:var(--gray);max-width:340px;margin:0 auto 24px;}
+  .hero-steps{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+  .hero-step{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--gray);}
+  .hero-step strong{color:var(--white);display:block;font-size:13px;}
+  /* ── SECTION ── */
+  .section{max-width:680px;margin:0 auto;padding:32px 20px;}
+  .section-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--navy);margin-bottom:6px;}
+  .section-sub{font-size:14px;color:var(--gray);margin-bottom:20px;}
+  /* ── STEPS INICIO ── */
+  .steps-inicio{display:flex;flex-direction:column;gap:14px;}
+  .step-card{background:var(--white);border-radius:14px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:flex;gap:16px;align-items:flex-start;border-left:4px solid var(--gold);}
+  .step-circle{width:40px;height:40px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:var(--gold);flex-shrink:0;}
+  .step-content h3{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:4px;}
+  .step-content p{font-size:13px;color:#555;line-height:1.5;}
+  .step-content .step-tip{background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:6px;padding:8px 10px;font-size:12px;color:#666;margin-top:8px;}
+  .step-content .step-tip strong{color:var(--navy);}
+  /* ── MÓDULOS ── */
+  .modulos-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modulo-card{background:var(--white);border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;border:2px solid transparent;}
+  .modulo-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.1);border-color:rgba(201,168,76,0.3);}
+  .modulo-icon{font-size:28px;margin-bottom:8px;}
+  .modulo-name{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+  .modulo-desc{font-size:12px;color:var(--gray);line-height:1.4;}
+  .modulo-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;margin-top:6px;}
+  .badge-green{background:rgba(76,175,128,0.1);color:var(--green);}
+  .badge-gold{background:rgba(201,168,76,0.1);color:var(--gold);}
+  /* ── ACCORDION FAQ ── */
+  .faq-list{display:flex;flex-direction:column;gap:8px;}
+  .faq-item{background:var(--white);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
+  .faq-q{padding:14px 16px;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;}
+  .faq-q::after{content:'＋';font-size:18px;color:var(--gold);font-weight:400;transition:transform 0.3s;}
+  .faq-item.open .faq-q::after{transform:rotate(45deg);}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height 0.4s ease,padding 0.3s ease;font-size:13px;color:#555;line-height:1.6;padding:0 16px;}
+  .faq-item.open .faq-a{max-height:200px;padding:0 16px 14px;}
+  .faq-a strong{color:var(--navy);}
+  .faq-a a{color:var(--gold);}
+  /* ── MÓDULO DETALLE ── */
+  .modulo-detail{background:var(--white);border-radius:16px;padding:20px;box-shadow:0 2px 14px rgba(0,0,0,0.07);margin-bottom:14px;}
+  .modulo-detail-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #f0f0f0;}
+  .modulo-detail-icon{font-size:32px;}
+  .modulo-detail-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--navy);}
+  .modulo-detail-sub{font-size:12px;color:var(--gray);}
+  .how-list{display:flex;flex-direction:column;gap:10px;}
+  .how-item{display:flex;gap:12px;align-items:flex-start;}
+  .how-num{width:24px;height:24px;border-radius:50%;background:var(--navy);color:var(--gold);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .how-text{font-size:13px;color:#444;line-height:1.5;}
+  .how-text strong{color:var(--navy);}
+  .regla-box{background:#fff8e1;border:1px solid rgba(201,168,76,0.3);border-radius:8px;padding:10px 12px;font-size:12px;color:#7a6020;margin-top:10px;}
+  .regla-box strong{color:var(--navy);}
+  /* ── ERRORES COMUNES ── */
+  .error-list{display:flex;flex-direction:column;gap:10px;}
+  .error-card{background:var(--white);border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:3px solid var(--red);}
+  .error-card.solved{border-left-color:var(--green);}
+  .error-q{font-size:13px;font-weight:600;color:var(--red);margin-bottom:6px;}
+  .error-card.solved .error-q{color:var(--green);}
+  .error-a{font-size:12px;color:#555;line-height:1.5;}
+  .error-a strong{color:var(--navy);}
+  /* ── SOPORTE ── */
+  .soporte-box{background:var(--navy);border-radius:16px;padding:24px;text-align:center;}
+  .soporte-icon{font-size:40px;margin-bottom:12px;}
+  .soporte-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:var(--white);margin-bottom:8px;}
+  .soporte-sub{font-size:13px;color:var(--gray);margin-bottom:20px;line-height:1.5;}
+  .soporte-btn{display:inline-block;background:var(--green);color:var(--white);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;letter-spacing:1px;}
+  .soporte-horario{font-size:11px;color:var(--gray);margin-top:12px;}
+  /* ── DIVIDER ── */
+  .divider{height:1px;background:rgba(0,0,0,0.08);margin:0 20px;}
+  /* ── FOOTER ── */
+  .footer{background:var(--navy-dark);padding:24px 20px;text-align:center;}
+  .footer-logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:var(--gold);margin-bottom:6px;}
+  .footer-sub{font-size:12px;color:var(--gray);}
+  /* ── MOBILE TWEAKS ── */
+  @media(max-width:400px){
+    .hero h1{font-size:34px;}
+    .modulos-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-logo">ARPA Suite <span>Guía de inicio</span></div>
+    <a class="header-btn" href="https://arlenpavonr-png.github.io/Formato-Arlenpav/?start=1" target="_blank">Abrir App →</a>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">Manual de usuario</div>
+  <h1>Empieza en<br><em>3 minutos.</em></h1>
+  <p>Sin llamadas, sin tutoriales largos. Todo lo que necesitas está aquí.</p>
+  <div class="hero-steps">
+    <div class="hero-step"><strong>Paso 1</strong>Prueba gratis 7 días</div>
+    <div class="hero-step"><strong>Paso 2</strong>Configura tu empresa</div>
+    <div class="hero-step"><strong>Paso 3</strong>Primer formato listo</div>
+  </div>
+</div>
+
+<!-- INICIO RÁPIDO -->
+<div class="section">
+  <div class="section-title">🚀 Inicio rápido</div>
+  <div class="section-sub">Sigue estos 4 pasos en orden la primera vez</div>
+  <div class="steps-inicio">
+
+    <div class="step-card">
+      <div class="step-circle">1</div>
+      <div class="step-content">
+        <h3>Instala ARPA Suite en tu celular</h3>
+        <p>Abre <strong>arpatechnologyglobal.com</strong> desde Chrome (Android) o Safari (iPhone). Toca el botón <strong>"Agregar a pantalla de inicio"</strong> o el ícono de compartir → "Añadir a inicio".</p>
+        <div class="step-tip">💡 <strong>¿No aparece el botón?</strong> Asegúrate de estar en Chrome en Android o Safari en iPhone. No funciona en otros navegadores.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-circle">2</div>
+      <div class="step-content">
+        <h3>Prueba gratis automática</h3>
+        <p>Al abrir la app por primera vez se activa <strong>automáticamente</strong> una prueba de <strong>7 días</strong>. No necesita código ni email. Verá el mensaje <em>"Activando su prueba de 7 días…"</em> y entrará directo.</p>
+        <div class="step-tip">💡 <strong>¿Compró Pro o PYME?</strong> Ingrese el código que recibió por email en la pantalla de activación. Formato: <strong>ARPA-PRO-XXXX</strong> o <strong>ARPA-PYME-XXXX</strong></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-circle">3</div>
+      <div class="step-content">
+        <h3>Configura los datos de tu empresa</h3>
+        <p>En <strong>Configuración</strong> ingresa: nombre de tu empresa, teléfono, ciudad y sube tu <strong>logo</strong> (aparece en todos tus documentos).</p>
+        <div class="step-tip">💡 <strong>Sin logo todavía?</strong> Puedes dejarlo en blanco y agregarlo después. El sistema funciona igual.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-circle">4</div>
+      <div class="step-content">
+        <h3>Crea tu primer Formato de Servicio</h3>
+        <p>Toca <strong>Formato de Servicio</strong> → llena los datos del cliente → tipo de puerta → observaciones → toca <strong>"Generar Acta"</strong>. Se crea un PDF listo para enviar.</p>
+        <div class="step-tip">💡 <strong>El formato NO tiene precios.</strong> Para cotizar usa el módulo <strong>Cotización</strong>.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- MÓDULOS -->
+<div class="section">
+  <div class="section-title">📱 Los módulos</div>
+  <div class="section-sub">Toca cada uno para ver cómo usarlo</div>
+  <div class="modulos-grid">
+
+    <div class="modulo-card" onclick="scrollTo('m-formato')">
+      <div class="modulo-icon">📋</div>
+      <div class="modulo-name">Formato de Servicio</div>
+      <div class="modulo-desc">Acta técnica de instalación o mantenimiento</div>
+      <div class="modulo-badge badge-green">Sin precios</div>
+    </div>
+
+    <div class="modulo-card" onclick="scrollTo('m-cotizacion')">
+      <div class="modulo-icon">💰</div>
+      <div class="modulo-name">Cotización</div>
+      <div class="modulo-desc">Presupuestos con catálogo de productos</div>
+      <div class="modulo-badge badge-gold">Con precios</div>
+    </div>
+
+    <div class="modulo-card" onclick="scrollTo('m-catalogo')">
+      <div class="modulo-icon">📦</div>
+      <div class="modulo-name">Catálogo</div>
+      <div class="modulo-desc">Tus productos y precios internos</div>
+      <div class="modulo-badge badge-gold">Tu bodega</div>
+    </div>
+
+    <div class="modulo-card" onclick="scrollTo('m-historial')">
+      <div class="modulo-icon">🕐</div>
+      <div class="modulo-name">Historial</div>
+      <div class="modulo-desc">Registro de todos tus servicios</div>
+      <div class="modulo-badge badge-green">Auto-guardado</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- DETALLE MÓDULOS -->
+<div class="section">
+  <div class="section-title">📖 Cómo usar cada módulo</div>
+
+  <!-- FORMATO -->
+  <div class="modulo-detail" id="m-formato">
+    <div class="modulo-detail-header">
+      <div class="modulo-detail-icon">📋</div>
+      <div>
+        <div class="modulo-detail-title">Formato de Servicio</div>
+        <div class="modulo-detail-sub">Para instalaciones, mantenimientos y reparaciones</div>
+      </div>
+    </div>
+    <div class="how-list">
+      <div class="how-item"><div class="how-num">1</div><div class="how-text">Toca <strong>Formato de Servicio</strong> en el menú principal</div></div>
+      <div class="how-item"><div class="how-num">2</div><div class="how-text">Llena los datos del cliente: <strong>nombre, dirección, teléfono</strong></div></div>
+      <div class="how-item"><div class="how-num">3</div><div class="how-text">Selecciona el <strong>tipo de servicio</strong>: instalación, mantenimiento o reparación</div></div>
+      <div class="how-item"><div class="how-num">4</div><div class="how-text">Elige el <strong>tipo de puerta</strong>: corrediza, batiente, levadiza o seccional</div></div>
+      <div class="how-item"><div class="how-num">5</div><div class="how-text">Ingresa las <strong>medidas</strong> (ancho, alto) y el <strong>voltaje</strong></div></div>
+      <div class="how-item"><div class="how-num">6</div><div class="how-text">Escribe las <strong>observaciones</strong> del trabajo realizado</div></div>
+      <div class="how-item"><div class="how-num">7</div><div class="how-text">Toca <strong>"Generar Acta PDF"</strong> → Comparte por WhatsApp</div></div>
+    </div>
+    <div style="font-size:14px;font-weight:700;color:var(--navy);margin:16px 0 10px;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3px;">🎥 Video de Entrega (opcional)</div>
+    <div class="how-list">
+      <div class="how-item"><div class="how-num">1</div><div class="how-text">Graba el video de entrega del equipo con la <strong>cámara normal</strong> del celular</div></div>
+      <div class="how-item"><div class="how-num">2</div><div class="how-text">Abre <strong>Google Drive</strong> → toca <strong>"+"</strong> → <strong>Subir</strong> → selecciona el video de la galería</div></div>
+      <div class="how-item"><div class="how-num">3</div><div class="how-text">Cuando termine de subir, toca los <strong>tres puntos</strong> del archivo → <strong>Compartir</strong> → <strong>Obtener enlace</strong></div></div>
+      <div class="how-item"><div class="how-num">4</div><div class="how-text">Asegúrate que diga <strong>"Cualquier persona con el enlace puede ver"</strong> y copia el link</div></div>
+      <div class="how-item"><div class="how-num">5</div><div class="how-text">Pega el link en el campo <strong>"Video de Entrega"</strong> del formato, antes de generar el PDF</div></div>
+    </div>
+    <div class="regla-box">🔗 <strong>Automático:</strong> Al generar el PDF, la app crea un código QR con ese link. El cliente lo escanea con la cámara de su celular y ve el video directo, sin necesidad de apps especiales.</div>
+    <div class="regla-box">🚫 <strong>Regla importante:</strong> Este módulo NO tiene campos de precio. Los precios solo van en Cotización y Cuenta de Cobro.</div>
+  </div>
+
+  <!-- COTIZACIÓN -->
+  <div class="modulo-detail" id="m-cotizacion">
+    <div class="modulo-detail-header">
+      <div class="modulo-detail-icon">💰</div>
+      <div>
+        <div class="modulo-detail-title">Cotización</div>
+        <div class="modulo-detail-sub">Para enviar presupuestos profesionales</div>
+      </div>
+    </div>
+    <div class="how-list">
+      <div class="how-item"><div class="how-num">1</div><div class="how-text">Toca <strong>Cotización</strong> en el menú</div></div>
+      <div class="how-item"><div class="how-num">2</div><div class="how-text">Ingresa los datos del cliente</div></div>
+      <div class="how-item"><div class="how-num">3</div><div class="how-text">Toca <strong>"Agregar producto"</strong> — jala del Catálogo automáticamente</div></div>
+      <div class="how-item"><div class="how-num">4</div><div class="how-text">Ajusta cantidades y el total se calcula solo</div></div>
+      <div class="how-item"><div class="how-num">5</div><div class="how-text">Toca <strong>"Generar Cotización PDF"</strong> → Enviar por WhatsApp</div></div>
+    </div>
+    <div class="regla-box">💡 <strong>Tip:</strong> Primero llena tu Catálogo con tus productos. Así la cotización es más rápida.</div>
+  </div>
+
+  <!-- CATÁLOGO -->
+  <div class="modulo-detail" id="m-catalogo">
+    <div class="modulo-detail-header">
+      <div class="modulo-detail-icon">📦</div>
+      <div>
+        <div class="modulo-detail-title">Catálogo</div>
+        <div class="modulo-detail-sub">Tu bodega digital de productos</div>
+      </div>
+    </div>
+    <div class="how-list">
+      <div class="how-item"><div class="how-num">1</div><div class="how-text">Toca <strong>Catálogo</strong> en el menú</div></div>
+      <div class="how-item"><div class="how-num">2</div><div class="how-text">Ya viene con productos <strong>Accessmatic</strong> precargados como demo</div></div>
+      <div class="how-item"><div class="how-num">3</div><div class="how-text">Toca <strong>"Agregar producto"</strong> para agregar los tuyos: nombre, referencia, precio</div></div>
+      <div class="how-item"><div class="how-num">4</div><div class="how-text">Puedes <strong>editar o eliminar</strong> cualquier producto tocando en él</div></div>
+      <div class="how-item"><div class="how-num">5</div><div class="how-text">Los productos del catálogo aparecen automáticamente en <strong>Cotización</strong></div></div>
+    </div>
+    <div class="regla-box">💡 <strong>Tip:</strong> Agrega los productos que más vendes primero. Empieza con 10 y vas agregando.</div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="modulo-detail" id="m-historial">
+    <div class="modulo-detail-header">
+      <div class="modulo-detail-icon">🕐</div>
+      <div>
+        <div class="modulo-detail-title">Historial</div>
+        <div class="modulo-detail-sub">Registro automático de todos tus servicios</div>
+      </div>
+    </div>
+    <div class="how-list">
+      <div class="how-item"><div class="how-num">1</div><div class="how-text">Cada vez que generas un Formato, <strong>se guarda automáticamente</strong> en el Historial</div></div>
+      <div class="how-item"><div class="how-num">2</div><div class="how-text">Busca por <strong>nombre del cliente</strong> o fecha</div></div>
+      <div class="how-item"><div class="how-num">3</div><div class="how-text">Toca cualquier registro para <strong>ver el detalle</strong> o volver a generar el PDF</div></div>
+      <div class="how-item"><div class="how-num">4</div><div class="how-text">Puedes <strong>exportar a CSV</strong> para tener respaldo en Excel</div></div>
+    </div>
+    <div class="regla-box">💡 <strong>Importante:</strong> El historial se guarda en el celular. No lo desinstales sin exportar primero.</div>
+  </div>
+
+</div>
+
+<div class="divider"></div>
+
+<!-- PREGUNTAS FRECUENTES -->
+<div class="section">
+  <div class="section-title">❓ Preguntas frecuentes</div>
+  <div class="section-sub">Las dudas más comunes resueltas</div>
+  <div class="faq-list">
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">¿Necesito internet para usar ARPA Suite?</div>
+      <div class="faq-a">No siempre. Puedes crear formatos y cotizaciones <strong>sin internet</strong>. Solo necesitas conexión para activar la licencia por primera vez y para sincronizar. Funciona perfectamente en obra.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">¿Dónde se guardan mis datos?</div>
+      <div class="faq-a">En el almacenamiento de tu celular (<strong>localStorage</strong>). Si cambias de celular, exporta el historial en CSV primero. Próximamente tendremos sincronización en la nube.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">¿Puedo usar la app en varios celulares?</div>
+      <div class="faq-a">Sí. Tu código de licencia se puede activar en <strong>hasta 2 dispositivos</strong>. Si necesitas más, escribe al WhatsApp de soporte.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">¿El PDF sale con mi logo?</div>
+      <div class="faq-a">Sí, si lo configuraste en <strong>Configuración → Logo de empresa</strong>. Si no tienes logo todavía, el PDF sale con el nombre de tu empresa.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">¿Qué pasa cuando vence mi licencia?</div>
+      <div class="faq-a">Al terminar los 7 días de prueba, la app se bloquea y le muestra opciones para comprar <strong>Pro</strong> o <strong>PYME</strong> en <strong>arpatechnologyglobal.com</strong>. Recibirá un código nuevo por email. Sus datos en el dispositivo no se borran.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">¿Puedo cambiar el precio de los productos del catálogo?</div>
+      <div class="faq-a">Sí. Ve a <strong>Catálogo → toca el producto → Editar</strong>. Puedes cambiar nombre, referencia y precio cuando quieras. Solo tú ves esos precios.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">¿Funciona en iPhone?</div>
+      <div class="faq-a">Sí. Abre Safari → ve a <strong>arpatechnologyglobal.com</strong> → toca el botón compartir → "Añadir a pantalla de inicio". En iPhone debe usarse Safari, no Chrome.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">¿Cómo borro los productos demo de Accessmatic?</div>
+      <div class="faq-a">Ve a <strong>Catálogo</strong> → toca cada producto demo → <strong>Eliminar</strong>. O puedes dejarlos y agregar los tuyos encima. No afectan el funcionamiento.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">¿Cómo subo el video de entrega del equipo?</div>
+      <div class="faq-a">Grábalo con la cámara del celular, súbelo a <strong>Google Drive</strong> (o YouTube como "Oculto"), copia el link para compartir y pégalo en el campo <strong>"Video de Entrega"</strong> del Formato de Servicio. La app genera un <strong>QR automático</strong> en el PDF para que el cliente lo escanee con su cámara.</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ERRORES COMUNES -->
+<div class="section">
+  <div class="section-title">🔧 Problemas comunes</div>
+  <div class="section-sub">Si algo no funciona, revisa esto primero</div>
+  <div class="error-list">
+
+    <div class="error-card">
+      <div class="error-q">❌ "Código de licencia inválido"</div>
+      <div class="error-a"><strong>Solución:</strong> Verifica que lo estás escribiendo exactamente como llegó por email, con guiones. Ej: ARPA-FREE-0001. Sin espacios al inicio o al final.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-q">❌ "Licencia vencida"</div>
+      <div class="error-a"><strong>Solución:</strong> Tu período de prueba terminó. Renueva en <strong>arpatechnologyglobal.com</strong> o escribe al WhatsApp. Recibirás un código nuevo.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-q">❌ El PDF no se genera</div>
+      <div class="error-a"><strong>Solución:</strong> Verifica que tienes conexión a internet. Si no, intenta con datos móviles. Si persiste, cierra la app y vuelve a abrirla.</div>
+    </div>
+
+    <div class="error-card">
+      <div class="error-q">❌ La app no se instala en el celular</div>
+      <div class="error-a"><strong>Android:</strong> Usa Chrome. <strong>iPhone:</strong> Usa Safari. Otros navegadores no soportan instalación de PWA.</div>
+    </div>
+
+    <div class="error-card solved">
+      <div class="error-q">✅ El catálogo está vacío después de actualizar</div>
+      <div class="error-a"><strong>Normal:</strong> Si limpiaste la caché del navegador, los datos locales se borran. Por eso recomendamos exportar a CSV regularmente desde Historial.</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SOPORTE -->
+<div class="section">
+  <div class="soporte-box">
+    <div class="soporte-icon">💬</div>
+    <div class="soporte-title">¿Necesitas ayuda?</div>
+    <div class="soporte-sub">Si tienes una duda que no está aquí, escríbenos por WhatsApp. Respondemos en menos de 24 horas.</div>
+    <a class="soporte-btn" href="https://wa.me/573005683914?text=Hola,%20necesito%20ayuda%20con%20ARPA%20Suite" target="_blank">💬 Escribir por WhatsApp</a>
+    <div class="soporte-horario">Soporte disponible Lunes a Viernes · 8am – 6pm · Medellín, Colombia</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-logo">ARPA Suite</div>
+  <div class="footer-sub">Powered by ARPA Technology Global · arpatechnologyglobal.com</div>
+</div>
+
+<script>
+function toggleFaq(el){
+  const item=el.parentElement;
+  const wasOpen=item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+  if(!wasOpen)item.classList.add('open');
+}
+function scrollTo(id){
+  const el=document.getElementById(id);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>

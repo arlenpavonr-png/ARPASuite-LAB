@@ -1,0 +1,4914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arpa Suite – Plataforma Profesional</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f2044">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ARPA Suite">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --navy: #0f2044;
+    --blue: #1a3a6e;
+    --accent: #2563eb;
+    --gold: #d97706;
+    --shell: #f4f6f9;
+    --bg: #ffffff;
+    --card: #ffffff;
+    --border: #d1d5db;
+    --text: #1e293b;
+    --muted: #64748b;
+    --light: #e8edf5;
+    --green: #16a34a;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    background-color: var(--shell);
+    background-image: none;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background-color: var(--shell);
+    background-image: none;
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 16px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    background-color: var(--card);
+    background-image: none;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,.10);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--navy);
+    padding: 20px 24px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .brand-logo-wrap {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 8px;
+    min-width: 72px;
+    max-width: 200px;
+    min-height: 72px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  .header #brand-logo {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 64px;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    border-radius: 0;
+    background: transparent;
+  }
+  .header-info { flex: 1; }
+  .header-info h1 { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: .4px; }
+  .header-info p  { font-size: 10.5px; color: #a8c0e8; margin-top: 2px; line-height: 1.5; }
+  .header-meta { text-align: right; flex-shrink: 0; }
+  .doc-type {
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  .no-field { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .no-field label { color: #a8c0e8; font-size: 10px; font-weight: 600; }
+  .no-field input {
+    width: 80px; padding: 4px 6px; border-radius: 5px;
+    border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.1);
+    color: white; font-size: 12px; font-weight: 600; text-align: center;
+  }
+  .lang-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    border: 1px solid rgba(201, 168, 76, 0.35);
+    background: rgba(26, 42, 74, 0.55);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .lang-icon { color: #a8c0e8; font-size: 12px; line-height: 1; }
+  .lang-btn {
+    background: transparent;
+    border: none;
+    color: #7090b8;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 2px 4px;
+    letter-spacing: 0.5px;
+  }
+  .lang-btn.active { color: #c9a84c; }
+  .lang-btn:hover:not(.active) { color: #a8c0e8; }
+  .lang-sep { color: #c9a84c; opacity: 0.55; user-select: none; }
+
+  /* ── GOLD BAR ── */
+  .gold-bar { height: 4px; background: var(--gold); }
+
+  /* ── BODY ── */
+  .body { padding: 20px 24px; display: flex; flex-direction: column; gap: 18px; }
+
+  /* ── SECTION ── */
+  .section {}
+  .section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; color: var(--blue);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--light);
+  }
+  .section-title span.dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); flex-shrink: 0;
+  }
+
+  /* ── GRID FIELDS ── */
+  .grid { display: grid; gap: 10px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .span2 { grid-column: span 2; }
+  .span3 { grid-column: span 3; }
+  .span4 { grid-column: span 4; }
+
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field[hidden],
+  #formato-equipo-section[hidden],
+  #formato-equipo-accesorios[hidden],
+  #formato-medidas-section[hidden] {
+    display: none !important;
+  }
+  body.is-printing-formato #formato-tipo-otra-wrap:not([hidden]) {
+    display: block !important;
+  }
+  .field label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .field input, .field select, .field textarea {
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border .2s, box-shadow .2s;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    background: white;
+  }
+  .field textarea { resize: vertical; min-height: 70px; }
+
+  /* ── SERVICE TYPE TOGGLE ── */
+  .toggle-group { display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 2px solid var(--accent); }
+  .toggle-group input { display: none; }
+  .toggle-group label {
+    flex: 1; text-align: center; padding: 9px 12px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    color: var(--accent); background: white;
+    transition: all .2s;
+  }
+  .toggle-group input:checked + label {
+    background: var(--accent); color: white;
+  }
+
+  /* ── DOOR TYPE CHIPS ── */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chips input { display: none; }
+  .chips label {
+    padding: 6px 13px; border-radius: 20px;
+    border: 1.5px solid var(--border);
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    color: var(--muted); background: var(--bg);
+    transition: all .2s;
+  }
+  .chips input:checked + label {
+    background: var(--navy); color: white; border-color: var(--navy);
+  }
+
+  /* ── DIMS TABLE ── */
+  .dims {
+    background: var(--light);
+    padding: 12px;
+    border-radius: 8px;
+  }
+  .dims-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .dims-table th {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+    padding: 0 6px 6px;
+    vertical-align: bottom;
+    line-height: 1.25;
+  }
+  .dims-table td {
+    padding: 0 6px;
+    text-align: center;
+    vertical-align: top;
+  }
+  .dims-extra {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 8px 0;
+    margin-top: 10px;
+  }
+  .dim-field { display: flex; flex-direction: column; gap: 3px; width: 50%; vertical-align: top; }
+  .dim-field label { font-size: 10px; font-weight: 700; color: var(--muted); text-align: center; }
+  .dim-field input,
+  .dims-table input {
+    border: 1.5px solid var(--border); border-radius: 6px;
+    padding: 6px 8px; font-size: 13px; font-weight: 600;
+    text-align: center; background: white;
+    font-family: 'DM Mono', monospace;
+    outline: none; color: var(--text);
+    transition: border .2s;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .dim-field input:focus,
+  .dims-table input:focus { border-color: var(--accent); }
+  .dims-table .pdf-valor-dim {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 6px 4px;
+    border-bottom: 1px solid #d1d5db;
+    min-height: 32px;
+  }
+
+  /* ── MATERIALS ── */
+  .materials-grid {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px;
+    gap: 0;
+  }
+  .mat-header, .mat-row {
+    display: contents;
+  }
+  .mat-header > div {
+    background: var(--navy); color: white;
+    font-size: 10px; font-weight: 700; letter-spacing: .5px;
+    padding: 7px 10px; text-transform: uppercase;
+  }
+  .mat-row > div {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+  }
+  .mat-row input {
+    border: none; background: transparent;
+    font-size: 12px; color: var(--text);
+    width: 100%; outline: none;
+    font-family: 'DM Sans', sans-serif;
+    padding: 2px 4px;
+  }
+  .mat-row input:focus { background: #eff6ff; border-radius: 4px; }
+  .mat-header > div:first-child { border-radius: 8px 0 0 0; }
+  .mat-header > div:last-child  { border-radius: 0 8px 0 0; }
+  .mat-wrap { border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
+
+  /* ── VOLTAGE / EXTRAS ── */
+  .check-group { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .check-item { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .check-item input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+  .check-item span { font-size: 12px; font-weight: 500; }
+
+  /* ── PHOTOS ── */
+  .photos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .photo-box {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: var(--bg);
+    transition: border-color .2s, background .2s;
+    position: relative;
+    overflow: hidden;
+    gap: 8px;
+  }
+  .photo-box:hover { border-color: var(--accent); background: #eff6ff; }
+  .photo-box input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .photo-box .icon { font-size: 28px; }
+  .photo-box .ph-btns { display: flex; gap: 6px; margin-top: 4px; }
+  .photo-box .ph-btn {
+    flex: 1; padding: 7px 6px; border-radius: 7px;
+    border: 1.5px solid var(--accent); background: white;
+    color: var(--accent); font-size: 11px; font-weight: 700;
+    cursor: pointer; transition: all .2s;
+  }
+  .photo-box .ph-btn:active { background: var(--accent); color: white; }
+  .photo-box .ph-btn-label {
+    display: inline-block; margin-top: 8px;
+    padding: 8px 16px; border-radius: 8px;
+    border: 2px solid var(--accent); background: white;
+    color: var(--accent); font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all .2s; text-align: center;
+  }
+  .photo-box .ph-btn-label:active { background: var(--accent); color: white; }
+  .photo-box .ph-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .photo-box .ph-sub  { font-size: 10px; color: #94a3b8; }
+  .photo-box .preview-img { width: 100%; height: 140px; object-fit: cover; display: none; border-radius: 8px; }
+  .photo-badge {
+    position: absolute; top: 8px; left: 8px;
+    background: var(--navy); color: white;
+    font-size: 9px; font-weight: 700; letter-spacing: .5px;
+    padding: 3px 7px; border-radius: 4px;
+    text-transform: uppercase; pointer-events: none;
+  }
+
+  /* ── OBSERVACIONES ── */
+  .obs-box {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--bg);
+  }
+  .obs-lines { display: flex; flex-direction: column; gap: 6px; }
+  .obs-lines input {
+    border: none; border-bottom: 1px solid var(--border);
+    background: transparent; font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text); padding: 4px 2px;
+    outline: none; width: 100%;
+  }
+  .obs-lines input:focus { border-bottom-color: var(--accent); }
+
+  /* ── NOTA ── */
+  .nota {
+    background: #fefce8; border: 1px solid #fde68a;
+    border-radius: 8px; padding: 10px 12px;
+    font-size: 11px; color: #92400e; line-height: 1.5;
+  }
+  .nota strong { font-weight: 700; }
+
+  /* ── GARANTÍA ── */
+  .garantia { border: 1.5px solid #bfdbfe; border-radius: 10px; overflow: hidden; }
+  .garantia-header {
+    background: var(--navy); color: white;
+    padding: 9px 14px; display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+  }
+  .garantia-header .shield { font-size: 15px; }
+  .garantia-body { background: #eff6ff; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .garantia-item { display: flex; gap: 10px; align-items: flex-start; font-size: 11.5px; line-height: 1.5; color: #1e3a5f; }
+  .garantia-item .gi-icon {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; margin-top: 1px;
+  }
+  .gi-ok   { background: #dcfce7; }
+  .gi-warn { background: #fee2e2; }
+  .gi-cal  { background: #e0e7ff; }
+  .garantia-item strong { font-weight: 700; color: var(--navy); }
+
+  /* ── FIRMAS ── */
+  .firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .firma-box {
+    border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 10px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .firma-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .firma-canvas-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .firma-canvas {
+    width: 100%;
+    height: 110px;
+    touch-action: none;
+    cursor: crosshair;
+    display: block;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+  }
+  .btn-firma-clear {
+    align-self: flex-end;
+    background: var(--light);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 40px;
+  }
+  .firma-print-img {
+    width: 100%;
+    height: 110px;
+    object-fit: contain;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    display: none;
+  }
+  .firma-name { border: none; border-bottom: 1px solid var(--border); font-size: 12px; font-family: 'DM Sans', sans-serif; background: transparent; outline: none; padding: 4px 2px; color: var(--text); width: 100%; }
+
+  /* ── VIDEO ENTREGA + QR ── */
+  .formato-video-qr-print {
+    display: none;
+    margin-top: 20px;
+    padding: 16px;
+    border: 1.5px solid #1a2a4a;
+    border-radius: 10px;
+    background: #ffffff;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .formato-video-qr-print.formato-video-qr-visible {
+    display: block;
+  }
+  .formato-video-qr-title {
+    color: #1a2a4a;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  .formato-video-qr-canvas-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto 10px;
+  }
+  #formato-video-qr-canvas {
+    display: block;
+    max-width: 140px;
+    height: auto;
+  }
+  .formato-video-qr-hint {
+    color: #1a2a4a;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.45;
+    margin: 0 0 8px;
+  }
+  .formato-video-qr-url {
+    font-size: 9px;
+    color: #64748b;
+    word-break: break-all;
+    line-height: 1.35;
+    margin: 0;
+  }
+
+  /* ── FOOTER SUITE ── */
+  .suite-footer {
+    background: var(--navy);
+    margin-top: 4px;
+  }
+  .suite-footer-local {
+    padding: 14px 24px 10px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: #c8d9f0;
+    line-height: 1.55;
+    letter-spacing: 0.02em;
+  }
+  .suite-footer-divider {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    margin: 0 20px;
+  }
+  .suite-footer-global {
+    padding: 10px 24px 16px;
+    text-align: center;
+  }
+  .suite-footer-global-text {
+    margin: 0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    color: #64748b;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+  }
+  .suite-footer-global-link {
+    color: #64748b;
+    text-decoration: none;
+  }
+  .suite-footer-global-link:hover {
+    color: #475569;
+    text-decoration: underline;
+  }
+  .brand-bank-info {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--navy);
+  }
+  .cobro-row {
+    display: grid;
+    grid-template-columns: 1fr 120px auto;
+    gap: 10px;
+    align-items: end;
+    background: var(--light);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .cobros-editor { display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── MENÚ PRINCIPAL ── */
+  .main-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    display: flex;
+    background: var(--navy);
+    border-top: 3px solid var(--gold);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .main-menu-btn {
+    flex: 1;
+    min-height: 52px;
+    padding: 6px 2px;
+    background: none;
+    border: none;
+    color: #7090b8;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .main-menu-btn.active { color: #fff; }
+  .main-menu-icon { font-size: 16px; line-height: 1; }
+
+  /* ── MI CATÁLOGO ── */
+  #view-catalogo {
+    --catalogo-navy: #1a2a4a;
+    --catalogo-gold: #c9a84c;
+  }
+  #view-catalogo .section-title,
+  #view-catalogo .catalogo-nom,
+  #view-catalogo .catalogo-grupo-title {
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0;
+  }
+  #view-catalogo .section-title { color: var(--catalogo-navy); }
+  .catalogo-categorias-block {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .catalogo-categorias-block .section-title {
+    margin-bottom: 10px;
+  }
+  .catalogo-cat-empty {
+    text-align: center;
+    padding: 16px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--muted);
+    background: var(--light);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+  }
+  .catalogo-cat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .catalogo-cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px 6px 12px;
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+  }
+  .catalogo-cat-chip-name {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    color: var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .catalogo-cat-chip-count {
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--catalogo-gold);
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+  }
+  .btn-cat-edit,
+  .btn-cat-del {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-cat-del { color: #dc2626; }
+  .btn-catalogo-add-cat {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px dashed var(--catalogo-gold);
+    border-radius: 10px;
+    background: #fffbeb;
+    color: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    min-height: 44px;
+  }
+  .catalogo-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .catalogo-toolbar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  @media (min-width: 480px) {
+    .catalogo-toolbar-row {
+      flex-direction: row;
+      align-items: stretch;
+    }
+    .catalogo-toolbar-row input { flex: 1; }
+  }
+  .btn-catalogo-import {
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 10px;
+    background: #1a2a4a;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    min-height: 48px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-catalogo-import:active { opacity: 0.92; }
+  @media (min-width: 480px) {
+    .btn-catalogo-import { width: auto; min-width: 200px; }
+  }
+  .catalogo-import-modal { max-width: 520px; }
+  .catalogo-import-summary {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0 0 12px;
+  }
+  .catalogo-import-summary strong { color: #1a2a4a; }
+  .catalogo-import-preview-wrap {
+    overflow: auto;
+    max-height: 45vh;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .catalogo-import-table {
+    width: 100%;
+    min-width: 480px;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  .catalogo-import-table thead tr {
+    background: #1a2a4a;
+    color: #fff;
+  }
+  .catalogo-import-table th {
+    padding: 8px 6px;
+    text-align: left;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+  .catalogo-import-table td {
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .catalogo-import-table tbody tr:nth-child(even) { background: #f8fafc; }
+  .catalogo-import-table tr.row-invalid { background: #fef2f2 !important; }
+  .catalogo-import-table tr.row-invalid td:last-child {
+    color: #dc2626;
+    font-size: 10px;
+  }
+  .catalogo-import-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  @media (min-width: 400px) {
+    .catalogo-import-actions {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+  }
+  .btn-import-add {
+    background: #c9a84c !important;
+    color: #1a2a4a !important;
+    font-weight: 700 !important;
+  }
+  .btn-import-replace {
+    background: #1a2a4a !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+  }
+  .catalogo-toolbar input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 16px;
+    min-height: 48px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .catalogo-count {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .catalogo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-bottom: 88px;
+  }
+  .catalogo-grupo-title {
+    margin: 0 0 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--catalogo-navy);
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--catalogo-gold);
+  }
+  .catalogo-grupo-dot { font-size: 12px; line-height: 1; }
+  .catalogo-grupo-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .catalogo-grupo-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .catalogo-empty,
+  .catalogo-no-results {
+    text-align: center;
+    padding: 28px 16px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .catalogo-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(15, 32, 68, 0.06);
+  }
+  .catalogo-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .catalogo-ref {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--navy);
+  }
+  .catalogo-unidad {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    background: #fffbeb;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .catalogo-nom {
+    margin: 0 0 6px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.25;
+  }
+  .catalogo-meta {
+    margin: 0 0 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .catalogo-meta span {
+    background: var(--light);
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .catalogo-card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--light);
+  }
+  .catalogo-pvp {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--green);
+  }
+  .catalogo-card-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .btn-catalogo-edit,
+  .btn-catalogo-del {
+    width: 40px;
+    height: 40px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-catalogo-del { border-color: #fecaca; background: #fef2f2; }
+  .catalogo-fab {
+    position: fixed;
+    right: 16px;
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px) + 12px);
+    z-index: 950;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #c9a84c;
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 18px rgba(201, 168, 76, 0.55);
+    font-size: 32px;
+    font-weight: 300;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .catalogo-fab[hidden] { display: none !important; }
+  .catalogo-fab:active { transform: scale(0.96); }
+
+  .catalogo-oficio-section {
+    margin-bottom: 28px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .catalogo-oficio-section:last-child { border-bottom: none; }
+  .catalogo-oficio-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--catalogo-navy, #1a2a4a);
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+  }
+  .catalogo-oficio-title .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--catalogo-gold, #c9a84c);
+    flex-shrink: 0;
+  }
+  .catalogo-oficio-intro {
+    font-size: 12px;
+    color: var(--muted);
+    margin: -4px 0 10px;
+    line-height: 1.5;
+  }
+  .catalogo-oficio-title { display: none; }
+  .catalogo-oficios-tabs {
+    margin: 0 0 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .catalogo-oficios-tabs[hidden] { display: none !important; }
+  .catalogo-oficios-tabs-list {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 2px 2px 10px;
+  }
+  .catalogo-oficios-tabs-list::-webkit-scrollbar { display: none; }
+  .catalogo-oficio-tab {
+    flex: 0 0 auto;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    color: var(--catalogo-navy, #1a2a4a);
+    border-radius: 999px;
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .catalogo-oficio-tab.active {
+    background: var(--catalogo-gold, #c9a84c);
+    border-color: var(--catalogo-gold, #c9a84c);
+    color: #fff;
+  }
+  .catalogo-oficio-tab:active { opacity: 0.92; }
+  .catalogo-oficio-section[hidden] { display: none !important; }
+  .settings-oficios-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  @media (min-width: 480px) {
+    .settings-oficios-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .settings-oficio-chip {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.35;
+    cursor: pointer;
+    background: #fff;
+  }
+  .settings-oficio-chip.is-locked {
+    background: #f8fafc;
+    cursor: default;
+    opacity: 0.92;
+  }
+  .settings-oficio-chip input { margin-top: 2px; flex-shrink: 0; }
+
+  #catalogo-form-modal .settings-modal-header h2,
+  #catalogo-cat-modal .settings-modal-header h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── CUENTA DE COBRO ── */
+  .cc-brand-logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  #cc-brand-logo {
+    max-width: 120px;
+    max-height: 72px;
+    object-fit: contain;
+    object-position: center;
+  }
+  .cc-info-panel {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cc-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .cc-info-row span { color: var(--muted); flex-shrink: 0; }
+  .cc-info-row strong { color: var(--text); text-align: right; font-weight: 600; }
+  .cc-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .cc-ret-pct-wrap {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-end;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .cc-ret-pct-wrap input {
+    width: 64px;
+    padding: 6px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 14px;
+    min-height: 40px;
+  }
+  .cc-firma-line {
+    border-top: 1px solid var(--border);
+    margin-top: 48px;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .cc-firma-line strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--text);
+    font-size: 12px;
+  }
+  .btn-cc-clear {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    background: var(--light);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 48px;
+  }
+  .cc-actions-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 24px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+  @media (max-width: 520px) {
+    .cc-parties { grid-template-columns: 1fr; }
+  }
+  .cc-svc-desc {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-size: 13px;
+    background: white;
+    min-height: 40px;
+  }
+  .cc-svc-cant {
+    width: 100%;
+    max-width: 72px;
+    text-align: center;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    padding: 6px;
+    font-size: 14px;
+    min-height: 40px;
+  }
+  .cc-svc-unit {
+    width: 100%;
+    max-width: 120px;
+    text-align: right;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    min-height: 40px;
+  }
+
+  /* ── HISTORIAL ── */
+  .historial-actions {
+    padding: 16px 24px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+  .historial-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .historial-empty {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .historial-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(15, 32, 68, 0.06);
+  }
+  .historial-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--light);
+  }
+  .historial-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+  }
+  .historial-tipo {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 4px 8px;
+    border-radius: 99px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
+  }
+  .historial-doc-formato { background: #e0e7ff; color: #3730a3; }
+  .historial-doc-cotizacion { background: #fef3c7; color: #92400e; }
+  .historial-doc-cuenta-cobro { background: #dcfce7; color: #166534; }
+  .historial-subtipo {
+    font-size: 10px;
+    font-weight: 600;
+    color: inherit;
+    opacity: 0.85;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .historial-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .historial-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+  }
+  .historial-row span { color: var(--muted); }
+  .historial-row strong { color: var(--text); text-align: right; font-weight: 600; }
+  .historial-row-concepto { margin: 2px 0 4px; }
+  .historial-row-concepto strong {
+    color: var(--navy);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .historial-delete {
+    margin-top: 12px;
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-ver-doc {
+    width: 100%;
+    padding: 10px;
+    margin-top: 6px;
+    background: #1a2a4a;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-export-csv {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--gold);
+    color: #fff;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .pdf-actions-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .btn-pdf-primary {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.5px;
+    min-height: 48px;
+  }
+  .btn-pdf-whatsapp {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.5px;
+    min-height: 48px;
+  }
+
+  /* ── AJUSTES (MODAL) ── */
+  .settings-btn {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .settings-btn:hover { background: rgba(255,255,255,.2); }
+  .settings-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    background-image: none;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .settings-overlay.open { display: flex; }
+  .onboarding-step-modal {
+    background: rgba(0, 0, 0, 0.5);
+    background-image: none;
+  }
+  .settings-modal {
+    background: var(--card);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    display: flex;
+    flex-direction: column;
+  }
+  .settings-modal-header {
+    background: var(--navy);
+    color: #fff;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--gold);
+  }
+  .settings-modal-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .3px;
+  }
+  .settings-modal-close {
+    background: none;
+    border: none;
+    color: #a8c0e8;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .settings-modal-body {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+  }
+  .settings-modal-body .field input,
+  .settings-modal-body .field select,
+  .settings-modal-body .field input[type="file"] {
+    background: var(--bg);
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .settings-modal-body .field label .req {
+    color: #dc2626;
+    font-weight: 700;
+  }
+  .logo-upload-box {
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+  .logo-upload-preview-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    background: #fff;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    max-width: 220px;
+    min-height: 96px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .logo-upload-preview {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 88px;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+  }
+  .logo-upload-hint {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .logo-upload-input {
+    width: 100%;
+    padding: 10px !important;
+    font-size: 14px !important;
+  }
+  .settings-error {
+    display: none;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    line-height: 1.4;
+  }
+  .settings-error.visible {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .settings-brand-lock {
+    background: #fffbeb;
+    border: 1px solid rgba(201, 168, 76, 0.45);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #1a2a4a;
+  }
+  .settings-brand-lock a {
+    color: #1a2a4a;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+  .brand-customization-locked .logo-upload-preview-wrap,
+  .brand-customization-locked .logo-upload-input {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .settings-modal-body input.brand-field-locked {
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: not-allowed;
+  }
+
+  /* ── LISTA DE PRECIOS (AJUSTES) ── */
+  .settings-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin: 8px 0 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .price-list-row {
+    display: grid;
+    grid-template-columns: 1fr 110px;
+    gap: 8px;
+    align-items: center;
+  }
+  .price-label-input, .price-value-input {
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* ── VISTAS SUITE ── */
+  .suite-view[hidden] { display: none !important; }
+  .suite-view {
+    background-color: var(--card);
+    background-image: none;
+  }
+
+  /* ── COTIZACIÓN ── */
+  .buscador-wrap-cot {
+    background: var(--light);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .buscador-row-cot { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+  .buscador-input-cot {
+    flex: 1;
+    min-width: 180px;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    background: white;
+    outline: none;
+  }
+  .resultados-cot {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+  .resultado-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .resultado-item:hover { background: #eff6ff; }
+  .resultado-cod { color: var(--muted); font-size: 10px; font-family: 'DM Mono', monospace; flex-shrink: 0; }
+  .resultado-nom { color: var(--text); flex: 1; }
+  .resultado-pvp { color: var(--green); font-weight: 700; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+  .tabla-cot-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cot-catalog-hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+    text-align: center;
+    padding: 10px;
+    background: var(--light);
+    border-radius: 8px;
+    border: 1px dashed var(--border);
+  }
+  .cot-cierre-block {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .tabla-productos {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    table-layout: fixed;
+  }
+  .tabla-productos thead tr { background: var(--navy); }
+  .tabla-productos thead th {
+    padding: 9px 8px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+  .tabla-productos tbody tr { border-bottom: 1px solid var(--border); }
+  .tabla-productos tbody tr:nth-child(even) { background: #f8fafc; }
+  .tabla-productos tbody tr.row-cobro { background: #fffbeb; }
+  .tabla-productos tbody tr.row-servicio { background: #eff6ff; }
+  .tabla-productos td {
+    padding: 8px;
+    font-size: 12px;
+    color: var(--text);
+    vertical-align: middle;
+    word-wrap: break-word;
+  }
+  .td-cod { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); width: 10%; }
+  .td-desc { width: 28%; }
+  .td-cant { width: 8%; text-align: center; }
+  .td-precio, .td-total {
+    width: 22%;
+    min-width: 7.25rem;
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: visible;
+  }
+  .td-total { color: var(--green); font-weight: 700; }
+  .td-action { width: 4%; text-align: center; }
+  .cot-cant-input {
+    width: 56px;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    padding: 4px 6px;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    background: white;
+  }
+  .cot-pvp-input {
+    width: 100%;
+    min-width: 6.5rem;
+    max-width: none;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    padding: 4px 8px;
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    background: white;
+  }
+  .btn-quitar, .btn-quitar-extra {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 36px;
+  }
+  .totales-box {
+    background: var(--light);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .total-row { display: flex; gap: 16px; align-items: center; justify-content: flex-end; width: 100%; }
+  .total-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; min-width: 120px; text-align: right; }
+  .total-val { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 700; color: var(--blue); min-width: 130px; text-align: right; }
+  .total-row.grand { border-top: 2px solid var(--border); padding-top: 10px; margin-top: 4px; }
+  .total-row.grand .total-val { font-size: 18px; color: var(--navy); }
+  .iva-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; align-self: flex-end; }
+  .servicios-grid { display: flex; flex-direction: column; gap: 8px; }
+  .servicio-row {
+    display: grid;
+    grid-template-columns: auto 1fr 120px;
+    gap: 10px;
+    align-items: center;
+    background: var(--light);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+  .servicio-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .cot-servicio-valor {
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 10px;
+    font-size: 16px;
+    text-align: right;
+    background: white;
+    width: 100%;
+    min-height: 44px;
+  }
+  .extra-items-editor { display: flex; flex-direction: column; gap: 10px; }
+  .extra-item-row {
+    display: grid;
+    grid-template-columns: 1fr 120px auto;
+    gap: 10px;
+    align-items: end;
+    background: var(--light);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .extra-items-empty { font-size: 12px; color: var(--muted); font-style: italic; padding: 8px 0; }
+  .btn-add-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--gold);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 44px;
+    width: 100%;
+  }
+  .nota-cot {
+    background: #fefce8;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #92400e;
+    line-height: 1.6;
+  }
+  @media (max-width: 520px) {
+    .extra-item-row { grid-template-columns: 1fr; }
+    .price-list-row { grid-template-columns: 1fr; }
+    .servicio-row { grid-template-columns: auto 1fr; }
+    .servicio-row .cot-servicio-valor { grid-column: span 2; }
+  }
+  @page {
+    size: letter;
+    margin: 15mm;
+  }
+  @media print {
+    .tabla-productos {
+      min-width: 0;
+      table-layout: fixed;
+      overflow: visible !important;
+    }
+    .tabla-cot-wrap { overflow: visible; }
+    .tabla-productos thead { display: table-header-group; }
+    .tabla-productos tbody { display: table-row-group; }
+    .tabla-productos tbody tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid-page !important;
+      -webkit-column-break-inside: avoid !important;
+    }
+    .tabla-productos tbody td {
+      page-break-inside: avoid !important;
+      break-inside: avoid-page !important;
+      vertical-align: top;
+    }
+    .tabla-productos .td-desc {
+      white-space: normal;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      line-height: 1.35;
+    }
+    body.is-printing:not(.is-printing-formato) #view-cotizacion {
+      display: block !important;
+    }
+    body.is-printing #cot-cobros-section,
+    body.is-printing #view-cotizacion .buscador-wrap-cot {
+      display: none !important;
+    }
+    body.is-printing #view-cotizacion .tabla-productos tbody tr.row-cobro {
+      display: table-row !important;
+    }
+    body.is-printing #view-cotizacion .tabla-productos .td-action,
+    body.is-printing #view-cotizacion .tabla-productos thead th:last-child,
+    body.is-printing #view-cotizacion .tabla-productos tbody td:last-child,
+    body.is-printing #view-cuenta-cobro .tabla-productos .td-action,
+    body.is-printing #view-cuenta-cobro .tabla-productos thead th:last-child,
+    body.is-printing #view-cuenta-cobro .tabla-productos tbody td:last-child {
+      display: none !important;
+    }
+    body.is-printing-formato .page {
+      overflow: visible !important;
+    }
+    body.is-printing-formato .dims-table {
+      width: 100% !important;
+      table-layout: fixed !important;
+      border-collapse: collapse !important;
+    }
+    body.is-printing-formato .dims-table th,
+    body.is-printing-formato .dims-table td {
+      width: 25% !important;
+      text-align: center !important;
+      vertical-align: top !important;
+      padding: 0 6px !important;
+    }
+    body.is-printing-formato .dims-table .pdf-valor-dim {
+      display: block !important;
+      width: 100% !important;
+      margin: 0 auto !important;
+      text-align: center !important;
+      font-family: 'DM Mono', monospace !important;
+      font-weight: 600 !important;
+      border-bottom: 1px solid #d1d5db !important;
+      min-height: 32px !important;
+      padding: 6px 4px !important;
+      box-sizing: border-box !important;
+    }
+    body.is-printing-formato .dims-extra {
+      width: 100% !important;
+      table-layout: fixed !important;
+      border-collapse: collapse !important;
+      margin-top: 10px !important;
+    }
+    body.is-printing-formato .dims-extra tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    body.is-printing-formato .dim-field {
+      width: 50% !important;
+      vertical-align: top !important;
+      padding: 0 4px !important;
+      box-sizing: border-box !important;
+    }
+    body.is-printing-formato .dim-field label {
+      text-align: center !important;
+    }
+    body.is-printing-formato .dim-field .pdf-valor {
+      text-align: center !important;
+      font-family: 'DM Mono', monospace !important;
+      font-weight: 600 !important;
+      border-bottom: 1px solid #d1d5db !important;
+      min-height: 32px !important;
+      padding: 6px 4px !important;
+    }
+    body.is-printing-formato #formato-medidas-section,
+    body.is-printing-formato .dims {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    body.is-printing-formato .obs-box,
+    body.is-printing-formato .obs-lines {
+      overflow: visible !important;
+      page-break-inside: auto !important;
+      break-inside: auto !important;
+    }
+    body.is-printing-formato .obs-lines .pdf-valor {
+      display: block !important;
+      width: 100% !important;
+      min-height: 24px !important;
+      padding: 4px 2px 6px !important;
+      border-bottom: 1px solid #d1d5db !important;
+      white-space: normal !important;
+      overflow: visible !important;
+    }
+    body.is-printing-formato #formato-section-observaciones {
+      page-break-inside: auto !important;
+      break-inside: auto !important;
+      overflow: visible !important;
+    }
+    .btn-quitar, .btn-add-item, .extra-items-editor .field label { display: none !important; }
+    .extra-item-row { display: none !important; }
+    .cot-cierre-block {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .cot-bank-section {
+      page-break-before: avoid;
+      break-before: avoid;
+    }
+    .totales-box {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .cot-catalog-hint { display: none !important; }
+  }
+  .settings-modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    background: var(--bg);
+  }
+  .settings-modal-footer button {
+    flex: 1;
+    padding: 11px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-settings-save {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-settings-cancel {
+    background: var(--light);
+    color: var(--text);
+  }
+  .sync-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 20px;
+    font-size: 11px;
+    color: var(--muted, #888);
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+  .btn-sync-now {
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid #c9a84c;
+    color: #c9a84c;
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .btn-sync-now:hover { background: rgba(201,168,76,0.1); }
+  .btn-sync-now.syncing { opacity: 0.55; pointer-events: none; }
+  /* ── PRINT ── */
+  @media print {
+    html, body { background-color: #ffffff !important; background-image: none !important; }
+    body { padding: 0; padding-bottom: 0; margin-bottom: 28mm; }
+    body.is-printing #view-historial { display: none !important; }
+    body.is-printing #view-catalogo { display: none !important; }
+    body.is-printing:not(.is-printing-formato) #view-formato { display: none !important; }
+    body.is-printing-formato #view-formato { display: block !important; }
+    body.is-printing-formato #view-cotizacion,
+    body.is-printing-formato #view-cuenta-cobro { display: none !important; }
+    body.is-printing-formato.formato-has-video-qr #formato-video-section { display: none !important; }
+    body.is-printing-formato .formato-video-qr-print.formato-video-qr-visible {
+      display: block !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .suite-footer-global-link::after,
+    a[href]::after { content: none !important; }
+    body.is-printing::before,
+    body.is-printing-formato::before {
+      content: '';
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 10mm;
+      background: #ffffff;
+      z-index: 9998;
+    }
+    .page { box-shadow: none; border-radius: 0; }
+    .photo-box input[type=file] { display: none; }
+    button { display: none !important; }
+    .settings-overlay, .main-menu { display: none !important; }
+    #trial-capture-gate,
+    .trial-capture-gate,
+    .trial-capture-gate--modal { display: none !important; visibility: hidden !important; }
+    .suite-footer {
+      display: block !important;
+      position: fixed;
+      bottom: 10mm;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      background: #fff;
+      border-top: 1px solid #e2e8f0;
+    }
+    .suite-footer-local {
+      color: #334155;
+      font-size: 10px;
+      padding: 8px 24px 6px;
+    }
+    .suite-footer-divider {
+      border-top-color: #e2e8f0;
+      margin: 0 24px;
+    }
+    .suite-footer-global {
+      padding: 6px 24px 10px;
+    }
+    .suite-footer-global-text,
+    .suite-footer-global-link {
+      color: #475569;
+      font-size: 8pt;
+    }
+    .cobros-editor, .cobros-editor .field label, .cobro-remove, #cobros-actions-cot, .btn-firma-clear { display: none !important; }
+    .historial-actions, .historial-delete, .btn-ver-doc { display: none !important; }
+    .firma-canvas-hidden-print { display: none !important; }
+    .firma-print-img { display: block !important; }
+    .header {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+      padding: 16px 24px 12px;
+    }
+    .brand-logo-wrap {
+      margin: 0 auto;
+      order: -1;
+      max-width: 180px;
+      min-height: 64px;
+      padding: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+    .header #brand-logo {
+      max-height: 56px;
+    }
+    .header-info, .header-meta {
+      flex: none;
+      width: 100%;
+      text-align: center;
+    }
+    .header-meta .no-field { justify-content: center; }
+    #validation-badge { display: none !important; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  @media (max-width: 520px) {
+    .g3 { grid-template-columns: 1fr 1fr; }
+    .g4 { grid-template-columns: 1fr 1fr; }
+    .dims-extra { grid-template-columns: 1fr; }
+    .firmas { grid-template-columns: 1fr; }
+    .header { flex-wrap: wrap; }
+    .header-meta { width: 100%; text-align: left; }
+  }
+
+  .brand-placeholder {
+    opacity: 0.72;
+    letter-spacing: 0.06em;
+  }
+  html.brand-unconfigured .brand-company-contact {
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.9;
+  }
+  .license-gate {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    background: #1a2a4a;
+  }
+  html:not(.license-ok) .license-gate { display: flex; }
+  html:not(.license-ok) .page,
+  html:not(.license-ok) .main-menu,
+  html:not(.license-ok) .settings-overlay { visibility: hidden; }
+  .trial-capture-gate {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    background: #1a2a4a;
+  }
+  html.trial-capture-active .trial-capture-gate { display: flex; }
+  html.trial-capture-active .license-gate { display: none !important; }
+  html.trial-capture-active .page,
+  html.trial-capture-active .main-menu,
+  html.trial-capture-active .settings-overlay { visibility: hidden; }
+  body.is-printing #trial-capture-gate,
+  body.is-printing-formato #trial-capture-gate { display: none !important; visibility: hidden !important; }
+  .trial-capture-gate--modal {
+    display: flex !important;
+    z-index: 10002;
+    background: rgba(26, 42, 74, 0.78);
+  }
+  .trial-capture-card {
+    width: 100%;
+    max-width: 400px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 28px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    text-align: center;
+  }
+  .trial-capture-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a2a4a;
+    margin: 0 0 12px;
+  }
+  .trial-capture-sub {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #64748b;
+    margin: 0 0 20px;
+  }
+  .trial-capture-field {
+    text-align: left;
+    margin-bottom: 16px;
+  }
+  .trial-capture-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+  }
+  .trial-capture-field input,
+  .trial-capture-field select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: 'DM Sans', sans-serif;
+    background: #fff;
+  }
+  .trial-capture-field input:focus,
+  .trial-capture-field select:focus {
+    outline: none;
+    border-color: #c9a84c;
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.25);
+  }
+  .trial-capture-error {
+    display: none;
+    font-size: 12px;
+    color: #dc2626;
+    margin: -8px 0 12px;
+    text-align: left;
+  }
+  .trial-capture-error.visible { display: block; }
+  .trial-capture-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #c9a84c;
+    color: #1a2a4a;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .trial-capture-btn:hover { background: #d4b86a; }
+  .trial-capture-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .license-gate-panel { display: none; }
+  .license-gate-panel.is-visible { display: block; }
+  .license-gate-loading-spinner {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 16px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #c9a84c;
+    border-radius: 50%;
+    animation: license-spin 0.8s linear infinite;
+  }
+  @keyframes license-spin { to { transform: rotate(360deg); } }
+  .license-gate-expired-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+  .license-gate-upgrade-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px 0 16px;
+  }
+  .license-gate-btn-pro {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    background: #1a2a4a;
+    color: #ffffff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    letter-spacing: 0.03em;
+  }
+  .license-gate-btn-pyme {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    background: #c9a84c;
+    color: #1a2a4a;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    letter-spacing: 0.03em;
+  }
+  .license-gate-btn-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #1a2a4a;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .license-gate-manual-link {
+    margin-top: 16px;
+    font-size: 12px;
+    color: #5a6478;
+  }
+  .license-gate-manual-link a {
+    color: #1a2a4a;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+  }
+  .license-gate-loading-continue {
+    margin-top: 16px;
+    width: 100%;
+  }
+  .license-gate-loading-continue[hidden] { display: none !important; }
+  .license-gate-card {
+    width: 100%;
+    max-width: 400px;
+    background: #ffffff;
+    border: 2px solid #c9a84c;
+    border-radius: 16px;
+    padding: 32px 28px 28px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    text-align: center;
+  }
+  .license-gate-logo-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    background: #1a2a4a;
+    border-radius: 12px;
+    padding: 10px;
+    width: 120px;
+    height: 120px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+  .license-gate-logo-wrap img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .license-gate-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #1a2a4a;
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .license-gate-sub {
+    font-size: 13px;
+    color: #5a6478;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+  .license-gate-field {
+    text-align: left;
+    margin-bottom: 12px;
+  }
+  .license-gate-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1a2a4a;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+  .license-gate-field input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #c9a84c;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: center;
+    min-height: 48px;
+    color: #1a2a4a;
+  }
+  .license-gate-field input:focus {
+    outline: none;
+    border-color: #1a2a4a;
+    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.35);
+  }
+  .license-gate-error {
+    display: none;
+    font-size: 12px;
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    line-height: 1.45;
+    text-align: left;
+  }
+  .license-gate-error.visible { display: block; }
+  .license-gate-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #c9a84c;
+    color: #1a2a4a;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 48px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .license-gate-btn:hover { background: #d4b86a; }
+  .license-gate-btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+  @media print {
+    .license-gate { display: none !important; }
+    #trial-capture-gate,
+    .trial-capture-gate,
+    .trial-capture-gate--modal { display: none !important; visibility: hidden !important; }
+  }
+
+  /* ── ONBOARDING ── */
+  .onboarding-gate {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: #f1f5f9;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  html.onboarding-active .onboarding-gate.open { display: flex; }
+  html.onboarding-active .page,
+  html.onboarding-active .main-menu,
+  html.onboarding-active .catalogo-fab { visibility: hidden !important; }
+  html.onboarding-active .settings-overlay:not(.onboarding-step-modal) { visibility: hidden !important; }
+  html.onboarding-active .onboarding-step-modal.open {
+    visibility: visible !important;
+    display: flex !important;
+  }
+  .onboarding-nav {
+    background: #1a2a4a;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 3px solid #c9a84c;
+  }
+  .onboarding-nav img {
+    max-height: 44px;
+    max-width: 180px;
+    object-fit: contain;
+  }
+  .onboarding-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px 40px;
+  }
+  .onboarding-card {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 22px;
+    box-shadow: 0 8px 32px rgba(26, 42, 74, 0.12);
+    text-align: center;
+  }
+  .onboarding-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a2a4a;
+    margin: 0 0 8px;
+    letter-spacing: 0.02em;
+  }
+  .onboarding-sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 24px;
+    line-height: 1.5;
+  }
+  .onboarding-rubros {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: min(52vh, 480px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .btn-onboarding-rubro {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #1a2a4a;
+    border-radius: 10px;
+    background: #fff;
+    color: #1a2a4a;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    min-height: 52px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-onboarding-rubro:hover,
+  .btn-onboarding-rubro:active {
+    background: #1a2a4a;
+    color: #fff;
+  }
+  .btn-onboarding-rubro.primary {
+    background: #c9a84c;
+    border-color: #c9a84c;
+    color: #1a2a4a;
+  }
+  .btn-onboarding-rubro.primary:hover,
+  .btn-onboarding-rubro.primary:active {
+    background: #b8963f;
+    border-color: #b8963f;
+    color: #1a2a4a;
+  }
+  #onboarding-demo-modal { z-index: 1200; }
+  #onboarding-otro-modal { z-index: 1200; }
+  #onboarding-demo-modal .settings-modal-header {
+    background: #1a2a4a;
+  }
+  #onboarding-demo-modal .settings-modal-header h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.03em;
+  }
+  .onboarding-demo-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.55;
+    margin: 0;
+    text-align: center;
+  }
+  .onboarding-explainer-list {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .onboarding-explainer-list li {
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 10px 12px;
+    background: rgba(201, 168, 76, 0.08);
+    border-radius: 8px;
+  }
+  .onboarding-demo-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  .btn-onboarding-demo-yes {
+    background: #c9a84c !important;
+    color: #1a2a4a !important;
+    font-weight: 700 !important;
+  }
+  .btn-onboarding-demo-skip {
+    background: transparent !important;
+    color: #1a2a4a !important;
+    font-weight: 700 !important;
+    border: 2px solid #1a2a4a !important;
+  }
+  #onboarding-otro-modal .settings-modal-header {
+    background: #1a2a4a;
+  }
+  #onboarding-otro-modal .settings-modal-header h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+  }
+  .btn-onboarding-otro-continue {
+    background: #c9a84c !important;
+    color: #1a2a4a !important;
+    font-weight: 700 !important;
+    width: 100%;
+  }
+</style>
+<script>
+(function () {
+  var LANDING_URL = 'https://arpatechnologyglobal.com/';
+  var SETTINGS_KEY = 'arpa_suite_user_settings';
+  var CONFIGURED_KEY = 'arpa_suite_settings_configured';
+  var SALES_ENTRY_KEY = 'arpa_suite_sales_entry';
+  var LICENSE_KEY = 'arpa_suite_license_code';
+
+  function hasCompanySettings() {
+    try {
+      return localStorage.getItem(CONFIGURED_KEY) === 'true';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function purgeLegacyStorageEarly() {
+    try {
+      function legacyText(t) {
+        var b = String(t || '').toLowerCase();
+        if (/automatismos\s*arlen\s*pav|automatismos\s*arlenpav|arlen\s*pavon|arlenpav/.test(b)) return true;
+        if (b.indexOf('automatismos') >= 0 && b.indexOf('arlen') >= 0) return true;
+        if (/901\.?\s*473\.?\s*259/.test(b)) return true;
+        return false;
+      }
+      var saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      var logoBackup = '';
+      try { logoBackup = localStorage.getItem('arpa_logo') || ''; } catch (e) {}
+      if (!logoBackup && saved.logoBase64) logoBackup = saved.logoBase64;
+      if (legacyText(JSON.stringify(saved))) {
+        localStorage.removeItem(SETTINGS_KEY);
+        localStorage.removeItem(CONFIGURED_KEY);
+        if (logoBackup) {
+          try { localStorage.setItem('arpa_logo', logoBackup); } catch (e) {}
+        }
+      }
+      var draft = localStorage.getItem('arpa_formato_borrador') || '';
+      if (legacyText(draft)) localStorage.removeItem('arpa_formato_borrador');
+    } catch (e) {}
+  }
+
+  purgeLegacyStorageEarly();
+
+  function hasSalesEntry() {
+    try {
+      return localStorage.getItem(SALES_ENTRY_KEY) === 'true';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hasActiveLicense() {
+    try {
+      return Boolean((localStorage.getItem(LICENSE_KEY) || '').trim());
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function markSalesEntry() {
+    try {
+      localStorage.setItem(SALES_ENTRY_KEY, 'true');
+    } catch (e) {}
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('start') === '1' || params.get('from') === 'landing') {
+    markSalesEntry();
+    if (window.history && window.history.replaceState) {
+      params.delete('start');
+      params.delete('from');
+      var qs = params.toString();
+      var clean = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+      window.history.replaceState(null, '', clean);
+    }
+  }
+
+  if (!hasCompanySettings() && !hasSalesEntry() && !hasActiveLicense()) {
+    window.location.replace(LANDING_URL);
+  }
+})();
+</script>
+<script>
+document.documentElement.classList.add('license-checking');
+</script>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-G4JSR6JWER"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-G4JSR6JWER');
+</script>
+</head>
+<body>
+
+<div id="trial-capture-gate" class="trial-capture-gate" role="dialog" aria-modal="true" aria-labelledby="trial-capture-title" hidden>
+  <div class="trial-capture-card">
+    <h1 id="trial-capture-title" class="trial-capture-title" data-i18n="trial_capture.title_achievement">¡Sigue avanzando con ARPA Suite!</h1>
+    <p class="trial-capture-sub" data-i18n="trial_capture.subtitle_achievement">Completa el formulario en menos de un minuto. Te avisamos por WhatsApp antes de que venza tu prueba gratis.</p>
+    <div class="trial-capture-field">
+      <label for="trial-capture-name" data-i18n="trial_capture.label_name">Nombre completo</label>
+      <input type="text" id="trial-capture-name" autocomplete="name" placeholder="Ej: Juan Pérez" data-i18n-placeholder="trial_capture.placeholder_name">
+    </div>
+    <div class="trial-capture-field">
+      <label for="trial-capture-oficio" data-i18n="trial_capture.label_oficio">Oficio principal</label>
+      <select id="trial-capture-oficio" data-i18n-aria-label="trial_capture.label_oficio" aria-label="Oficio principal"></select>
+    </div>
+    <div class="trial-capture-field">
+      <label for="trial-capture-phone" data-i18n="trial_capture.label_phone">WhatsApp (con indicativo)</label>
+      <input type="tel" id="trial-capture-phone" autocomplete="tel" inputmode="tel" placeholder="Ej: +52 55 1234 5678" data-i18n-placeholder="trial_capture.placeholder_phone">
+    </div>
+    <p id="trial-capture-error" class="trial-capture-error" role="alert"></p>
+    <button type="button" id="trial-capture-submit" class="trial-capture-btn" data-i18n="trial_capture.btn_submit">Guardar y continuar</button>
+  </div>
+</div>
+
+<div id="license-gate" class="license-gate" role="dialog" aria-modal="true" aria-labelledby="license-gate-title">
+  <div class="license-gate-card">
+    <div class="license-gate-logo-wrap">
+      <img id="license-gate-logo" src="./icon-192x192.png" alt="ARPA Suite">
+    </div>
+    <h1 id="license-gate-title" class="license-gate-title" data-i18n="license_gate.title">ARPA Suite</h1>
+    <div id="license-gate-loading" class="license-gate-panel is-visible">
+      <div class="license-gate-loading-spinner" aria-hidden="true"></div>
+      <p id="license-gate-loading-text" class="license-gate-sub" data-i18n="license_gate.loading">Activando su prueba de 7 días…</p>
+      <p class="license-gate-manual-link"><span data-i18n="license_gate.have_code">¿Ya tiene un código Pro o PYME?</span> <a href="#" id="license-show-manual-loading" data-i18n="license_gate.enter_code">Ingréselo aquí</a></p>
+      <button type="button" id="license-loading-continue" class="license-gate-btn license-gate-loading-continue" hidden data-i18n="license_gate.btn_continue_trial">Continuar con prueba gratis</button>
+    </div>
+    <div id="license-gate-expired" class="license-gate-panel">
+      <div class="license-gate-expired-icon" aria-hidden="true">⏱</div>
+      <p class="license-gate-sub" data-i18n="license_gate.expired_title">Su prueba de 7 días ha terminado.</p>
+      <p class="license-gate-sub" data-i18n="license_gate.expired_sub">Elija un plan para seguir usando ARPA Suite. Recibirá su código por email al comprar.</p>
+      <div class="license-gate-upgrade-btns">
+        <a id="license-btn-pro" class="license-gate-btn-pro" href="https://arpatechnologyglobal.com/" target="_blank" rel="noopener" data-i18n="license_gate.btn_pro">Comprar plan Pro</a>
+        <a id="license-btn-pyme" class="license-gate-btn-pyme" href="https://arpatechnologyglobal.com/" target="_blank" rel="noopener" data-i18n="license_gate.btn_pyme">Comprar plan PYME</a>
+      </div>
+      <a id="license-btn-whatsapp" class="license-gate-btn-link" href="https://wa.me/573016092542" target="_blank" rel="noopener" data-i18n="license_gate.btn_whatsapp">¿Dudas? Escríbenos por WhatsApp</a>
+      <p class="license-gate-manual-link"><span data-i18n="license_gate.have_code">¿Ya tiene un código Pro o PYME?</span> <a href="#" id="license-show-manual" data-i18n="license_gate.enter_code">Ingréselo aquí</a></p>
+    </div>
+    <div id="license-gate-activate" class="license-gate-panel">
+      <p id="license-gate-sub" class="license-gate-sub" data-i18n="license_gate.subtitle">Ingrese su código de licencia para activar la plataforma.</p>
+      <div class="license-gate-field">
+        <label for="license-code-input" data-i18n="license_gate.label_code">Código de licencia</label>
+        <input type="text" id="license-code-input" autocomplete="off" spellcheck="false" data-i18n-placeholder="license_gate.placeholder_code" placeholder="Su código de licencia" inputmode="text">
+      </div>
+      <p id="license-error" class="license-gate-error" role="alert"></p>
+      <button type="button" id="license-activate-btn" class="license-gate-btn" data-i18n="license_gate.btn_verify">Verificar</button>
+      <p class="license-gate-manual-link"><a href="#" id="license-retry-trial" data-i18n="license_gate.retry_trial" hidden>Reintentar activación automática</a></p>
+    </div>
+  </div>
+</div>
+
+<div id="onboarding-gate" class="onboarding-gate" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+  <header class="onboarding-nav">
+    <img src="./icon-192x192.png" alt="ARPA Suite">
+  </header>
+  <div class="onboarding-body">
+    <div class="onboarding-card">
+      <h1 id="onboarding-title" class="onboarding-title" data-i18n="onboarding.title">Bienvenido a ARPA Suite</h1>
+      <p class="onboarding-sub" data-i18n="onboarding.subtitle_rubro">¿Cuál es tu rubro principal?</p>
+      <div class="onboarding-rubros" id="onboarding-rubros"></div>
+    </div>
+  </div>
+</div>
+
+<div class="settings-overlay onboarding-step-modal" id="onboarding-demo-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-demo-title">
+  <div class="settings-modal">
+    <div class="settings-modal-header">
+      <h2 id="onboarding-demo-title" data-i18n="onboarding.demo.title">Catálogo BFT, Accessmatic, Elite y NAS</h2>
+    </div>
+    <div class="settings-modal-body">
+      <p id="onboarding-demo-text" class="onboarding-demo-text" data-i18n="onboarding.demo.text">¿Deseas precargar el catálogo base?</p>
+    </div>
+    <div class="settings-modal-footer onboarding-demo-actions">
+      <button type="button" id="btn-onboarding-demo-skip" class="btn-onboarding-demo-skip" data-i18n="onboarding.demo.btn_skip">Omitir, empezar vacío</button>
+      <button type="button" id="btn-onboarding-demo-yes" class="btn-onboarding-demo-yes" data-i18n="onboarding.demo.btn_yes">Sí, cargar catálogo</button>
+    </div>
+  </div>
+</div>
+
+<div class="settings-overlay onboarding-step-modal" id="onboarding-otro-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-otro-title">
+  <div class="settings-modal">
+    <div class="settings-modal-header">
+      <h2 id="onboarding-otro-title" data-i18n="onboarding.otro.title">Así funciona ARPA Suite</h2>
+    </div>
+    <div class="settings-modal-body">
+      <p class="onboarding-demo-text" data-i18n="onboarding.otro.text_intro">Vas a llenar este formato en el sitio del cliente, desde el celular.</p>
+      <ul class="onboarding-explainer-list">
+        <li data-i18n="onboarding.otro.item1">📋 Llena los datos del servicio — toma 2 minutos</li>
+        <li data-i18n="onboarding.otro.item2">📄 Genera el PDF profesional al instante</li>
+        <li data-i18n="onboarding.otro.item3">💬 Compártelo por WhatsApp o guárdalo — es gratis los primeros 7 días</li>
+      </ul>
+    </div>
+    <div class="settings-modal-footer onboarding-demo-actions">
+      <button type="button" id="btn-onboarding-otro-continue" class="btn-onboarding-otro-continue" data-i18n="onboarding.otro.btn_continue">Entendido, comenzar →</button>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand-logo-wrap">
+      <img id="brand-logo" src="./icon-192x192.png" alt="ARPA Suite">
+    </div>
+    <div class="header-info">
+      <h1 id="brand-company-name">&nbsp;</h1>
+      <p id="brand-company-contact">&nbsp;</p>
+      <div id="validation-badge" style="display:inline-flex; align-items:center; gap:6px; margin-top:8px; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);">
+        <span id="validation-dot" style="width:6px; height:6px; border-radius:50%; background:#16a34a; display:inline-block;"></span>
+        <span id="validation-text" style="color:#a8c0e8;" data-i18n="header.validation_badge">Arpa Suite</span>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="lang-switch" id="lang-switch" role="group" data-i18n-aria-label="header.lang.aria" aria-label="Language">
+        <span class="lang-icon" aria-hidden="true">🌐</span>
+        <button type="button" class="lang-btn active" data-lang="es" id="lang-btn-es">ES</button>
+        <span class="lang-sep">|</span>
+        <button type="button" class="lang-btn" data-lang="en" id="lang-btn-en">EN</button>
+      </div>
+      <button type="button" class="settings-btn" onclick="openSettingsModal()" data-i18n-title="header.settings.title" data-i18n-aria-label="header.settings.aria" title="Ajustes de empresa" aria-label="Ajustes de empresa">⚙️</button>
+      <div class="doc-type" id="doc-type-label" data-i18n="header.doc_type.formato">Formato de Servicio</div>
+      <div id="header-meta-formato">
+        <div class="no-field">
+          <label data-i18n="header.number_label">N°</label>
+          <input type="text" id="numero-formato" data-i18n-placeholder="header.placeholder.formato_number" placeholder="0001" style="cursor:pointer;" data-i18n-title="header.title.tap_new_number" title="Toca para generar nuevo número">
+        </div>
+        <div style="margin-top:5px;">
+          <button onclick="nuevoNumero()" style="background:var(--gold);color:white;border:none;border-radius:5px;padding:4px 9px;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.5px;" data-i18n="header.btn_new_number">+ NUEVO N°</button>
+          <span id="sync-status-formato" style="display:none;font-size:9px;font-weight:700;margin-left:6px;padding:2px 6px;border-radius:4px;"></span>
+        </div>
+      </div>
+      <div id="header-meta-cot" hidden>
+        <div class="no-field">
+          <label data-i18n="header.number_label">N°</label>
+          <input type="text" id="numero-cot" data-i18n-placeholder="header.placeholder.cot_number" placeholder="COT-001">
+        </div>
+        <div style="margin-top:5px;">
+          <button type="button" onclick="nuevoCotNumero()" style="background:var(--gold);color:white;border:none;border-radius:5px;padding:4px 9px;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.5px;" data-i18n="header.btn_new_number">+ NUEVO N°</button>
+          <span id="sync-status-cot" style="display:none;font-size:9px;font-weight:700;margin-left:6px;padding:2px 6px;border-radius:4px;"></span>
+        </div>
+      </div>
+      <div id="header-meta-cc" hidden>
+        <div class="no-field">
+          <label data-i18n="header.number_label">N°</label>
+          <input type="text" id="cc-numero" data-i18n-placeholder="header.placeholder.cc_number" placeholder="CC-001" readonly style="cursor:default;">
+        </div>
+        <div style="margin-top:5px;">
+          <button type="button" onclick="nuevoCcNumero()" style="background:var(--gold);color:white;border:none;border-radius:5px;padding:4px 9px;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.5px;" data-i18n="header.btn_new_number">+ NUEVO N°</button>
+          <span id="sync-status-cc" style="display:none;font-size:9px;font-weight:700;margin-left:6px;padding:2px 6px;border-radius:4px;"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="gold-bar"></div>
+
+  <div id="view-formato" class="suite-view body">
+
+    <!-- 1. TIPO DE SERVICIO -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.tipo_servicio">Tipo de Servicio</span></div>
+      <div class="toggle-group">
+        <input type="radio" name="tipo" id="t1" value="instalacion" checked>
+        <label for="t1" data-i18n="formato.tipo.instalacion">⚙️ Instalación</label>
+        <input type="radio" name="tipo" id="t2" value="mantenimiento">
+        <label for="t2" data-i18n="formato.tipo.mantenimiento">🔧 Mantenimiento</label>
+        <input type="radio" name="tipo" id="t3" value="reparacion">
+        <label for="t3" data-i18n="formato.tipo.reparacion">🛠 Reparación</label>
+      </div>
+    </div>
+
+    <!-- 2. DATOS DEL CLIENTE -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.datos_cliente">Datos del Cliente</span></div>
+      <div class="grid g2">
+        <div class="field span2"><label data-i18n="formato.label.nombre_empresa">Nombre / Empresa</label><input type="text" id="formato-cliente-nombre" data-i18n-placeholder="formato.placeholder.nombre_empresa" placeholder="Nombre completo o razón social" autocomplete="off" list="arpa-clientes-datalist"></div>
+        <div class="field"><label data-i18n="formato.label.nit_cedula">NIT / Cédula</label><input type="text" data-i18n-placeholder="formato.placeholder.nit_cedula" placeholder="000.000.000-0"></div>
+        <div class="field"><label data-i18n="formato.label.telefono">Teléfono</label><input type="tel" id="formato-cliente-tel" data-i18n-placeholder="formato.placeholder.telefono" placeholder="Número de contacto"></div>
+        <div class="field span2"><label data-i18n="formato.label.direccion_instalacion">Dirección de instalación</label><input type="text" data-i18n-placeholder="formato.placeholder.direccion" placeholder="Calle, carrera, barrio..."></div>
+        <div class="field"><label data-i18n="formato.label.ciudad">Ciudad</label><input type="text" id="formato-cliente-ciudad" data-i18n-placeholder="formato.placeholder.ciudad" placeholder="Medellín"></div>
+        <div class="field"><label data-i18n="formato.label.fecha">Fecha</label><input type="date" id="formato-fecha"></div>
+      </div>
+    </div>
+
+    <!-- 3. TÉCNICO -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.tecnico">Técnico Responsable</span></div>
+      <div class="grid g2">
+        <div class="field"><label data-i18n="formato.label.tecnico">Técnico</label><input type="text" id="campo-tecnico-responsable" data-i18n-placeholder="formato.placeholder.tecnico" placeholder="Nombre del técnico"></div>
+        <div class="field"><label data-i18n="formato.label.auxiliar">Auxiliar (si aplica)</label><input type="text" data-i18n-placeholder="formato.placeholder.auxiliar" placeholder="Nombre del auxiliar"></div>
+      </div>
+    </div>
+
+    <!-- 4. TIPO DE PUERTA -->
+    <div class="section" id="formato-tipo-section">
+      <div class="section-title"><span class="dot"></span><span id="formato-tipo-titulo" data-i18n="formato.section.tipo_puerta">Tipo de Puerta / Motor</span></div>
+      <div class="chips" id="formato-tipo-chips">
+        <input type="checkbox" id="c1"><label for="c1" data-i18n="formato.puerta.corrediza">Corrediza</label>
+        <input type="checkbox" id="c2"><label for="c2" data-i18n="formato.puerta.batiente_1">Batiente 1 hoja</label>
+        <input type="checkbox" id="c3"><label for="c3" data-i18n="formato.puerta.batiente_2">Batiente 2 hojas</label>
+        <input type="checkbox" id="c4"><label for="c4" data-i18n="formato.puerta.levadiza">Levadiza</label>
+        <input type="checkbox" id="c5"><label for="c5" data-i18n="formato.puerta.seccional">Seccional</label>
+        <input type="checkbox" id="c6"><label for="c6" data-i18n="formato.puerta.barrera">Barrera vehicular</label>
+        <input type="checkbox" id="c7"><label for="c7" data-i18n="formato.puerta.techo_corredizo">Techo corredizo</label>
+        <input type="checkbox" id="c9"><label for="c9" data-i18n="formato.puerta.cortina_enrollable">Cortina enrollable</label>
+        <input type="checkbox" id="c8"><label for="c8" data-i18n="formato.puerta.otra">Otra</label>
+      </div>
+      <div class="field" id="formato-tipo-otra-wrap" hidden style="margin-top:10px;">
+        <input type="text" id="formato-tipo-otra-texto" data-i18n-placeholder="formato.placeholder.tipo_otra" placeholder="Especifique...">
+      </div>
+    </div>
+
+    <!-- 5. MEDIDAS -->
+    <div class="section" id="formato-medidas-section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.medidas">Medidas del Vano</span></div>
+      <div class="dims">
+        <table class="dims-table">
+          <thead>
+            <tr>
+              <th data-i18n="formato.label.ancho_a">Ancho A (m)</th>
+              <th data-i18n="formato.label.alto_h">Alto H (m)</th>
+              <th data-i18n="formato.label.md">MD (m)</th>
+              <th data-i18n="formato.label.mi">MI (m)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" data-i18n-placeholder="formato.placeholder.dimension" placeholder="0.00"></td>
+              <td><input type="text" data-i18n-placeholder="formato.placeholder.dimension" placeholder="0.00"></td>
+              <td><input type="text" data-i18n-placeholder="formato.placeholder.dimension" placeholder="0.00"></td>
+              <td><input type="text" data-i18n-placeholder="formato.placeholder.dimension" placeholder="0.00"></td>
+            </tr>
+          </tbody>
+        </table>
+        <table class="dims-extra">
+          <tbody>
+            <tr>
+              <td class="dim-field"><label data-i18n="formato.label.peso">Peso aprox. (kg)</label><input type="text" data-i18n-placeholder="formato.placeholder.peso" placeholder="kg"></td>
+              <td class="dim-field"><label data-i18n="formato.label.material_puerta">Material puerta</label><input type="text" data-i18n-placeholder="formato.placeholder.material_puerta" placeholder="Hierro, aluminio..."></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 6. EQUIPO -->
+    <div class="section" id="formato-equipo-section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.equipo">Equipo Instalado</span></div>
+      <div class="grid g2">
+        <div class="field" id="formato-equipo-marca-motor" data-formato-equipo-motor><label data-i18n="formato.label.marca_motor">Marca del motor</label>
+          <select id="sel-marca" onchange="actualizarReferencias()">
+            <option value="" data-i18n="formato.select.seleccionar">Seleccionar...</option>
+            <option value="Accessmatic">Accessmatic</option>
+            <option value="Elite">Elite</option>
+            <option value="BFT">BFT</option>
+
+            <option value="Liftmaster">Liftmaster</option>
+            <option value="Beninca">Beninca</option>
+            <option value="NAS">NAS</option>
+            <option value="Otra" data-i18n="formato.select.otra_marca">Otra</option>
+          </select>
+        </div>
+        <div class="field" id="formato-equipo-marca-generico" hidden data-formato-equipo-generico>
+          <label data-i18n="formato.label.marca" data-i18n-default="Marca">Marca</label>
+          <input id="formato-equipo-marca-text" type="text" data-i18n-placeholder="formato.placeholder.marca" placeholder="Ej: Samsung, LG...">
+        </div>
+        <div class="field" id="formato-equipo-ref-motor" data-formato-equipo-motor>
+          <label data-i18n="formato.label.referencia_modelo">Referencia / Modelo</label>
+          <select id="sel-referencia" style="display:none">
+            <option value="" data-i18n="formato.select.seleccionar_referencia">Seleccionar referencia...</option>
+          </select>
+          <input id="ref-manual" type="text" data-i18n-placeholder="formato.placeholder.referencia_manual" placeholder="Ej: ARES 1500">
+        </div>
+        <div class="field" id="formato-equipo-ref-generico" hidden data-formato-equipo-generico>
+          <label data-i18n="formato.label.referencia_modelo">Referencia / Modelo</label>
+          <input id="formato-equipo-ref-text" type="text" data-i18n-placeholder="formato.placeholder.referencia_manual" placeholder="Ej: ARES 1500">
+        </div>
+        <div class="field"><label data-i18n="formato.label.serie_codigo">Serie / Código</label><input type="text" data-i18n-placeholder="formato.placeholder.serie" placeholder="N° de serie"></div>
+        <div class="field"><label data-i18n="formato.label.voltaje">Voltaje</label>
+          <select>
+            <option>110V</option><option>220V</option><option>110V / 220V</option>
+          </select>
+        </div>
+      </div>
+      <div id="formato-equipo-accesorios" style="margin-top:10px;">
+        <div class="field"><label style="margin-bottom:6px; display:block;" data-i18n="formato.label.accesorios">Accesorios incluidos</label>
+          <div class="check-group">
+            <label class="check-item"><input type="checkbox"><span data-i18n="formato.accesorio.control_remoto">Control remoto</span></label>
+            <label class="check-item"><input type="checkbox"><span data-i18n="formato.accesorio.teclado">Teclado numérico</span></label>
+            <label class="check-item"><input type="checkbox"><span data-i18n="formato.accesorio.fotocelda">Fotocelda</span></label>
+            <label class="check-item"><input type="checkbox"><span data-i18n="formato.accesorio.sensor_apertura">Sensor apertura</span></label>
+            <label class="check-item"><input type="checkbox"><span data-i18n="formato.accesorio.bateria">Batería respaldo</span></label>
+            <label class="check-item"><input type="checkbox"><span data-i18n="formato.accesorio.cierre_automatico">Cierre automático</span></label>
+            <label class="check-item"><input type="checkbox"><span data-i18n="formato.accesorio.tarjeta_lector">Tarjeta / lector</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. FOTOS -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.fotos">Registro Fotográfico</span></div>
+      <div class="photos-grid">
+
+        <!-- ANTES -->
+        <div class="photo-box" id="box-before">
+          <div class="photo-badge" data-i18n="formato.foto.badge_antes">Antes</div>
+          <input type="file" id="file-before-gal" accept="image/*" multiple onchange="loadPhotos(this,'before-preview')" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+          <div id="before-placeholder">
+            <div class="icon">📷</div>
+            <div class="ph-label" data-i18n="formato.foto.label_antes">Foto Antes</div>
+            <label class="ph-btn-label" for="file-before-gal" data-i18n="formato.foto.btn_galeria">🖼 Galería / Cámara</label>
+          </div>
+          <div id="before-preview" style="display:none;width:100%;padding:4px;flex-wrap:wrap;gap:4px;"></div>
+        </div>
+
+        <!-- DESPUÉS -->
+        <div class="photo-box" id="box-after">
+          <div class="photo-badge" style="background:var(--green)" data-i18n="formato.foto.badge_despues">Después</div>
+          <input type="file" id="file-after-gal" accept="image/*" multiple onchange="loadPhotos(this,'after-preview')" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+          <div id="after-placeholder">
+            <div class="icon">✅</div>
+            <div class="ph-label" data-i18n="formato.foto.label_despues">Foto Después</div>
+            <label class="ph-btn-label" for="file-after-gal" data-i18n="formato.foto.btn_galeria">🖼 Galería / Cámara</label>
+          </div>
+          <div id="after-preview" style="display:none;width:100%;padding:4px;flex-wrap:wrap;gap:4px;"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 9. OBSERVACIONES -->
+    <div class="section" id="formato-section-observaciones">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.observaciones">Observaciones y Recomendaciones</span></div>
+      <div class="obs-box">
+        <div class="obs-lines">
+          <input type="text" data-i18n-placeholder="formato.placeholder.obs1" placeholder="Observación 1...">
+          <input type="text" data-i18n-placeholder="formato.placeholder.obs2" placeholder="Observación 2...">
+          <input type="text" data-i18n-placeholder="formato.placeholder.obs3" placeholder="Observación 3...">
+          <input type="text" data-i18n-placeholder="formato.placeholder.obs4" placeholder="Observación 4...">
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTA -->
+    <div class="nota">
+      <strong data-i18n="formato.nota.label">Nota:</strong> <span data-i18n-html="formato.nota.body">El cliente debe suministrar punto eléctrico (110V–220V) con polo a tierra para la instalación,
+      incluyendo cableado y tubería para sensores si se requieren.</span>
+    </div>
+
+    <!-- GARANTÍA -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.garantia">Términos de Garantía</span></div>
+      <div class="garantia">
+        <div class="garantia-header" id="brand-warranty-header">
+          <span class="shield">🛡️</span> <span data-i18n="formato.garantia.header_static">Términos de Garantía</span>
+        </div>
+        <div class="garantia-body">
+          <div class="garantia-item">
+            <div class="gi-icon gi-ok">✅</div>
+            <div><strong data-i18n="formato.garantia.tiempo.label">Tiempo de garantía:</strong> <span data-i18n-html="formato.garantia.tiempo.body">La garantía de mano de obra es de 1 año a partir de la fecha del servicio. Los equipos tienen garantía de 2 años contra defectos de fabricación.</span></div>
+          </div>
+          <div class="garantia-item">
+            <div class="gi-icon gi-cal">📅</div>
+            <div><strong data-i18n="formato.garantia.mantenimiento.label">Mantenimiento preventivo:</strong> <span data-i18n-html="formato.garantia.mantenimiento.body">Recomendamos realizar mantenimiento cada 6 meses con nuestro equipo técnico. Esto permite prolongar la vida útil del equipo, prevenir fallas y conservar las condiciones óptimas de funcionamiento.</span></div>
+          </div>
+          <div class="garantia-item">
+            <div class="gi-icon gi-warn">⚠️</div>
+            <div id="brand-warranty-exclusion"><strong data-i18n="formato.garantia.exclusiones.label">Exclusiones de garantía:</strong> <span data-i18n-html="formato.garantia.exclusiones.body_static">La garantía no aplica sobre daños por causas externas, descargas eléctricas o intervención de personal no autorizado.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIDEO DE ENTREGA -->
+    <div class="section" id="formato-video-section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.video">Video de Entrega</span></div>
+      <div class="field span2">
+        <label for="formato-video-url" data-i18n="formato.video.label">Enlace de Video de Entrega (Google Drive/YouTube) - Opcional</label>
+        <input type="url" id="formato-video-url" data-i18n-placeholder="formato.video.placeholder" placeholder="https://drive.google.com/... o https://youtube.com/..." autocomplete="off" inputmode="url">
+      </div>
+    </div>
+
+    <!-- 10. FIRMAS -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.firmas">Aceptación y Firmas</span></div>
+      <div class="firmas">
+        <div class="firma-box">
+          <div class="firma-label" data-i18n="formato.firma.cliente">Firma Cliente</div>
+          <div class="firma-canvas-wrap">
+            <canvas id="canvas-firma-cliente" class="firma-canvas" width="600" height="200" data-i18n-aria-label="formato.firma.aria_cliente" aria-label="Lienzo firma cliente"></canvas>
+            <button type="button" class="btn-firma-clear no-print" onclick="limpiarFirma('canvas-firma-cliente')" data-i18n="formato.firma.btn_borrar">Borrar</button>
+          </div>
+          <input class="firma-name" type="text" data-i18n-placeholder="formato.firma.placeholder.nombre" placeholder="Nombre completo">
+          <input class="firma-name" type="text" data-i18n-placeholder="formato.firma.placeholder.doc" placeholder="CC / NIT">
+        </div>
+        <div class="firma-box">
+          <div class="firma-label" id="brand-technician-signature-label" data-i18n="formato.firma.tecnico">Firma Técnico</div>
+          <div class="firma-canvas-wrap">
+            <canvas id="canvas-firma-tecnico" class="firma-canvas" width="600" height="200" data-i18n-aria-label="formato.firma.aria_tecnico" aria-label="Lienzo firma técnico"></canvas>
+            <button type="button" class="btn-firma-clear no-print" onclick="limpiarFirma('canvas-firma-tecnico')" data-i18n="formato.firma.btn_borrar">Borrar</button>
+          </div>
+          <input class="firma-name" id="campo-tecnico-firma" type="text" data-i18n-placeholder="formato.firma.placeholder.tecnico" placeholder="Nombre del técnico">
+          <input class="firma-name" type="text" data-i18n-placeholder="formato.firma.placeholder.id_tecnico" placeholder="ID técnico">
+        </div>
+      </div>
+      <div id="formato-video-qr-print" class="formato-video-qr-print" hidden aria-hidden="true">
+        <p class="formato-video-qr-title" data-i18n="formato.video_qr.title">Video de entrega del equipo</p>
+        <div class="formato-video-qr-canvas-wrap">
+          <canvas id="formato-video-qr-canvas" width="140" height="140" data-i18n-aria-label="formato.video_qr.aria" aria-label="Código QR video de entrega"></canvas>
+        </div>
+        <p class="formato-video-qr-hint" data-i18n="formato.video_qr.hint">Escanee el código para ver el video de entrega del equipo</p>
+        <p class="formato-video-qr-url" id="formato-video-qr-url-text"></p>
+      </div>
+    </div>
+
+    <div class="verification-seal" style="margin-top: 20px; padding: 14px; border: 1.5px solid var(--border); border-radius: 10px; background: #ffffff;">
+      <p style="font-size: 10.5px; color: var(--muted); line-height: 1.4; margin: 0;" data-i18n-html="formato.verification">
+        Documento emitido por <strong id="brand-verification-company">su empresa</strong> a través de <strong>Arpa Suite</strong>.
+      </p>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.datos_bancarios">Datos Bancarios</span></div>
+      <div class="brand-bank-info" id="brand-bank-block-formato">&nbsp;</div>
+    </div>
+
+  </div><!-- /view-formato -->
+
+  <div id="view-cotizacion" class="suite-view body" hidden>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.datos_cliente">Datos del Cliente</span></div>
+      <div class="grid g2">
+        <div class="field span2"><label data-i18n="formato.label.nombre_empresa">Nombre / Empresa</label><input id="cot-nombre" type="text" data-i18n-placeholder="formato.placeholder.nombre_empresa" placeholder="Nombre completo o razón social" autocomplete="off" list="arpa-clientes-datalist"></div>
+        <div class="field"><label data-i18n="formato.label.nit_cedula">NIT / Cédula</label><input id="cot-nit" type="text" data-i18n-placeholder="formato.placeholder.nit_cedula" placeholder="000.000.000-0"></div>
+        <div class="field"><label data-i18n="formato.label.telefono">Teléfono</label><input id="cot-tel" type="tel" data-i18n-placeholder="formato.placeholder.telefono" placeholder="+57 300 000 0000"></div>
+        <div class="field"><label data-i18n="cot.label.correo">Correo electrónico</label><input id="cot-email" type="email" data-i18n-placeholder="cot.placeholder.correo" placeholder="correo@ejemplo.com"></div>
+        <div class="field"><label data-i18n="formato.label.ciudad">Ciudad</label><input id="cot-ciudad" type="text" data-i18n-placeholder="formato.placeholder.ciudad" placeholder="Medellín"></div>
+        <div class="field"><label data-i18n="formato.label.fecha">Fecha</label><input id="cot-fecha" type="date"></div>
+        <div class="field"><label data-i18n="cot.label.valida_hasta">Válida hasta</label><input id="cot-validez" type="date"></div>
+      </div>
+    </div>
+
+    <div class="section" id="cot-cobros-section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.cobros">Cobros</span></div>
+      <div id="cobros-editor-cot" class="cobros-editor"></div>
+      <div id="cobros-actions-cot" style="margin-top:10px;">
+        <button type="button" class="btn-add-item" id="btn-cobros-add-cot" data-i18n="cot.btn_agregar_item">+ Agregar ítem adicional</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.buscar">Buscar y Agregar Productos</span></div>
+      <div class="buscador-wrap-cot">
+        <div class="buscador-row-cot">
+          <div class="field" style="flex:1;min-width:180px;">
+            <label data-i18n="cot.label.producto">Producto</label>
+            <input type="text" class="buscador-input-cot" id="buscador-cot" data-i18n-placeholder="cot.placeholder.buscar" placeholder="🔍 Buscar por nombre o código..." autocomplete="off">
+          </div>
+          <div class="field" style="min-width:72px;">
+            <label data-i18n="cot.label.cant">Cant.</label>
+            <input type="number" id="cant-input-cot" min="1" value="1" style="width:72px;text-align:center;min-height:44px;font-size:16px;">
+          </div>
+        </div>
+        <div class="resultados-cot" id="resultados-cot"></div>
+        <p id="cot-catalog-hint" class="cot-catalog-hint" hidden data-i18n="cot.hint.catalogo">Ve a Mi Catálogo para agregar tus productos</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.productos">Productos y Servicios Cotizados</span></div>
+      <div class="tabla-cot-wrap">
+        <table class="tabla-productos">
+          <colgroup>
+            <col style="width:10%">
+            <col style="width:28%">
+            <col style="width:8%">
+            <col style="width:22%">
+            <col style="width:22%">
+            <col style="width:10%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th data-i18n="cot.table.codigo">Código</th>
+              <th data-i18n="cot.table.descripcion">Descripción</th>
+              <th style="text-align:center;" data-i18n="cot.table.cant">Cant.</th>
+              <th style="text-align:right;" data-i18n="cot.table.pvp_unit">P.V.P Unit.</th>
+              <th style="text-align:right;" data-i18n="cot.table.total">Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cot-tabla-body">
+            <tr class="empty-row"><td colspan="6" data-i18n="cot.table.empty">Agregue productos, servicios o ítems adicionales</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="cot-cierre-block">
+      <div class="section">
+        <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.resumen">Resumen de Cotización</span></div>
+        <div class="totales-box">
+          <label class="iva-toggle">
+            <input type="checkbox" id="iva-check-cot">
+            <span data-i18n="cot.iva.toggle">Incluir IVA 19%</span>
+          </label>
+          <div class="total-row">
+            <span class="total-label" data-i18n="cot.total.subtotal">Subtotal</span>
+            <span class="total-val" id="subtotal-val-cot">$ 0</span>
+          </div>
+          <div class="total-row" id="iva-row-cot" style="display:none;">
+            <span class="total-label" data-i18n="cot.total.iva">IVA (19%)</span>
+            <span class="total-val" id="iva-val-cot">$ 0</span>
+          </div>
+          <div class="total-row grand">
+            <span class="total-label" style="font-weight:700;color:var(--navy);" data-i18n="cot.total.grand">TOTAL</span>
+            <span class="total-val" id="total-val-cot">$ 0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section cot-bank-section">
+        <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.datos_bancarios">Datos Bancarios</span></div>
+        <div class="brand-bank-info" id="brand-bank-block">&nbsp;</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.observaciones">Observaciones</span></div>
+      <div class="field">
+        <textarea id="cot-obs" data-i18n-placeholder="cot.placeholder.obs" placeholder="Especificaciones adicionales, notas para el cliente..."></textarea>
+      </div>
+    </div>
+
+    <div class="nota-cot" id="cot-nota-legal">&nbsp;</div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.aprobacion">Aprobación</span></div>
+      <div class="firmas">
+        <div class="firma-box">
+          <div class="firma-label" data-i18n="cot.firma.aprobado_cliente">Aprobado por (Cliente)</div>
+          <div class="firma-canvas-wrap">
+            <canvas id="canvas-cot-cliente" class="firma-canvas" width="600" height="200" data-i18n-aria-label="cot.firma.aria_cliente" aria-label="Firma cliente cotización"></canvas>
+            <button type="button" class="btn-firma-clear no-print" onclick="limpiarFirma('canvas-cot-cliente')" data-i18n="formato.firma.btn_borrar">Borrar</button>
+          </div>
+          <input class="firma-name" type="text" data-i18n-placeholder="formato.firma.placeholder.nombre" placeholder="Nombre completo">
+        </div>
+        <div class="firma-box">
+          <div class="firma-label" id="cot-elaborado-label" data-i18n="cot.firma.elaborado">Elaborado por</div>
+          <div class="firma-canvas-wrap">
+            <canvas id="canvas-cot-elaborado" class="firma-canvas" width="600" height="200" data-i18n-aria-label="cot.firma.aria_elaborado" aria-label="Firma elaborado cotización"></canvas>
+            <button type="button" class="btn-firma-clear no-print" onclick="limpiarFirma('canvas-cot-elaborado')" data-i18n="formato.firma.btn_borrar">Borrar</button>
+          </div>
+          <input class="firma-name" id="cot-elaborado-nombre" type="text" data-i18n-placeholder="formato.firma.placeholder.tecnico" placeholder="Nombre del técnico">
+          <input class="firma-name" id="cot-elaborado-tel" type="text" data-i18n-placeholder="formato.label.telefono" placeholder="Teléfono">
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /view-cotizacion -->
+
+  <div id="view-catalogo" class="suite-view body" hidden>
+    <nav id="catalogo-oficios-tabs" class="catalogo-oficios-tabs" hidden aria-label="Oficios activos">
+      <div id="catalogo-oficios-tabs-list" class="catalogo-oficios-tabs-list" role="tablist"></div>
+    </nav>
+    <div id="catalogo-oficios-sections">
+    <div id="catalogo-section-automatismos" class="catalogo-oficio-section" data-oficio="automatismos">
+    <h2 class="catalogo-oficio-title"><span class="dot"></span><span data-i18n="oficio.automatismos">Automatismos</span></h2>
+    <div class="section catalogo-categorias-block">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cat.section.categorias">Categorías</span></div>
+      <div id="catalogo-categorias-panel"></div>
+    </div>
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cat.section.productos">Productos</span></div>
+      <p style="font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.5;" data-i18n="cat.intro">
+        Sus productos se agrupan por categoría. Cotización usará este catálogo cuando tenga ítems cargados.
+      </p>
+      <div class="catalogo-toolbar">
+        <div class="catalogo-toolbar-row">
+          <input type="search" id="catalogo-buscar" data-i18n-placeholder="cat.placeholder.buscar" placeholder="🔍 Buscar por nombre o referencia…" autocomplete="off" inputmode="search">
+          <button type="button" class="btn-catalogo-import" id="btn-catalogo-import" data-i18n="cat.btn.importar">📥 Importar Excel/CSV</button>
+          <button type="button" class="btn-catalogo-import" onclick="precargarCatalogoAccessmatic()" data-i18n="cat.btn.cargar_accessmatic">📦 Cargar Accessmatic</button>
+          <button type="button" class="btn-catalogo-import" onclick="precargarCatalogoElite()" data-i18n="cat.btn.cargar_elite">📦 Cargar Elite</button>
+          <button type="button" class="btn-catalogo-import" onclick="precargarCatalogoBFTNAS()" data-i18n="cat.btn.cargar_bft_nas">📦 Cargar BFT + NAS</button>
+          <button type="button" class="btn-catalogo-import" onclick="precargarCatalogoPPA()" data-i18n="cat.btn.cargar_ppa">📦 Cargar PPA</button>
+        </div>
+        <input type="file" id="catalogo-import-file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden>
+        <span id="catalogo-count" class="catalogo-count"></span>
+      </div>
+      <div id="catalogo-empty" class="catalogo-empty" hidden data-i18n-html="cat.empty">
+        Aún no hay productos.<br>Pulse <strong>+</strong> para agregar el primero.
+      </div>
+      <div id="catalogo-list" class="catalogo-list"></div>
+    </div>
+    </div>
+    <div id="catalogo-extra-sections"></div>
+    </div>
+  </div>
+
+  <div id="view-cuenta-cobro" class="suite-view body" hidden>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cc.section.datos_documento">Datos del Documento</span></div>
+      <div class="grid g2">
+        <div class="field"><label data-i18n="formato.label.ciudad">Ciudad</label><input type="text" id="cc-ciudad" data-i18n-placeholder="cc.placeholder.ciudad" placeholder="Ciudad"></div>
+        <div class="field"><label data-i18n="cc.label.fecha_emision">Fecha de emisión</label><input type="date" id="cc-fecha-emision"></div>
+        <div class="field"><label data-i18n="cc.label.fecha_vencimiento">Fecha de vencimiento</label><input type="date" id="cc-fecha-vencimiento"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cc.section.cobrador">Cobrador</span></div>
+      <p style="font-size:11px;color:var(--muted);margin:-4px 0 10px;line-height:1.45;" data-i18n="cc.cobrador.hint">Datos desde Configuración de Empresa.</p>
+      <div class="cc-brand-logo-wrap"><img id="cc-brand-logo" src="./icon-192x192.png" alt="Logo empresa" hidden></div>
+      <div class="cc-info-panel">
+        <div class="cc-info-row"><span data-i18n="cc.cobrador.tecnico_dueno">Técnico / Dueño</span><strong id="cc-cobrador-nombre">—</strong></div>
+        <div class="cc-info-row"><span data-i18n="cc.cobrador.cedula_nit">Cédula / NIT personal</span><strong id="cc-cobrador-doc">—</strong></div>
+        <div class="cc-info-row"><span data-i18n="cc.cobrador.empresa">Empresa</span><strong id="cc-cobrador-empresa">—</strong></div>
+        <div class="cc-info-row"><span data-i18n="cc.cobrador.nit_empresa">NIT empresa</span><strong id="cc-cobrador-nit">—</strong></div>
+        <div class="cc-info-row"><span data-i18n="cc.cobrador.telefono">Teléfono</span><strong id="cc-cobrador-tel">—</strong></div>
+        <div class="cc-info-row"><span data-i18n="cc.cobrador.direccion">Dirección</span><strong id="cc-cobrador-dir">—</strong></div>
+        <div class="cc-info-row"><span data-i18n="settings.label.website_optional">Sitio web</span><strong id="cc-cobrador-web">—</strong></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cc.section.cliente">Cliente</span></div>
+      <div class="grid g2">
+        <div class="field span2"><label data-i18n="formato.label.nombre_empresa">Nombre / Empresa</label><input type="text" id="cc-cliente-nombre" data-i18n-placeholder="cc.placeholder.cliente_nombre" placeholder="Nombre del cliente" autocomplete="off" list="arpa-clientes-datalist"></div>
+        <div class="field"><label data-i18n="cc.label.nit_cc">NIT / C.C.</label><input type="text" id="cc-cliente-doc" data-i18n-placeholder="formato.placeholder.nit_cedula" placeholder="000.000.000-0"></div>
+        <div class="field"><label data-i18n="formato.label.telefono">Teléfono</label><input type="tel" id="cc-cliente-tel" data-i18n-placeholder="formato.placeholder.telefono" placeholder="+57 300 000 0000"></div>
+        <div class="field span2"><label data-i18n="cc.cobrador.direccion">Dirección</label><input type="text" id="cc-cliente-dir" data-i18n-placeholder="cc.placeholder.direccion_cliente" placeholder="Dirección del cliente"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cc.section.servicios">Servicios</span></div>
+      <div class="tabla-cot-wrap">
+        <table class="tabla-productos">
+          <thead>
+            <tr>
+              <th data-i18n="cc.table.descripcion">Descripción</th>
+              <th style="text-align:center;" data-i18n="cot.table.cant">Cant.</th>
+              <th style="text-align:right;" data-i18n="cc.table.valor_unitario">Valor unitario</th>
+              <th style="text-align:right;" data-i18n="cot.table.total">Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cc-servicios-body"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;">
+        <button type="button" class="btn-add-item" id="btn-cc-add-servicio" data-i18n="cc.btn.agregar_servicio">+ Agregar servicio</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cc.section.totales">Totales</span></div>
+      <div class="totales-box">
+        <label class="iva-toggle">
+          <input type="checkbox" id="cc-iva-check">
+          <span data-i18n="cot.iva.toggle">Incluir IVA 19%</span>
+        </label>
+        <label class="iva-toggle">
+          <input type="checkbox" id="cc-ret-check">
+          <span data-i18n="cc.retencion.toggle">Retención en la fuente</span>
+        </label>
+        <div class="cc-ret-pct-wrap" id="cc-ret-pct-wrap">
+          <span data-i18n="cc.retencion.pct_label">% Retención</span>
+          <input type="number" id="cc-ret-pct" min="0" max="100" step="0.1" value="11" inputmode="decimal">
+        </div>
+        <div class="total-row">
+          <span class="total-label" data-i18n="cot.total.subtotal">Subtotal</span>
+          <span class="total-val" id="cc-subtotal-val">$ 0</span>
+        </div>
+        <div class="total-row" id="cc-iva-row" style="display:none;">
+          <span class="total-label" data-i18n="cot.total.iva">IVA (19%)</span>
+          <span class="total-val" id="cc-iva-val">$ 0</span>
+        </div>
+        <div class="total-row" id="cc-ret-row" style="display:none;">
+          <span class="total-label" data-i18n="cc.total.retencion">Retención</span>
+          <span class="total-val" id="cc-ret-val">$ 0</span>
+        </div>
+        <div class="total-row grand">
+          <span class="total-label" style="font-weight:700;color:var(--navy);" data-i18n="cc.total.grand">TOTAL A COBRAR</span>
+          <span class="total-val" id="cc-total-val">$ 0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cc.section.datos_pago">Datos de Pago</span></div>
+      <div id="cc-pago-editable" class="grid g2">
+        <div class="field"><label data-i18n="cc.label.banco">Banco</label><input type="text" id="cc-pago-banco" data-i18n-placeholder="cc.placeholder.banco" placeholder="Ej. Bancolombia, Nequi…"></div>
+        <div class="field"><label data-i18n="cc.label.tipo_cuenta">Tipo de cuenta</label>
+          <select id="cc-pago-tipo">
+            <option value="Ahorros" data-i18n="cc.cuenta.ahorros">Ahorros</option>
+            <option value="Corriente" data-i18n="cc.cuenta.corriente">Corriente</option>
+          </select>
+        </div>
+        <div class="field span2"><label data-i18n="cc.label.numero_cuenta">Número de cuenta</label><input type="text" id="cc-pago-numero" inputmode="numeric" data-i18n-placeholder="settings.placeholder.account_number" placeholder="Número de cuenta"></div>
+        <div class="field"><label data-i18n="cc.label.titular">Titular</label><input type="text" id="cc-pago-titular" data-i18n-placeholder="cc.placeholder.titular" placeholder="Nombre del titular"></div>
+        <div class="field"><label data-i18n="cc.label.nit_titular">NIT / Cédula titular</label><input type="text" id="cc-pago-titular-doc" data-i18n-placeholder="cc.placeholder.doc_titular" placeholder="Documento del titular"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cc.section.observaciones">Observaciones</span></div>
+      <div class="field">
+        <textarea id="cc-obs" data-i18n-placeholder="cc.placeholder.obs" placeholder="Notas adicionales para el cliente..."></textarea>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cc.section.firmas">Firmas</span></div>
+      <div class="firmas">
+        <div class="firma-box">
+          <div class="firma-label" data-i18n="cc.firma.cobrador">Cobrador</div>
+          <div class="firma-canvas-wrap">
+            <canvas id="canvas-cc-cobrador" class="firma-canvas" width="600" height="200" data-i18n-aria-label="cc.firma.aria_cobrador" aria-label="Firma cobrador"></canvas>
+            <button type="button" class="btn-firma-clear no-print" onclick="limpiarFirma('canvas-cc-cobrador'); ArpaCuentaCobro?.scheduleCcDraftSave?.(true)" data-i18n="formato.firma.btn_borrar">Borrar</button>
+          </div>
+          <strong id="cc-firma-cobrador-nombre" class="firma-name-readonly">—</strong>
+        </div>
+        <div class="firma-box">
+          <div class="firma-label" data-i18n="cc.firma.cliente">Cliente</div>
+          <div class="firma-canvas-wrap">
+            <canvas id="canvas-cc-cliente" class="firma-canvas" width="600" height="200" data-i18n-aria-label="cc.firma.aria_cliente" aria-label="Firma cliente"></canvas>
+            <button type="button" class="btn-firma-clear no-print" onclick="limpiarFirma('canvas-cc-cliente'); ArpaCuentaCobro?.scheduleCcDraftSave?.(true)" data-i18n="formato.firma.btn_borrar">Borrar</button>
+          </div>
+          <strong id="cc-firma-cliente-nombre" class="firma-name-readonly">—</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="cc-actions-stack">
+      <button type="button" class="btn-cc-clear" id="btn-cc-limpiar" data-i18n="cc.btn.limpiar">🗑 Limpiar</button>
+      <button type="button" class="btn-pdf-whatsapp" id="btn-cc-whatsapp" data-i18n="cc.btn.whatsapp">💬 WhatsApp</button>
+      <button type="button" class="btn-pdf-primary" id="btn-cc-pdf" data-i18n="cc.btn.pdf">📄 Generar PDF</button>
+    </div>
+
+  </div><!-- /view-cuenta-cobro -->
+
+  <div id="view-historial" class="suite-view body" hidden>
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="hist.section.title">Historial de Servicios</span></div>
+      <p style="font-size:12px;color:var(--muted);margin:-4px 0 12px;line-height:1.5;" data-i18n="hist.intro">
+        Registros guardados al exportar PDF desde Formato. Máximo 200 servicios.
+      </p>
+      <div id="historial-stats" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:80px;background:var(--navy);color:#fff;border-radius:8px;padding:10px 8px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;" id="hist-stat-total-n">0</div>
+          <div style="font-size:10px;opacity:.75;margin-top:2px;">Total docs</div>
+        </div>
+        <div style="flex:1;min-width:80px;background:#eef2ff;border-radius:8px;padding:10px 8px;text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:var(--navy);" id="hist-stat-mes-n">0</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Este mes</div>
+        </div>
+        <div style="flex:1;min-width:80px;background:#f0fff4;border-radius:8px;padding:10px 8px;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:#166534;" id="hist-stat-cot-mes">$0</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Cotizado mes</div>
+        </div>
+      </div>
+      <div class="historial-filtros" id="historial-filtros">
+        <input type="search" id="historial-buscar"
+               placeholder="🔍 Buscar por cliente..."
+               autocomplete="off"
+               style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" class="historial-tab active" data-filtro="todos" style="flex:1;padding:7px 4px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:var(--navy);color:#fff;">Todos</button>
+          <button type="button" class="historial-tab" data-filtro="formato" style="flex:1;padding:7px 4px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:#fff;color:var(--navy);">Formato</button>
+          <button type="button" class="historial-tab" data-filtro="cotizacion" style="flex:1;padding:7px 4px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:#fff;color:var(--navy);">Cotización</button>
+          <button type="button" class="historial-tab" data-filtro="cuenta-cobro" style="flex:1;padding:7px 4px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:#fff;color:var(--navy);">CC</button>
+        </div>
+      </div>
+      <div id="historial-empty" class="historial-empty" data-i18n-html="hist.empty">
+        Aún no hay servicios en el historial.<br>Guarde un formato como PDF para registrar el primer servicio.
+      </div>
+      <div id="historial-list" class="historial-list"></div>
+    </div>
+    <div class="historial-actions">
+      <button type="button" class="btn-export-csv" id="btn-exportar-historial" data-i18n="hist.btn.export_csv">Exportar Historial CSV</button>
+    </div>
+  </div>
+
+  <!-- BOTÓN GUARDAR PDF -->
+  <div id="pdf-actions-formato" style="padding: 16px 24px; background: var(--bg); border-top: 1px solid var(--border);">
+    <div class="pdf-actions-stack">
+      <button type="button" class="btn-pdf-primary" onclick="guardarPDFYHistorial()" data-i18n="pdf.btn.guardar_formato">
+        📄 Guardar como PDF
+      </button>
+      <button type="button" class="btn-pdf-whatsapp" id="btn-formato-share-wa" hidden onclick="compartirFormatoWhatsApp()" data-i18n="pdf.btn.whatsapp_cot">
+        📲 Enviar por WhatsApp
+      </button>
+    </div>
+  </div>
+  <div id="pdf-actions-cot" hidden style="padding: 16px 24px; background: var(--bg); border-top: 1px solid var(--border);">
+    <div class="pdf-actions-stack">
+      <button type="button" class="btn-pdf-primary" onclick="guardarCotPDF()" data-i18n="pdf.btn.guardar_cot">
+        📄 Guardar como PDF
+      </button>
+      <button type="button" class="btn-pdf-whatsapp" onclick="guardarCotPDFYWhatsApp()" data-i18n="pdf.btn.whatsapp_cot">
+        📲 Enviar por WhatsApp
+      </button>
+      <button type="button" class="btn-pdf-whatsapp"
+              onclick="exportarACuentaCobro()"
+              style="background:#1a4a2a;">
+        🧾 Generar Cuenta de Cobro
+      </button>
+    </div>
+  </div>
+
+  <footer class="suite-footer" id="suite-footer" data-i18n-aria-label="footer.aria" aria-label="Pie de página">
+    <div class="suite-footer-local" id="brand-screen-footer" data-editable="true">
+      Configure los datos de su empresa en ⚙️ Ajustes
+    </div>
+    <hr class="suite-footer-divider" aria-hidden="true">
+    <div class="suite-footer-global" id="arpa-global-seal" data-arpa-core="immutable">
+      <p class="suite-footer-global-text">© 2026 ARPA Technology Global · arpatechnologyglobal.com · <span data-i18n="footer.global.rights">Todos los derechos reservados.</span></p>
+    </div>
+  </footer>
+</div>
+
+<!-- MENÚ PRINCIPAL -->
+<nav class="main-menu" data-i18n-aria-label="menu.aria" aria-label="Menú principal">
+  <button type="button" class="main-menu-btn active" onclick="scrollToTopMenu(this)">
+    <span class="main-menu-icon" aria-hidden="true">📋</span>
+    <span data-i18n="menu.formato">Formato</span>
+  </button>
+  <button type="button" class="main-menu-btn" onclick="openCotizacionView(this)">
+    <span class="main-menu-icon" aria-hidden="true">💰</span>
+    <span data-i18n="menu.cotizacion">Cotización</span>
+  </button>
+  <button type="button" class="main-menu-btn" onclick="openCatalogoView(this)">
+    <span class="main-menu-icon" aria-hidden="true">📦</span>
+    <span data-i18n="menu.catalogo">Catálogo</span>
+  </button>
+  <button type="button" class="main-menu-btn" onclick="openHistorialView(this)">
+    <span class="main-menu-icon" aria-hidden="true">🗂️</span>
+    <span data-i18n="menu.historial">Historial</span>
+  </button>
+  <button type="button" class="main-menu-btn" onclick="openCuentaCobroView(this)">
+    <span class="main-menu-icon" aria-hidden="true">🧾</span>
+    <span data-i18n="menu.cuenta_cobro">Cuenta de Cobro</span>
+  </button>
+  <button type="button" class="main-menu-btn" onclick="openSettingsModal(this)">
+    <span class="main-menu-icon" aria-hidden="true">⚙️</span>
+    <span data-i18n="menu.configuracion">Configuración</span>
+  </button>
+</nav>
+
+<button type="button" class="catalogo-fab" id="btn-catalogo-fab" hidden data-i18n-aria-label="menu.fab_add.aria" aria-label="Agregar">+</button>
+
+<!-- MODAL IMPORTAR (MI CATÁLOGO) -->
+<div class="settings-overlay" id="catalogo-import-modal" role="dialog" aria-modal="true" aria-labelledby="catalogo-import-title">
+  <div class="settings-modal catalogo-import-modal">
+    <div class="settings-modal-header">
+      <h2 id="catalogo-import-title" data-i18n="import.title">Vista previa de importación</h2>
+      <button type="button" class="settings-modal-close" id="catalogo-import-close" data-i18n-aria-label="settings.close.aria" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="settings-modal-body">
+      <p id="catalogo-import-summary" class="catalogo-import-summary"></p>
+      <div class="catalogo-import-preview-wrap">
+        <table class="catalogo-import-table">
+          <thead>
+            <tr>
+              <th data-i18n="import.table.nombre">Nombre</th>
+              <th data-i18n="import.table.ref">Ref.</th>
+              <th data-i18n="import.table.precio">Precio</th>
+              <th data-i18n="import.table.unidad">Unidad</th>
+              <th data-i18n="import.table.marca">Marca</th>
+              <th data-i18n="import.table.categoria">Categoría</th>
+              <th data-i18n="import.table.estado">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="catalogo-import-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="settings-modal-footer catalogo-import-actions">
+      <button type="button" id="btn-catalogo-import-cancel" data-i18n="import.btn.cancel">Cancelar</button>
+      <button type="button" id="btn-catalogo-import-add" class="btn-import-add" disabled data-i18n="import.btn.add">Agregar a existentes</button>
+      <button type="button" id="btn-catalogo-import-replace" class="btn-import-replace" disabled data-i18n="import.btn.replace">Reemplazar catálogo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CATEGORÍA (MI CATÁLOGO) -->
+<div class="settings-overlay" id="catalogo-cat-modal" role="dialog" aria-modal="true" aria-labelledby="catalogo-cat-title">
+  <div class="settings-modal">
+    <div class="settings-modal-header">
+      <h2 id="catalogo-cat-title" data-i18n="cat_modal.title.new">Nueva categoría</h2>
+      <button type="button" class="settings-modal-close" id="catalogo-cat-close" data-i18n-aria-label="settings.close.aria" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="settings-modal-body">
+      <p id="catalogo-cat-error" class="settings-error" role="alert" hidden></p>
+      <div class="field">
+        <label for="cat-cat-nombre"><span data-i18n="cat_modal.label.nombre">Nombre de la categoría</span> <span class="req">*</span></label>
+        <input type="text" id="cat-cat-nombre" required data-i18n-placeholder="cat_modal.placeholder.nombre" placeholder="Ej. Motores, Repuestos, Servicios…">
+      </div>
+    </div>
+    <div class="settings-modal-footer">
+      <button type="button" id="btn-catalogo-cat-cancel" data-i18n="common.btn.cancel">Cancelar</button>
+      <button type="button" id="btn-catalogo-cat-save" style="background:#1a2a4a;color:#fff;font-weight:700;" data-i18n="common.btn.save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRODUCTO (MI CATÁLOGO) -->
+<div class="settings-overlay" id="catalogo-form-modal" role="dialog" aria-modal="true" aria-labelledby="catalogo-form-title">
+  <div class="settings-modal">
+    <div class="settings-modal-header">
+      <h2 id="catalogo-form-title" data-i18n="prod_modal.title.new">Nuevo producto</h2>
+      <button type="button" class="settings-modal-close" id="catalogo-form-close" data-i18n-aria-label="settings.close.aria" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="settings-modal-body">
+      <p id="catalogo-form-error" class="settings-error" role="alert" hidden></p>
+      <div class="field">
+        <label for="cat-form-nom"><span data-i18n="prod_modal.label.nombre">Nombre</span> <span class="req">*</span></label>
+        <input type="text" id="cat-form-nom" required data-i18n-placeholder="prod_modal.placeholder.nombre" placeholder="Nombre del producto o servicio">
+      </div>
+      <div class="field">
+        <label for="cat-form-cod"><span data-i18n="prod_modal.label.referencia">Referencia</span> <span class="req">*</span></label>
+        <input type="text" id="cat-form-cod" required data-i18n-placeholder="prod_modal.placeholder.referencia" placeholder="Código o referencia única">
+      </div>
+      <div class="grid g2">
+        <div class="field">
+          <label for="cat-form-pvp"><span data-i18n="prod_modal.label.precio">Precio unitario</span> <span class="req">*</span></label>
+          <input type="number" id="cat-form-pvp" min="0" step="1000" inputmode="numeric" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="cat-form-unidad"><span data-i18n="prod_modal.label.unidad">Unidad</span> <span class="req">*</span></label>
+          <select id="cat-form-unidad">
+            <option value="unidad" data-i18n="prod_modal.unidad.unidad">Unidad</option>
+            <option value="metro" data-i18n="prod_modal.unidad.metro">Metro</option>
+            <option value="hora" data-i18n="prod_modal.unidad.hora">Hora</option>
+            <option value="servicio" data-i18n="prod_modal.unidad.servicio">Servicio</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="cat-form-marca" data-i18n="prod_modal.label.marca_optional">Marca (opcional)</label>
+        <input type="text" id="cat-form-marca" data-i18n-placeholder="prod_modal.placeholder.marca" placeholder="Marca del producto">
+      </div>
+      <div class="field">
+        <label for="cat-form-categoria"><span data-i18n="prod_modal.label.categoria">Categoría</span> <span class="req">*</span></label>
+        <select id="cat-form-categoria" required></select>
+      </div>
+    </div>
+    <div class="settings-modal-footer">
+      <button type="button" id="btn-catalogo-form-cancel" data-i18n="common.btn.cancel">Cancelar</button>
+      <button type="button" id="btn-catalogo-form-save" style="background:var(--navy);color:#fff;font-weight:700;" data-i18n="common.btn.save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AJUSTES DE EMPRESA -->
+<div class="settings-overlay" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+  <div class="settings-modal">
+    <div class="settings-modal-header">
+      <h2 id="settings-modal-title" data-i18n="settings.title">⚙️ Configuración de Empresa</h2>
+      <a href="./manual.html" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#c9a84c;text-decoration:none;white-space:nowrap;margin-left:auto;margin-right:12px;">❓ Ayuda</a>
+      <button type="button" class="settings-modal-close" onclick="closeSettingsModal()" data-i18n-aria-label="settings.close.aria" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="settings-modal-body">
+      <p id="settings-error" class="settings-error" role="alert"></p>
+      <div class="field">
+        <label for="settings-company"><span data-i18n="settings.label.company">Nombre Empresa</span> <span class="req">*</span></label>
+        <input type="text" id="settings-company" required autocomplete="organization" data-i18n-placeholder="settings.placeholder.company" placeholder="Nombre de su empresa">
+      </div>
+      <div class="field">
+        <label for="settings-nit"><span data-i18n="settings.label.nit">NIT</span> <span class="req">*</span></label>
+        <input type="text" id="settings-nit" required inputmode="numeric" data-i18n-placeholder="formato.placeholder.nit_cedula" placeholder="000.000.000-0">
+      </div>
+      <div class="field">
+        <label for="settings-address"><span data-i18n="settings.label.address">Dirección</span> <span class="req">*</span></label>
+        <input type="text" id="settings-address" required autocomplete="street-address" data-i18n-placeholder="settings.placeholder.address" placeholder="Dirección comercial">
+      </div>
+      <div class="field">
+        <label for="settings-city" data-i18n="settings.label.city_optional">Ciudad (opcional)</label>
+        <input type="text" id="settings-city" autocomplete="address-level2" data-i18n-placeholder="formato.placeholder.ciudad" placeholder="Medellín">
+      </div>
+      <div class="field">
+        <label for="settings-phone"><span data-i18n="settings.label.phone">Teléfono</span> <span class="req">*</span></label>
+        <input type="tel" id="settings-phone" required autocomplete="tel" inputmode="tel" data-i18n-placeholder="settings.placeholder.phone" placeholder="Teléfono de contacto">
+      </div>
+      <div class="field">
+        <label for="settings-website" data-i18n="settings.label.website_optional">Sitio web (opcional)</label>
+        <input type="url" id="settings-website" autocomplete="url" data-i18n-placeholder="settings.placeholder.website" placeholder="https://su-empresa.com">
+      </div>
+      <div class="field">
+        <label for="settings-logo">Logo en documentos (PDF)</label>
+        <div class="logo-upload-box" id="settings-company-logo-box">
+          <div class="logo-upload-preview-wrap">
+            <img id="settings-logo-preview" class="logo-upload-preview" src="./icon-192x192.png" alt="Vista previa del logo en documentos">
+          </div>
+          <p class="logo-upload-hint">Aparece en formatos, cotizaciones y cuentas de cobro. Disponible en todos los planes.</p>
+          <input type="file" id="settings-logo" class="logo-upload-input" accept="image/png,image/jpeg,image/webp,image/gif" onchange="previewLogoUpload(this)">
+        </div>
+      </div>
+      <div class="settings-section-title">Marca de la aplicación</div>
+      <div id="settings-app-brand-section">
+        <div id="settings-brand-lock" class="settings-brand-lock" hidden>
+          Personalizar el nombre y el ícono de la app (pantalla de carga, título y encabezado) está disponible solo en el plan White Label.
+          <a href="https://wa.me/573016092542?text=Hola,%20quiero%20información%20sobre%20ARPA%20Suite%20White%20Label" target="_blank" rel="noopener noreferrer">Escríbenos por WhatsApp</a>
+          para conocer cómo activarla.
+        </div>
+        <div class="field">
+          <label for="settings-app-brand">Nombre de marca en la app</label>
+          <input type="text" id="settings-app-brand" autocomplete="off" placeholder="ARPA Suite">
+          <p class="logo-upload-hint">Pantalla de carga, título del navegador y badge superior.</p>
+        </div>
+        <div class="field">
+          <label for="settings-app-logo">Logo / ícono de la app</label>
+          <div class="logo-upload-box" id="settings-app-logo-box">
+            <div class="logo-upload-preview-wrap">
+              <img id="settings-app-logo-preview" class="logo-upload-preview" src="./icon-192x192.png" alt="Vista previa del logo de la app">
+            </div>
+            <p class="logo-upload-hint">Ícono superior de la app (actualmente ARPA Suite). Solo White Label.</p>
+            <input type="file" id="settings-app-logo" class="logo-upload-input" accept="image/png,image/jpeg,image/webp,image/gif" onchange="previewAppLogoUpload(this)">
+          </div>
+        </div>
+      </div>
+      <div class="settings-section-title" data-i18n="settings.section.currency">Moneda</div>
+      <div class="field">
+        <label for="settings-currency" data-i18n="settings.label.currency">Moneda de tus documentos</label>
+        <select id="settings-currency">
+          <option value="COP" data-i18n="currency.cop">🇨🇴 COP — Peso colombiano</option>
+          <option value="USD" data-i18n="currency.usd">🇺🇸 USD — Dólar estadounidense</option>
+          <option value="MXN" data-i18n="currency.mxn">🇲🇽 MXN — Peso mexicano</option>
+          <option value="PEN" data-i18n="currency.pen">🇵🇪 PEN — Sol peruano</option>
+          <option value="CLP" data-i18n="currency.clp">🇨🇱 CLP — Peso chileno</option>
+        </select>
+      </div>
+      <div class="settings-section-title" data-i18n="settings.section.bank">Datos Bancarios</div>
+      <div class="field">
+        <label for="settings-bank"><span data-i18n="settings.label.bank">Banco</span> <span class="req">*</span></label>
+        <input type="text" id="settings-bank" required data-i18n-placeholder="settings.placeholder.bank" placeholder="Nombre del banco">
+      </div>
+      <div class="field">
+        <label for="settings-account-type"><span data-i18n="settings.label.account_type">Tipo de cuenta</span> <span class="req">*</span></label>
+        <select id="settings-account-type" required>
+          <option value="Ahorros" data-i18n="cc.cuenta.ahorros">Ahorros</option>
+          <option value="Corriente" data-i18n="cc.cuenta.corriente">Corriente</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="settings-account-number"><span data-i18n="settings.label.account_number">Número de cuenta</span> <span class="req">*</span></label>
+        <input type="text" id="settings-account-number" required inputmode="numeric" data-i18n-placeholder="settings.placeholder.account_number" placeholder="Número de cuenta">
+      </div>
+      <div class="field">
+        <label for="settings-account-holder" data-i18n="settings.label.account_holder_optional">Titular de la cuenta (opcional)</label>
+        <input type="text" id="settings-account-holder" autocomplete="name" data-i18n-placeholder="cc.placeholder.titular" placeholder="Nombre del titular">
+      </div>
+      <div class="field">
+        <label for="settings-account-holder-doc" data-i18n="settings.label.holder_doc_optional">NIT / Cédula del titular (opcional)</label>
+        <input type="text" id="settings-account-holder-doc" data-i18n-placeholder="cc.placeholder.doc_titular" placeholder="Documento del titular">
+      </div>
+      <div class="field">
+        <label for="settings-technician" data-i18n="settings.label.technician_optional">Nombre del técnico (opcional)</label>
+        <input type="text" id="settings-technician" autocomplete="name" data-i18n-placeholder="settings.placeholder.technician" placeholder="Nombre del técnico responsable">
+      </div>
+      <div class="field">
+        <label for="settings-technician-doc" data-i18n="settings.label.technician_doc_optional">Cédula / NIT del técnico (opcional)</label>
+        <input type="text" id="settings-technician-doc" data-i18n-placeholder="cc.placeholder.doc_titular" placeholder="Documento del técnico">
+      </div>
+      <div class="field">
+        <label for="settings-technician-code">
+          <span data-i18n="settings.label.technician_code">Iniciales o Código del Técnico</span>
+          <span class="req" id="settings-technician-code-req" hidden>*</span>
+        </label>
+        <input type="text" id="settings-technician-code" maxlength="4" autocomplete="off" style="text-transform:uppercase;max-width:120px;" data-i18n-placeholder="settings.placeholder.technician_code" placeholder="PJ">
+        <p class="logo-upload-hint" data-i18n="settings.technician_code.hint">Plan PYME: obligatorio. Prefija sus documentos (ej. PJ-001). Otros planes: opcional.</p>
+      </div>
+      <div class="settings-section-title" data-i18n="settings.section.oficios">Tu oficio principal</div>
+      <p class="logo-upload-hint" data-i18n="settings.oficios.hint">Elija el oficio de su negocio. Solo puede tener uno activo (excepto licencia Founder). Cada oficio trae un catálogo base editable en Mi Catálogo.</p>
+      <div id="settings-oficios-grid" class="settings-oficios-grid"></div>
+      <div class="settings-section-title" data-i18n="settings.section.price_list">Lista de Precios</div>
+      <p style="font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:4px;" data-i18n="settings.price_list.hint">Valores base para servicios recurrentes. Se aplican en Cotización (editables antes del PDF).</p>
+      <div id="settings-price-list" class="servicios-grid"></div>
+    </div>
+    <div class="sync-status-row">
+      <span id="sync-status-text">Verificando última sincronización…</span>
+      <button type="button" class="btn-sync-now" id="btn-sync-now" onclick="arpaSyncNow()">↻ Sincronizar ahora</button>
+    </div>
+    <div class="settings-modal-footer">
+      <button type="button" class="btn-settings-cancel" onclick="closeSettingsModal()" data-i18n="settings.btn.cancel">Cancelar</button>
+      <button type="button" class="btn-settings-save" onclick="saveSettingsFromModal()" data-i18n="settings.btn.save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="./js/arpa-catalogo.js"></script>
+<script>
+// ── CATÁLOGO EN CASCADA (fuente compartida con Cotización) ───────────────────
+const catalogo = ArpaCatalogo.getCatalogoMarcas();
+
+function getTipoPuerta() {
+  const oficioId = ArpaFormatoTipo?.getDocumentFormatoOficio?.() || 'automatismos';
+  const map = ArpaOficios.getFormatoMapaTipos(oficioId);
+  for (const [id, tipo] of Object.entries(map)) {
+    if (document.getElementById(id)?.checked) return tipo;
+  }
+  return null;
+}
+
+function actualizarReferencias() {
+  const oficioId = ArpaFormatoTipo?.getDocumentFormatoOficio?.() || 'automatismos';
+  const modo = ArpaOficios.getFormatoConfig?.(oficioId)?.equipoModo;
+  if (modo !== 'motor') return;
+
+  const marca = document.getElementById("sel-marca").value;
+  const selRef = document.getElementById("sel-referencia");
+  const inputManual = document.getElementById("ref-manual");
+  if (!catalogo[marca]) {
+    selRef.style.display = "none";
+    inputManual.style.display = "";
+    return;
+  }
+  const tipo = getTipoPuerta();
+  let productos = [];
+  if (tipo && catalogo[marca][tipo]) {
+    productos = catalogo[marca][tipo];
+  } else {
+    Object.entries(catalogo[marca]).forEach(([cat, items]) =>
+      items.forEach(p => productos.push({ cod: p.cod, nom: `[${cat}] ${p.nom}` }))
+    );
+  }
+  const previous = selRef.value;
+  selRef.innerHTML = '<option value="">Seleccionar referencia...</option>';
+  productos.forEach(p => {
+    const o = document.createElement("option");
+    o.value = p.cod;
+    o.textContent = p.cod + " – " + p.nom;
+    selRef.appendChild(o);
+  });
+  if (previous && productos.some((p) => p.cod === previous)) {
+    selRef.value = previous;
+  }
+  selRef.style.display = "";
+  inputManual.style.display = "none";
+}
+
+function collectFormatoDraft() {
+  const data = {};
+  document.querySelectorAll('#view-formato [id]').forEach((el) => {
+    if (el.type === 'file') return;
+    if (el.type === 'checkbox') data[el.id] = el.checked;
+    else if (el.type === 'radio') return;
+    else if ('value' in el) data[el.id] = el.value;
+  });
+  const tipo = document.querySelector('#view-formato input[name="tipo"]:checked');
+  if (tipo) data._tipo = tipo.value;
+  const numero = document.getElementById('numero-formato');
+  const fecha = document.getElementById('formato-fecha');
+  if (numero) data['numero-formato'] = numero.value;
+  if (fecha) data['formato-fecha'] = fecha.value;
+  data._formatoOficio = window.ArpaFormatoTipo?.getDocumentFormatoOficio?.() || 'automatismos';
+  return data;
+}
+
+function clearFormatoDocumentFields(options) {
+  const preserveNumero = options?.preserveNumero;
+  const root = document.getElementById('view-formato');
+  if (!root) return;
+  root.querySelectorAll('input:not([type=file]):not([type=radio])').forEach((el) => {
+    if (preserveNumero && el.id === 'numero-formato') return;
+    if (el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+  root.querySelectorAll('select').forEach((el) => { el.selectedIndex = 0; });
+  root.querySelectorAll('textarea').forEach((el) => { el.value = ''; });
+  const t1 = document.getElementById('t1');
+  if (t1) t1.checked = true;
+  if (!preserveNumero) {
+    const numero = document.getElementById('numero-formato');
+    if (numero) numero.value = '';
+  }
+  const fecha = document.getElementById('formato-fecha');
+  if (fecha) fecha.value = new Date().toISOString().slice(0, 10);
+  ['foto-antes-preview', 'foto-despues-preview'].forEach((id) => {
+    const preview = document.getElementById(id);
+    if (preview) preview.innerHTML = '';
+  });
+  ['foto-antes-placeholder', 'foto-despues-placeholder'].forEach((id) => {
+    const ph = document.getElementById(id);
+    if (ph) ph.style.display = '';
+  });
+  window.ArpaSignature?.clear?.('canvas-firma-cliente');
+  window.ArpaSignature?.clear?.('canvas-firma-tecnico');
+}
+
+function clearFormatoForm() {
+  clearFormatoDocumentFields();
+}
+
+function shouldSkipFormatoDraft() {
+  if (!window.ArpaBrand?.hasUserSettings?.()) return true;
+  try {
+    const raw = localStorage.getItem(window.ArpaBrand.FORMATO_DRAFT_KEY) || '';
+    if (!raw || raw === '{}') return true;
+    if (window.ArpaBrand.containsLegacyBrandText?.(raw)) return true;
+    const data = JSON.parse(raw);
+    const values = Object.values(data);
+    if (values.some((v) => window.ArpaBrand.isLegacyFieldValue?.(String(v)))) return true;
+  } catch (e) {
+    return true;
+  }
+  return false;
+}
+
+function applyFormatoDraft() {
+  try {
+    const data = JSON.parse(localStorage.getItem(window.ArpaBrand.FORMATO_DRAFT_KEY) || '{}');
+    Object.entries(data).forEach(([key, val]) => {
+      if (key === '_tipo') {
+        const radio = document.querySelector('#view-formato input[name="tipo"][value="' + val + '"]');
+        if (radio) radio.checked = true;
+        return;
+      }
+      const el = document.getElementById(key);
+      if (!el || el.type === 'file') return;
+      if (el.type === 'checkbox') el.checked = !!val;
+      else el.value = val == null ? '' : val;
+    });
+  } catch (e) {}
+}
+
+let formatoDraftTimer;
+
+function scheduleFormatoDraftSave() {
+  clearTimeout(formatoDraftTimer);
+  formatoDraftTimer = setTimeout(function () {
+    try {
+      localStorage.setItem(window.ArpaBrand.FORMATO_DRAFT_KEY, JSON.stringify(collectFormatoDraft()));
+    } catch (e) {}
+  }, 400);
+}
+
+function initFormatoDraftPersistence() {
+  window.ArpaBrand?.purgeLegacyData?.();
+  if (shouldSkipFormatoDraft()) {
+    try { localStorage.removeItem(window.ArpaBrand.FORMATO_DRAFT_KEY); } catch (e) {}
+    clearFormatoForm();
+    window.ArpaFormatoTipo?.ensureDocumentOficioForNewForm?.();
+  } else {
+    let draft = {};
+    try { draft = JSON.parse(localStorage.getItem(window.ArpaBrand.FORMATO_DRAFT_KEY) || '{}'); } catch (e) {}
+    const activeOficioId = window.ArpaOficios?.getActiveFormatoOficioId?.() || 'automatismos';
+    const draftOficioKey = window.ArpaFormatoTipo?.DRAFT_OFICIO_KEY || '_formatoOficio';
+    const draftOficioRaw = draft[draftOficioKey];
+    const draftOficioResolved = draftOficioRaw
+      ? (window.ArpaOficios?.resolveFormatoOficioId?.(draftOficioRaw) || draftOficioRaw)
+      : null;
+    if (draftOficioResolved && draftOficioResolved !== activeOficioId) {
+      draft[draftOficioKey] = activeOficioId;
+      try { localStorage.setItem(window.ArpaBrand.FORMATO_DRAFT_KEY, JSON.stringify(draft)); } catch (e) {}
+      window.ArpaFormatoTipo?.clearEquipoFields?.();
+    }
+    window.ArpaFormatoTipo?.initFromDraft?.(draft);
+    applyFormatoDraft();
+  }
+  window.ArpaBrand?.scrubLegacyInputValues?.(document.getElementById('view-formato'));
+  window.ArpaBrand?.resetUnconfiguredFormFields?.();
+  const formatoOficioId = window.ArpaFormatoTipo?.getDocumentFormatoOficio?.()
+    || window.ArpaOficios?.getActiveFormatoOficioId?.()
+    || 'automatismos';
+  window.ArpaFormatoTipo?.updateEquipoSection?.(formatoOficioId);
+  window.ArpaFormatoTipo?.updateMedidasVisibility?.(formatoOficioId);
+  if (!window.__arpaFormatoOficioBound) {
+    window.__arpaFormatoOficioBound = true;
+    window.addEventListener('arpa-active-oficio-changed', () => {
+      window.ArpaFormatoTipo?.refreshForActiveOficio?.({ clearSelections: true });
+    });
+  }
+  const root = document.getElementById('view-formato');
+  if (!root) return;
+  root.addEventListener('input', scheduleFormatoDraftSave);
+  root.addEventListener('change', scheduleFormatoDraftSave);
+}
+
+function isValidVideoEntregaUrl(url) {
+  if (!url || !String(url).trim()) return false;
+  try {
+    const u = new URL(String(url).trim());
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch (e) {
+    return false;
+  }
+}
+
+function prepareVideoQrForPrint() {
+  const urlInput = document.getElementById('formato-video-url');
+  const url = urlInput ? urlInput.value.trim() : '';
+  const block = document.getElementById('formato-video-qr-print');
+  const canvas = document.getElementById('formato-video-qr-canvas');
+  const urlText = document.getElementById('formato-video-qr-url-text');
+
+  if (!isValidVideoEntregaUrl(url) || !block || !canvas) {
+    return { block: null, qrReady: Promise.resolve() };
+  }
+
+  let qrReady = Promise.resolve();
+  if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+    qrReady = QRCode.toCanvas(canvas, url, {
+      width: 140,
+      margin: 1,
+      color: { dark: '#1a2a4a', light: '#ffffff' }
+    }).catch(() => {});
+  }
+
+  if (urlText) urlText.textContent = url;
+  block.hidden = false;
+  block.setAttribute('aria-hidden', 'false');
+  block.classList.add('formato-video-qr-visible');
+  return { block, qrReady };
+}
+
+function restoreVideoQrAfterPrint(block) {
+  if (!block) return;
+  block.hidden = true;
+  block.setAttribute('aria-hidden', 'true');
+  block.classList.remove('formato-video-qr-visible');
+  const canvas = document.getElementById('formato-video-qr-canvas');
+  if (canvas && canvas.getContext) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+// ── GUARDAR PDF ─────────────────────────────────────────────────────────────
+function validarFirmaClienteFormato() {
+  if (window.ArpaSignature?.hasSignature?.('canvas-firma-cliente')) return true;
+  alert(window.ArpaI18n.t('alert.firma.falta_firma_cliente'));
+  return false;
+}
+
+function guardarPDF() {
+  if (!validarFirmaClienteFormato()) return;
+
+  window.ArpaTrialCapture?.beginPdfExport?.();
+  window.ArpaWhatsApp?.hideFormatoShareButton?.();
+  window.ArpaHistorial?.captureFromFormato?.();
+
+  applyUserSettingsToUI();
+  window.ArpaBrand?.syncBankBlocksForPrint?.();
+  try {
+    localStorage.setItem(window.ArpaBrand.FORMATO_DRAFT_KEY, JSON.stringify(collectFormatoDraft()));
+  } catch (e) {}
+  const formatoPrintSnapshot = window.ArpaFormatoTipo?.capturePrintSnapshot?.();
+  document.body.classList.add('is-printing', 'is-printing-formato');
+  window.ArpaBrand?.prepareForPrint?.();
+  window.ArpaI18n?.preparePdfSpanish?.('view-formato');
+  window.ArpaFormatoTipo?.prepareFormatoTipoForPrint?.(formatoPrintSnapshot);
+  window.ArpaFormatoTipo?.applyPrintSnapshot?.(formatoPrintSnapshot);
+
+  const { block: qrBlock, qrReady } = prepareVideoQrForPrint();
+  if (qrBlock) document.body.classList.add('formato-has-video-qr');
+
+  const viewRoot = document.getElementById('view-formato');
+  const elementos = viewRoot.querySelectorAll('input:not([type=file]):not([type=radio]):not([type=checkbox]), select, textarea');
+  const respaldos = [];
+
+  elementos.forEach(el => {
+    if (window.ArpaFormatoTipo?.shouldIncludePdfField?.(el) === false) return;
+
+    const valor = el.tagName === 'SELECT'
+      ? el.options[el.selectedIndex]?.text || ''
+      : el.value || '';
+    const inObs = !!el.closest('.obs-lines');
+    const inDimsTable = !!el.closest('.dims-table');
+    const inDimsExtra = !!el.closest('.dims-extra');
+    const span = document.createElement('span');
+    span.className = inDimsTable ? 'pdf-valor pdf-valor-dim' : 'pdf-valor';
+    span.textContent = valor || (inObs ? '' : (el.placeholder || ''));
+    span.style.cssText = inDimsTable
+      ? `display:block; width:100%; box-sizing:border-box; font-size:13px; color:${valor ? '#1e293b' : '#9ca3af'}; padding:6px 4px; font-family:'DM Mono',monospace; font-weight:600; text-align:center; border-bottom:1px solid #d1d5db; min-height:32px;`
+      : inDimsExtra
+        ? `display:block; width:100%; font-size:13px; color:${valor ? '#1e293b' : '#9ca3af'}; padding:6px 4px; font-family:'DM Mono',monospace; font-weight:600; text-align:center; border-bottom:1px solid #d1d5db; min-height:32px;`
+      : inObs
+        ? `display:block; width:100%; font-size:13px; color:${valor ? '#1e293b' : '#9ca3af'}; padding:4px 2px 6px; font-family:'DM Sans',sans-serif; border-bottom:1px solid #d1d5db; min-height:24px; white-space:normal;`
+        : `display:inline-block; width:100%; font-size:13px; color:${valor ? '#1e293b' : '#9ca3af'}; padding:8px 10px; font-family:'DM Sans',sans-serif; border-bottom:1px solid #d1d5db; min-height:36px;`;
+    respaldos.push({ el, parent: el.parentNode, next: el.nextSibling });
+    el.parentNode.replaceChild(span, el);
+  });
+
+  // Radios y checkboxes — marca visualmente
+  const checks = viewRoot.querySelectorAll('input[type=checkbox], input[type=radio]');
+  checks.forEach(ch => {
+    if (ch.checked) {
+      const lbl = document.querySelector(`label[for="${ch.id}"]`);
+      if (lbl) lbl.style.fontWeight = '800';
+    }
+  });
+
+  // Oculta el botón de PDF para que no salga impreso
+  const btnPDF = document.querySelector('#pdf-actions-formato button');
+  if (btnPDF) btnPDF.parentElement.style.display = 'none';
+  const settingsModal = document.getElementById('settings-modal');
+  if (settingsModal) settingsModal.classList.remove('open');
+
+  const finishPrintRestore = () => {
+    document.body.classList.remove('is-printing', 'is-printing-formato', 'formato-has-video-qr');
+    const medidasSection = document.getElementById('formato-medidas-section');
+    if (medidasSection) {
+      medidasSection.style.breakBefore = '';
+      medidasSection.style.pageBreakBefore = '';
+    }
+    window.ArpaI18n?.restorePdfSpanish?.();
+    window.ArpaFormatoTipo?.restoreFormatoTipoAfterPrint?.();
+    window.ArpaBrand?.restoreAfterPrint?.();
+    restoreVideoQrAfterPrint(qrBlock);
+    window.ArpaSignature?.restoreAfterPrint?.();
+    respaldos.forEach(({ el, parent, next }) => {
+      const span = parent.querySelector('.pdf-valor');
+      if (span) parent.replaceChild(el, span);
+    });
+    checks.forEach(ch => {
+      const lbl = document.querySelector(`label[for="${ch.id}"]`);
+      if (lbl) lbl.style.fontWeight = '';
+    });
+    if (btnPDF) btnPDF.parentElement.style.display = '';
+    scheduleFormatoDraftSave();
+    window.ArpaWhatsApp?.showFormatoShareAfterPdf?.();
+    window.ArpaTrialCapture?.onDocumentSaved?.('formato');
+    window.ArpaTrialCapture?.endPdfExport?.();
+  };
+
+  function scheduleAfterPrintFormato(fn) {
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      fn();
+    };
+    window.addEventListener('afterprint', run, { once: true });
+    setTimeout(run, 5000);
+  }
+
+  const printReady = window.ArpaSignature?.prepareForPrint?.([
+    'canvas-firma-cliente',
+    'canvas-firma-tecnico'
+  ]);
+  Promise.all([Promise.resolve(printReady), qrReady]).then(() => {
+    requestAnimationFrame(() => {
+      forzarSaltoSiSeCorta();
+      window.print();
+      scheduleAfterPrintFormato(finishPrintRestore);
+    });
+  });
+}
+function forzarSaltoSiSeCorta() {
+  try {
+    const PAGE_H_MM = 279.4;
+    const MARGIN_MM = 15;
+    const PX_PER_MM = 96 / 25.4;
+    const usableHeightPx = (PAGE_H_MM - MARGIN_MM * 2) * PX_PER_MM;
+    const pageEl = document.querySelector('.page');
+    const section = document.getElementById('formato-medidas-section');
+    if (!pageEl || !section) return;
+    const pageTop = pageEl.getBoundingClientRect().top;
+    const secRect = section.getBoundingClientRect();
+    const top = secRect.top - pageTop;
+    const bottom = secRect.bottom - pageTop;
+    const startPage = Math.floor(top / usableHeightPx);
+    const endPage = Math.floor((bottom - 1) / usableHeightPx);
+    if (startPage !== endPage) {
+      section.style.breakBefore = 'page';
+      section.style.pageBreakBefore = 'always';
+    } else {
+      section.style.breakBefore = '';
+      section.style.pageBreakBefore = '';
+    }
+  } catch (e) {}
+}
+function getUltimoNumero() {
+  const N = window.ArpaNumeracion;
+  if (!N) return 0;
+  return N.getMaxCounter(N.KEYS.formato, document.getElementById('numero-formato')?.value);
+}
+function guardarNumero(n) {
+  window.ArpaNumeracion?.setCounter?.(window.ArpaNumeracion.KEYS.formato, n);
+}
+function formatearNumero(n) {
+  return window.ArpaNumeracion?.formatFormNumber?.(n) ?? String(n).padStart(4, '0');
+}
+async function nuevoNumero() {
+  if (!window.ArpaNumeracion?.blockIfPymeMissingCode?.()) return;
+  const field = document.getElementById('numero-formato');
+  const { value, sincronizado } = await window.ArpaNumeracion.nextNumberAsync('formato', field?.value);
+  if (!sincronizado) console.warn('[ARPA] Número de formato generado offline, no sincronizado con la nube todavía.');
+  const badge = document.getElementById('sync-status-formato');
+  if (badge) {
+    badge.style.display = 'inline-block';
+    const licActiva = (localStorage.getItem('arpa_suite_license_code') || '(vacio)').trim();
+    badge.title = 'Licencia activa: ' + licActiva;
+    if (sincronizado) {
+      badge.textContent = '☁️ ' + licActiva.slice(-6);
+      badge.style.background = 'rgba(76,175,128,0.15)';
+      badge.style.color = '#2e7d4f';
+    } else {
+      badge.textContent = '⚠️ ' + licActiva.slice(-6) + ' (local)';
+      badge.style.background = 'rgba(224,82,82,0.15)';
+      badge.style.color = '#c0392b';
+    }
+  }
+  if (field) field.value = value;
+  clearFormatoDocumentFields({ preserveNumero: true });
+  try { localStorage.removeItem(window.ArpaBrand.FORMATO_DRAFT_KEY); } catch (e) {}
+  window.ArpaFormatoTipo?.ensureDocumentOficioForNewForm?.();
+  applyUserSettingsToUI?.();
+  scheduleFormatoDraftSave();
+  const cliente = document.getElementById('formato-cliente-nombre')?.value || '';
+  const tipo = document.querySelector('input[name="tipo"]:checked')?.value || 'instalacion';
+  const prefijo = tipo === 'mantenimiento' ? 'Mant' : tipo === 'reparacion' ? 'Rep' : 'FI';
+  const fecha = new Date().toISOString().slice(0, 10);
+  const nombre = cliente ? '-' + cliente.replace(/\s+/g, '-').substring(0, 20) : '';
+  document.title = `${prefijo}-${value}${nombre}-${fecha}`;
+}
+
+// Al cargar, mostrar el número actual (sin incrementar) o sugerir el siguiente
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    initFormatoDraftPersistence();
+  } catch (e) {
+    console.warn('[formato] initFormatoDraftPersistence', e);
+  }
+  const ultimo = getUltimoNumero();
+  const campo = document.getElementById('numero-formato');
+  const fechaFormato = document.getElementById('formato-fecha');
+  if (fechaFormato && !fechaFormato.value) {
+    fechaFormato.value = new Date().toISOString().slice(0, 10);
+  }
+  if (ultimo === 0) {
+    campo.placeholder = '← Toca NUEVO N°';
+  } else {
+    campo.placeholder = `Último: ${formatearNumero(ultimo)}`;
+  }
+  // Actualizar título cuando cambie cliente o tipo
+  const nombreInput = document.querySelector('#view-formato #formato-cliente-nombre')
+    || document.querySelector('input[placeholder="Nombre completo o razón social"]');
+  nombreInput?.addEventListener('input', actualizarTitulo);
+  document.querySelectorAll('input[name="tipo"]')
+    .forEach(r => r.addEventListener('change', actualizarTitulo));
+});
+
+function actualizarTitulo() {
+  const noVal = document.getElementById('numero-formato').value;
+  if (!noVal) return;
+  const cliente = document.querySelector('input[placeholder="Nombre completo o razón social"]').value;
+  const tipo = document.querySelector('input[name="tipo"]:checked').value;
+  const prefijo = tipo === 'mantenimiento' ? 'Mant' : tipo === 'reparacion' ? 'Rep' : 'FI';
+  const fecha = new Date().toISOString().slice(0,10);
+  const nombre = cliente ? '-' + cliente.replace(/\s+/g,'-').substring(0,20) : '';
+  document.title = `${prefijo}-${noVal}${nombre}-${fecha}`;
+}
+
+// Permitir editar el número manualmente también
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('numero-formato').addEventListener('change', function() {
+    const seq = window.ArpaNumeracion?.parseSequenceNumber?.(this.value);
+    if (seq > 0) guardarNumero(seq);
+    actualizarTitulo();
+  });
+});
+
+// ── FOTOS ───────────────────────────────────────────────────────────────────
+function loadPhotos(input, previewId) {
+  const preview = document.getElementById(previewId);
+  const placeholderId = previewId.replace('-preview', '-placeholder');
+  const placeholder = document.getElementById(placeholderId);
+
+  if (!input.files || input.files.length === 0) return;
+
+  preview.innerHTML = '';
+  preview.style.display = 'flex';
+  if (placeholder) placeholder.style.display = 'none';
+
+  Array.from(input.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:calc(50% - 2px);height:90px;object-fit:cover;border-radius:6px;cursor:pointer;';
+      img.title = 'Toca para quitar';
+      img.onclick = () => { img.remove(); if (preview.children.length === 0) { preview.style.display = 'none'; if(placeholder) placeholder.style.display = ''; } };
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Badge de suite (sin llamadas externas)
+window.addEventListener('DOMContentLoaded', () => {
+  const dot = document.getElementById('validation-dot');
+  if (dot) dot.style.backgroundColor = '#16a34a';
+});
+
+// ── Base de datos de clientes (autocompletado) ──────────────────────────────
+(function () {
+  'use strict';
+  const CLIENTES_KEY  = 'arpa_suite_clientes';
+  const HISTORIAL_KEY = 'arpa_suite_servicio_historial';
+  function getClientesDB() {
+    try {
+      const data = JSON.parse(localStorage.getItem(CLIENTES_KEY) || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch(e) { return []; }
+  }
+  function getClientesFromHistorial() {
+    try {
+      const data = JSON.parse(localStorage.getItem(HISTORIAL_KEY) || '[]');
+      if (!Array.isArray(data)) return [];
+      const seen = new Set();
+      const clientes = [];
+      data.forEach((r) => {
+        const nombre = String(r.cliente || '').trim();
+        if (nombre && !seen.has(nombre.toLowerCase())) {
+          seen.add(nombre.toLowerCase());
+          clientes.push({ nombre, ciudad: String(r.ciudad || '').trim() });
+        }
+      });
+      return clientes;
+    } catch(e) { return []; }
+  }
+  function buildDatalist() {
+    let dl = document.getElementById('arpa-clientes-datalist');
+    if (!dl) {
+      dl = document.createElement('datalist');
+      dl.id = 'arpa-clientes-datalist';
+      document.body.appendChild(dl);
+    }
+    const db = getClientesDB();
+    const nombres = db.length
+      ? db.map(function(c) { return c.nombre; })
+      : getClientesFromHistorial().map(function(c) { return c.nombre; });
+    dl.innerHTML = nombres
+      .map(function(n) { return '<option value="' + n.replace(/"/g, '&quot;') + '">'; })
+      .join('');
+  }
+  function autoFillCliente(inputId, fieldMap) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.addEventListener('change', function() {
+      const val = input.value.trim().toLowerCase();
+      if (!val) return;
+      const db = getClientesDB();
+      const match = db.find(function(c) { return c.nombre.toLowerCase() === val; });
+      if (!match) return;
+      Object.keys(fieldMap).forEach(function(campo) {
+        const elId = fieldMap[campo];
+        const el = document.getElementById(elId);
+        if (el && match[campo] && !el.value) el.value = match[campo];
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    buildDatalist();
+    autoFillCliente('formato-cliente-nombre', { ciudad: 'formato-cliente-ciudad' });
+    autoFillCliente('cot-nombre', {
+      ciudad: 'cot-ciudad',
+      nit:    'cot-nit',
+      tel:    'cot-tel',
+      email:  'cot-email'
+    });
+    autoFillCliente('cc-cliente-nombre', {
+      ciudad: 'cc-ciudad',
+      nit:    'cc-cliente-doc',
+      tel:    'cc-cliente-tel',
+      dir:    'cc-cliente-dir'
+    });
+    document.addEventListener('arpa:clientes-updated', buildDatalist);
+    window.addEventListener('storage', function(e) {
+      if (e.key === CLIENTES_KEY || e.key === HISTORIAL_KEY) buildDatalist();
+    });
+  });
+})();
+
+// Registrar el Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then((reg) => {
+        console.log('Service Worker registrado con éxito en scope:', reg.scope);
+        reg.update();
+      })
+      .catch((err) => {
+        console.warn('Error al registrar el Service Worker:', err);
+      });
+  });
+}
+</script>
+
+<!-- Captura WhatsApp trial (debe cargar antes del gate de licencia) -->
+<script src="./js/arpa-trial-capture.js"></script>
+
+<!-- Validación de licencia: trial auto 7 días + revalidación en cada apertura -->
+<script data-cfasync="false" type="text/javascript" charset="utf-8">
+(function () {
+  var LICENSE_API = 'https://script.google.com/macros/s/AKfycbzKBeyDVWVqPG1R47EZTVKmCpa3SOwxs8LXrW4ipvRtiyyRV4trJKg7D4i89_cUTcH2/exec';
+  var LICENSE_STORAGE_KEY = 'arpa_suite_license_code';
+  var LICENSE_VENC_KEY = 'arpa_suite_license_vencimiento';
+  var LICENSE_PLAN_KEY = 'arpa_suite_license_plan';
+  var SALES_ENTRY_KEY = 'arpa_suite_sales_entry';
+  var DEVICE_STORAGE_KEY = 'arpa_suite_device_id';
+  var JSONP_SCRIPT_ID = 'suite-license-jsonp';
+  var jsonpCounter = 0;
+  var trialProvisionToken = 0;
+  var ignoreTrialProvisionResult = false;
+  var LOADING_MIN_MS = 4000;
+  var loadingStartedAt = 0;
+  var loadingPausedByUser = false;
+  var pendingUnlock = null;
+  var loadingUnlockTimer = null;
+
+  function isTrialLicenseCode(code) {
+    var c = String(code || '').trim().toUpperCase();
+    return !c || c.indexOf('ARPA-FREE-') === 0;
+  }
+
+  function isLoadingPanelVisible() {
+    var el = document.getElementById('license-gate-loading');
+    return el && el.classList.contains('is-visible');
+  }
+
+  function clearLoadingUnlockTimer() {
+    if (loadingUnlockTimer) {
+      clearTimeout(loadingUnlockTimer);
+      loadingUnlockTimer = null;
+    }
+  }
+
+  function hideLoadingContinueBtn() {
+    var btn = document.getElementById('license-loading-continue');
+    if (btn) btn.hidden = true;
+  }
+
+  function showLoadingContinueBtn() {
+    var btn = document.getElementById('license-loading-continue');
+    if (btn) btn.hidden = false;
+  }
+
+  function resetLoadingFlowState() {
+    clearLoadingUnlockTimer();
+    loadingStartedAt = Date.now();
+    loadingPausedByUser = false;
+    pendingUnlock = null;
+    hideLoadingContinueBtn();
+  }
+
+  function shouldDeferLoadingUnlock(kind, code) {
+    if (kind === 'provision') return true;
+    return isTrialLicenseCode(code);
+  }
+
+  function attemptLoadingComplete() {
+    clearLoadingUnlockTimer();
+    if (!pendingUnlock) return;
+    if (loadingPausedByUser) {
+      showLoadingContinueBtn();
+      return;
+    }
+    var code = pendingUnlock.payload.code || '';
+    var minMs = shouldDeferLoadingUnlock(pendingUnlock.kind, code) ? LOADING_MIN_MS : 0;
+    var wait = minMs - (Date.now() - loadingStartedAt);
+    if (wait > 0) {
+      loadingUnlockTimer = setTimeout(attemptLoadingComplete, wait);
+      return;
+    }
+    flushPendingUnlock();
+  }
+
+  function flushPendingUnlock() {
+    var action = pendingUnlock;
+    pendingUnlock = null;
+    clearLoadingUnlockTimer();
+    hideLoadingContinueBtn();
+    loadingPausedByUser = false;
+    if (!action) return;
+    if (action.kind === 'offline') {
+      applyOfflineUnlock(action.payload.saved);
+      return;
+    }
+    if (action.payload && action.payload.data) {
+      applyValidLicense(action.payload.data);
+    }
+  }
+
+  function maybeDeferUnlock(kind, payload) {
+    if (!isLoadingPanelVisible()) return false;
+    if (!shouldDeferLoadingUnlock(kind, payload.code)) return false;
+    pendingUnlock = { kind: kind, payload: payload };
+    attemptLoadingComplete();
+    return true;
+  }
+
+  function pauseLoadingOnInteraction() {
+    if (!isLoadingPanelVisible()) return;
+    loadingPausedByUser = true;
+    clearLoadingUnlockTimer();
+    if (pendingUnlock) showLoadingContinueBtn();
+  }
+
+  function bindLoadingPanelInteraction() {
+    var panel = document.getElementById('license-gate-loading');
+    if (!panel || panel.__interactionBound) return;
+    panel.__interactionBound = true;
+    panel.addEventListener('pointerdown', pauseLoadingOnInteraction);
+    panel.addEventListener('touchstart', pauseLoadingOnInteraction, { passive: true });
+  }
+
+  function t(key, fallback) {
+    if (window.ArpaI18n && typeof window.ArpaI18n.t === 'function') {
+      var val = window.ArpaI18n.t(key);
+      if (val && val !== key) return val;
+    }
+    return fallback || key;
+  }
+
+  function unlockApp() {
+    document.documentElement.classList.remove('license-checking');
+    document.documentElement.classList.add('license-ok');
+  }
+
+  function lockApp() {
+    document.documentElement.classList.remove('license-ok');
+    document.documentElement.classList.add('license-checking');
+  }
+
+  function showPanel(name) {
+    if (name === 'loading') resetLoadingFlowState();
+    ['loading', 'expired', 'activate'].forEach(function (id) {
+      var el = document.getElementById('license-gate-' + id);
+      if (el) el.classList.toggle('is-visible', id === name);
+    });
+  }
+
+  function setLoadingText(text) {
+    var el = document.getElementById('license-gate-loading-text');
+    if (el) el.textContent = text;
+  }
+
+  function showLicenseError(message) {
+    var el = document.getElementById('license-error');
+    if (!el) return;
+    el.textContent = message || t('license_gate.error_invalid', 'Código de licencia inválido.');
+    el.classList.add('visible');
+  }
+
+  function hideLicenseError() {
+    var el = document.getElementById('license-error');
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+
+  function removeJsonpScript() {
+    var old = document.getElementById(JSONP_SCRIPT_ID);
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+  }
+
+  function licenseApiJsonp(params) {
+    return new Promise(function (resolve, reject) {
+      removeJsonpScript();
+      jsonpCounter += 1;
+      var cbName = 'arpaLicenseCb' + jsonpCounter + '_' + Date.now();
+
+      window[cbName] = function (data) {
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        removeJsonpScript();
+        resolve(data);
+      };
+
+      var qs = [];
+      Object.keys(params || {}).forEach(function (k) {
+        qs.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));
+      });
+      qs.push('callback=' + encodeURIComponent(cbName));
+
+      var script = document.createElement('script');
+      script.id = JSONP_SCRIPT_ID;
+      script.type = 'text/javascript';
+      script.charset = 'UTF-8';
+      script.onerror = function () {
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        removeJsonpScript();
+        reject(new Error('network'));
+      };
+      script.src = LICENSE_API + '?' + qs.join('&');
+      (document.body || document.head).appendChild(script);
+    });
+  }
+
+  function validarLicenciaJsonp(codigo) {
+    return licenseApiJsonp({ codigo: String(codigo).trim(), device_id: getOrCreateDeviceId() });
+  }
+
+  function provisionTrialJsonp(deviceId) {
+    return licenseApiJsonp({ accion: 'provision_trial', device_id: deviceId });
+  }
+
+  function getOrCreateDeviceId() {
+    try {
+      var id = (localStorage.getItem(DEVICE_STORAGE_KEY) || '').trim();
+      if (id && id.length >= 12) return id;
+      id = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : ('d-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12));
+      localStorage.setItem(DEVICE_STORAGE_KEY, id);
+      return id;
+    } catch (e) {
+      return 'd-' + Date.now() + '-' + Math.random().toString(36).slice(2, 12);
+    }
+  }
+
+  function parseDateOnly(str) {
+    if (!str) return null;
+    var parts = String(str).split('-');
+    if (parts.length === 3) {
+      var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    var d2 = new Date(str);
+    return isNaN(d2.getTime()) ? null : d2;
+  }
+
+  function isLocallyExpired() {
+    try {
+      var code = (localStorage.getItem(LICENSE_STORAGE_KEY) || '').trim().toUpperCase();
+      if (code === 'ARPA-FOUNDER-001') return false;
+      if (window.ArpaLicense && window.ArpaLicense.isNeverExpiring(code)) return false;
+      var venc = (localStorage.getItem(LICENSE_VENC_KEY) || '').trim();
+      var d = parseDateOnly(venc);
+      if (!d) return false;
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      d.setHours(0, 0, 0, 0);
+      return d < today;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function saveLicenseData(data) {
+    try {
+      if (data.codigo) localStorage.setItem(LICENSE_STORAGE_KEY, String(data.codigo).trim().toUpperCase());
+      if (data.vencimiento) localStorage.setItem(LICENSE_VENC_KEY, data.vencimiento);
+      if (data.plan) localStorage.setItem(LICENSE_PLAN_KEY, data.plan);
+      localStorage.setItem(SALES_ENTRY_KEY, 'true');
+    } catch (e) {}
+  }
+
+  function clearLicenseData() {
+    try {
+      localStorage.removeItem(LICENSE_STORAGE_KEY);
+      localStorage.removeItem(LICENSE_VENC_KEY);
+      localStorage.removeItem(LICENSE_PLAN_KEY);
+    } catch (e) {}
+  }
+
+  function getSavedCode() {
+    try {
+      return (localStorage.getItem(LICENSE_STORAGE_KEY) || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function tryOnboarding() {
+    if (window.ArpaOnboarding && typeof window.ArpaOnboarding.tryShow === 'function') {
+      window.ArpaOnboarding.tryShow();
+    }
+  }
+
+  function showExpiredPanel() {
+    lockApp();
+    showPanel('expired');
+  }
+
+  function showActivatePanel() {
+    lockApp();
+    showPanel('activate');
+    var input = document.getElementById('license-code-input');
+    if (input) input.focus();
+  }
+
+  function openManualEntry(e) {
+    if (e) e.preventDefault();
+    ignoreTrialProvisionResult = true;
+    trialProvisionToken += 1;
+    removeJsonpScript();
+    resetLoadingFlowState();
+    showActivatePanel();
+    hideLicenseError();
+  }
+
+  function finishAppUnlock() {
+    unlockApp();
+    tryOnboarding();
+  }
+
+  function applyValidLicense(data) {
+    saveLicenseData(data);
+    if (window.ArpaTrialCapture && typeof window.ArpaTrialCapture.maybeShowBackupCaptureOnLoad === 'function') {
+      window.ArpaTrialCapture.maybeShowBackupCaptureOnLoad(finishAppUnlock);
+      return;
+    }
+    finishAppUnlock();
+  }
+
+  function applyOfflineUnlock(saved) {
+    if (window.ArpaTrialCapture && typeof window.ArpaTrialCapture.maybeShowBackupCaptureOnLoad === 'function') {
+      window.ArpaTrialCapture.maybeShowBackupCaptureOnLoad(finishAppUnlock);
+    } else {
+      finishAppUnlock();
+    }
+    validarLicenciaJsonp(saved).then(function (data) {
+      if (data && data.valido === true) saveLicenseData(data);
+      else if (data && !data.valido) handleInvalidLicense(data);
+    }).catch(function () {});
+  }
+
+  function handleValidLicense(data) {
+    var code = (data && data.codigo) || getSavedCode() || '';
+    if (maybeDeferUnlock('validate', { code: code, data: data })) return;
+    applyValidLicense(data);
+  }
+
+  function handleInvalidLicense(data) {
+    clearLicenseData();
+    if (data && (data.vencida || data.trial_usado)) {
+      showExpiredPanel();
+      return;
+    }
+    showActivatePanel();
+    showLicenseError((data && data.mensaje) || t('license_gate.error_invalid', 'Código de licencia inválido.'));
+  }
+
+  function validateSavedCode(saved) {
+    setLoadingText(t('license_gate.validating', 'Verificando licencia…'));
+    showPanel('loading');
+
+    if (isLocallyExpired()) {
+      handleInvalidLicense({ vencida: true, trial_usado: true, mensaje: 'Licencia vencida.' });
+      return;
+    }
+
+    validarLicenciaJsonp(saved)
+      .then(function (data) {
+        if (data && data.valido === true) {
+          handleValidLicense(data);
+        } else if (isLocallyExpired()) {
+          handleInvalidLicense({ vencida: true, trial_usado: true, mensaje: 'Licencia vencida.' });
+        } else {
+          handleInvalidLicense(data);
+        }
+      })
+      .catch(function () {
+        if (saved && !isLocallyExpired()) {
+          if (maybeDeferUnlock('offline', { code: saved, saved: saved })) return;
+          applyOfflineUnlock(saved);
+        } else {
+          showActivatePanel();
+          showLicenseError(t('license_gate.error_network', 'No se pudo verificar la licencia. Compruebe su conexión e intente de nuevo.'));
+        }
+      });
+  }
+
+  function provisionAutoTrial() {
+    ignoreTrialProvisionResult = false;
+    var token = ++trialProvisionToken;
+    var deviceId = getOrCreateDeviceId();
+    setLoadingText(t('license_gate.loading', 'Activando su prueba de 7 días…'));
+    showPanel('loading');
+
+    provisionTrialJsonp(deviceId)
+      .then(function (data) {
+        if (ignoreTrialProvisionResult || token !== trialProvisionToken) return;
+        if (data && data.valido === true) {
+          if (maybeDeferUnlock('provision', { code: data.codigo || '', data: data })) return;
+          applyValidLicense(data);
+          return;
+        }
+        if (data && (data.vencida || data.trial_usado)) {
+          handleInvalidLicense(data);
+          return;
+        }
+        showActivatePanel();
+        showLicenseError((data && data.mensaje) || t('license_gate.error_trial', 'No se pudo activar la prueba. Ingrese su código o reintente.'));
+      })
+      .catch(function () {
+        if (ignoreTrialProvisionResult || token !== trialProvisionToken) return;
+        showActivatePanel();
+        showLicenseError(t('license_gate.error_network', 'No se pudo verificar la licencia. Compruebe su conexión e intente de nuevo.'));
+        var retry = document.getElementById('license-retry-trial');
+        if (retry) retry.hidden = false;
+      });
+  }
+
+  function initLicenseGate() {
+    if (initLicenseGate.__bound) {
+      startLicenseFlow();
+      return;
+    }
+    initLicenseGate.__bound = true;
+
+    var input = document.getElementById('license-code-input');
+    var btn = document.getElementById('license-activate-btn');
+
+    document.getElementById('license-show-manual')?.addEventListener('click', openManualEntry);
+    document.getElementById('license-show-manual-loading')?.addEventListener('click', openManualEntry);
+    bindLoadingPanelInteraction();
+
+    document.getElementById('license-loading-continue')?.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (!pendingUnlock) return;
+      loadingPausedByUser = false;
+      flushPendingUnlock();
+    });
+
+    document.getElementById('license-retry-trial')?.addEventListener('click', function (e) {
+      e.preventDefault();
+      hideLicenseError();
+      provisionAutoTrial();
+    });
+
+    function resetBtn() {
+      if (!btn) return;
+      btn.disabled = false;
+      btn.textContent = t('license_gate.btn_verify', 'Verificar');
+    }
+
+    function verifyLicense() {
+      var code = (input && input.value || '').trim();
+      if (!code) {
+        showLicenseError(t('license_gate.error_required', 'Ingrese su código de licencia.'));
+        if (input) input.focus();
+        return;
+      }
+
+      hideLicenseError();
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = t('license_gate.btn_verifying', 'Verificando…');
+      }
+
+      validarLicenciaJsonp(code)
+        .then(function (data) {
+          if (data && data.valido === true) {
+            handleValidLicense(Object.assign({ codigo: code }, data));
+          } else {
+            showLicenseError((data && data.mensaje) || t('license_gate.error_invalid', 'Código de licencia inválido.'));
+            if (input) input.focus();
+          }
+          resetBtn();
+        })
+        .catch(function () {
+          showLicenseError(t('license_gate.error_network', 'No se pudo verificar la licencia. Compruebe su conexión e intente de nuevo.'));
+          resetBtn();
+        });
+    }
+
+    if (btn) btn.addEventListener('click', verifyLicense);
+    if (input) {
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') verifyLicense();
+      });
+    }
+
+    startLicenseFlow();
+  }
+
+  function startLicenseFlow() {
+    var saved = getSavedCode();
+    if (saved) {
+      validateSavedCode(saved);
+    } else {
+      provisionAutoTrial();
+    }
+  }
+
+  function bootLicenseGate() {
+    if (window.ArpaTrialCapture) {
+      window.ArpaTrialCapture.retryPendingRegistration?.();
+      window.ArpaTrialCapture.ensureTrialStartSilent?.();
+    }
+    initLicenseGate();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootLicenseGate);
+  } else {
+    bootLicenseGate();
+  }
+})();
+</script>
+
+<script src="./js/qrcode.min.js"></script>
+<script src="./js/arpa-i18n.js"></script>
+<script src="./js/html2canvas.min.js"></script>
+<script src="./js/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
+<script src="./js/arpa-license.js"></script>
+<script src="./js/arpa-oficios.js"></script>
+<script src="./js/arpa-formato-tipo.js"></script>
+<script src="./js/arpa-numeracion.js"></script>
+<script src="./js/arpa-brand.js"></script>
+<script src="./js/arpa-cloud-sync.js"></script>
+<script src="./js/arpa-pricing.js"></script>
+<script src="./js/arpa-cobros.js"></script>
+<script src="./js/arpa-signature.js"></script>
+<script src="./js/arpa-cotizacion.js"></script>
+<script src="./js/catalogo-bft-nas.js"></script>
+<script src="./js/catalogo-ppa.js"></script>
+<script src="./js/arpa-mi-catalogo.js"></script>
+<script src="./js/arpa-cuenta-cobro.js"></script>
+<script src="./js/arpa-views.js"></script>
+<script src="./js/arpa-onboarding.js"></script>
+<script src="./js/arpa-historial.js"></script>
+<script src="./js/arpa-whatsapp.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.ArpaCotizacion) window.ArpaCotizacion.initCotizacion();
+  if (window.ArpaMiCatalogo) window.ArpaMiCatalogo.initMiCatalogo();
+  if (window.ArpaCuentaCobro) window.ArpaCuentaCobro.initCuentaCobro();
+  updateSyncStatusText();
+});
+
+// ── Sincronización manual ────────────────────────────────────────────────────
+function updateSyncStatusText() {
+  const el = document.getElementById('sync-status-text');
+  if (!el) return;
+  const lastSync = window.ArpaCloudSync?.getLastSyncTime?.() || 0;
+  if (!lastSync) {
+    el.textContent = 'Sin sincronizar aún en este dispositivo';
+    return;
+  }
+  const mins = Math.round((Date.now() - lastSync) / 60000);
+  if (mins < 1)       el.textContent = '✓ Sincronizado hace un momento';
+  else if (mins < 60) el.textContent = `✓ Sincronizado hace ${mins} min`;
+  else                el.textContent = `✓ Sincronizado hace ${Math.round(mins / 60)} h`;
+}
+
+function arpaSyncNow() {
+  const btn = document.getElementById('btn-sync-now');
+  const el  = document.getElementById('sync-status-text');
+  if (!window.ArpaCloudSync?.forceSyncFromCloud) {
+    if (el) el.textContent = 'Sincronización no disponible (sin licencia activa)';
+    return;
+  }
+  if (btn) { btn.classList.add('syncing'); btn.textContent = '↻ Sincronizando…'; }
+  if (el)  el.textContent = 'Sincronizando con la nube…';
+
+  ArpaCloudSync.forceSyncFromCloud()
+    .then(() => {
+      updateSyncStatusText();
+    })
+    .catch(() => {
+      if (el) el.textContent = '⚠ Error al sincronizar — verifique conexión';
+    })
+    .finally(() => {
+      if (btn) { btn.classList.remove('syncing'); btn.textContent = '↻ Sincronizar ahora'; }
+    });
+}
+
+document.addEventListener('arpa:sync-complete', updateSyncStatusText);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "id": "https://arpa.arpatechnologyglobal.com/",
+  "name": "ARPA Suite",
+  "short_name": "ARPA Suite",
+  "description": "Plataforma de gestión de campo para técnicos de servicio: automatización, electricidad, gas, plomería, refrigeración, CCTV, solar y más",
+  "start_url": "https://arpa.arpatechnologyglobal.com/",
+  "scope": "https://arpa.arpatechnologyglobal.com/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a2a4a",
+  "theme_color": "#1a2a4a",
+  "dir": "ltr",
+  "lang": "es",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
