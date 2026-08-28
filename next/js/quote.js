@@ -69,6 +69,27 @@ export function draftQuoteFromAssistance(assistance, options = {}) {
   };
 }
 
+export function mergeQuoteWithEdits(generated, existing) {
+  const prev = existing?.items || [];
+  const items = (generated.items || []).map((item) => {
+    const hit = prev.find((p) => (p.partId && p.partId === item.partId) || p.name === item.name);
+    if (!hit) return item;
+    return {
+      ...item,
+      qty: hit.qty ?? item.qty,
+      unitPrice: hit.unitPrice ?? item.unitPrice,
+      labor: hit.labor ?? item.labor,
+    };
+  });
+  const totals = quoteTotals(items);
+  return { ...generated, items, ...totals, status: items.length ? 'draft' : 'empty' };
+}
+
+export function quoteFromService(job, assistance, catalogProducts) {
+  const generated = draftQuoteFromAssistance(assistance, { catalogProducts });
+  return mergeQuoteWithEdits(generated, job?.quote);
+}
+
 export function readLegacyCatalogProducts() {
   if (typeof localStorage === 'undefined') return [];
   const keys = ['arpa_catalogo_usuario', 'arpa_catalog_automatismos'];

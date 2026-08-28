@@ -1,16 +1,19 @@
 import { buildAssistance } from './ai/recommend.js';
-import { getChecklist, QUICK_CHIPS, equipmentTypeLabel } from './ai/knowledge.js';
-import { draftQuoteFromAssistance, readLegacyCatalogProducts } from './quote.js';
-import { applyNoteToService } from './flow.js';
-import { planFollowups, isOverdue, followUpLabel } from './followup.js';
+import { getChecklist, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel } from './ai/knowledge.js';
+import { quoteFromService, readLegacyCatalogProducts } from './quote.js';
+import { applyNoteToService, closeService } from './flow.js';
+import { planFollowups, isOverdue, followUpLabel, filterFollowups, serviceTypeFromFollowup } from './followup.js';
 import {
   openStore, newId, createClient, createEquipment, createService, createFollowup,
-  equipmentHistory, buildIntelligentBrief,
+  equipmentHistory, buildIntelligentBrief, assembleClientView, assembleEquipmentView,
 } from './store.js';
-import { importLegacyClients, readCompanySettings } from './legacy.js';
+import { importLegacyData, readCompanySettings } from './legacy.js';
 import { createVoiceCapture } from './voice.js';
 import { compressImage } from './photos.js';
-import { buildReportModel, renderReportHtml, openReportWindow } from './report.js';
+import { bindSignaturePad, clearSignature, restoreSignature, mergeSignatures, isSignedDataUrl } from './signature.js';
+import { shareOrDownload, shareMessage, whatsAppMessage, openWhatsApp } from './share.js';
+import { buildReportModel, buildQuoteModel, renderReportHtml, openReportWindow } from './report.js';
+import { pdfFileFromModel } from './pdf.js';
 import { bindClicks, val } from './ui.js';
 import * as S from './screens.js';
 
@@ -28,6 +31,9 @@ let ui = {
   interim: '',
   listening: false,
   voiceSupported: false,
+  fuFilter: 'open',
+  clientId: null,
+  equipmentId: null,
 };
 let voice;
 let root;
@@ -51,6 +57,8 @@ function parseHash() {
   const parts = raw.split('/').filter(Boolean);
   if (!parts.length) return { screen: 'home' };
   if (parts[0] === 'clientes') return { screen: 'clients' };
+  if (parts[0] === 'cliente' && parts[1]) return { screen: 'client-detail', clientId: parts[1] };
+  if (parts[0] === 'equipo' && parts[1]) return { screen: 'equipment-detail', equipmentId: parts[1] };
   if (parts[0] === 'servicios') return { screen: 'services' };
   if (parts[0] === 'seguimiento') return { screen: 'followups' };
   if (parts[0] === 'servicio' && parts[1] === 'nuevo') return { screen: 'job', step: 'tipo', jobId: null };
@@ -117,7 +125,7 @@ async function seedDemoIfNeeded() {
     closedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 160).toISOString(),
     findings: [{ text: 'Desgaste inicial del piñón', severity: 'medium', source: 'seed' }],
     workDone: [{ text: 'Lubricación de sistema', source: 'seed' }],
-    parts: [],
+    parts: [{ id: 'pt_seed', name: 'Grasa de piñón', qty: 1, source: 'seed' }],
     recommendations: [{ text: 'Vigilar piñón en la próxima visita', source: 'seed' }],
     equipmentStatus: { code: 'operational_watch', label: 'Equipo operativo con observación' },
     checklist: getChecklist('mantenimiento').map((i) => ({ ...i, done: true })),
@@ -142,7 +150,7 @@ function applyParseToJob(job, text) {
   return applyNoteToService(job, text, readLegacyCatalogProducts()).job;
 }
 
-async function startNewJob(type, technician) {
+async function startNewJob(type, technician, preset) {
   const number = await store.nextServiceNumber();
   const job = createService({
     number,
@@ -150,9 +158,20 @@ async function startNewJob(type, technician) {
     technician,
     status: 'draft',
     checklist: getChecklist(type),
+    clientId: preset?.clientId || '',
+    equipmentId: preset?.equipmentId || '',
   });
   await store.put('services', job);
   ui.jobId = job.id;
+  if (preset?.equipmentId) {
+    await saveJob({ status: 'in_progress', startedAt: new Date().toISOString() });
+    go('#/servicio/' + job.id + '/resumen');
+    return;
+  }
+  if (preset?.clientId) {
+    go('#/servicio/' + job.id + '/equipo');
+    return;
+  }
   go('#/servicio/' + job.id + '/cliente');
 }
 
@@ -171,35 +190,13 @@ async function closeJob() {
   if (!job) return;
   const notes = val('close-notes');
   const checked = [...document.querySelectorAll('[data-fu]:checked')].map((el) => el.getAttribute('data-fu'));
-  const assistance = buildAssistance({
-    findings: job.findings,
-    recommendations: job.recommendations,
-    partsMentioned: (job.parts || []).map((p) => ({ id: p.partId, name: p.name })),
-    status: job.equipmentStatus,
-    transcript: (job.transcripts || []).map((t) => t.text).join(' '),
-  });
-  const plans = planFollowups({
-    followUpTypes: assistance.followUpTypes.filter((t) => checked.includes(t)),
-    recommendations: job.recommendations,
-    quoteHasItems: (job.quote?.items || []).length > 0 && checked.includes('quote'),
-    serviceType: job.type,
-  }).filter((p) => checked.includes(p.type));
-
-  for (const plan of plans) {
-    await store.put('followups', createFollowup({
-      ...plan,
-      clientId: job.clientId,
-      equipmentId: job.equipmentId,
-      serviceId: job.id,
-    }));
-  }
-  await saveJob({
-    status: 'closed',
-    closedAt: new Date().toISOString(),
+  const result = await closeService(store, job, {
     notes,
+    selectedFollowUpTypes: checked,
   });
-  toast('Servicio cerrado');
-  go('#/servicio/' + job.id + '/listo');
+  if (!result.job) return;
+  toast(result.skipped ? 'Servicio ya estaba cerrado' : 'Servicio cerrado');
+  go('#/servicio/' + result.job.id + '/listo');
 }
 
 async function openReport() {
@@ -214,27 +211,41 @@ async function openReport() {
 
 function schedulePersistCapture() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    const ta = document.getElementById('capture-text');
-    if (!ta) return;
-    ui.buffer = ta.value;
-    await saveJob({ notes: ta.value });
+  saveTimer = setTimeout(() => {
+    flushCaptureText();
   }, 400);
 }
 
-async function runParseBuffer() {
+async function flushCaptureText() {
   const ta = document.getElementById('capture-text');
-  const text = (ta?.value || ui.buffer || '').trim();
-  if (!text) {
-    toast('Dicte o escriba algo primero');
-    return;
-  }
+  const text = ta ? ta.value : ui.buffer;
+  if (text == null) return '';
   ui.buffer = text;
   const job = await getJob();
+  if (job && text !== (job.captureText || '')) {
+    await saveJob({ captureText: text });
+  }
+  return text;
+}
+
+async function flushCaptureAndParse(options = {}) {
+  const raw = await flushCaptureText();
+  const text = String(raw || '').trim();
+  if (!text) {
+    if (options.toastOnEmpty) toast('Dicte o escriba algo primero');
+    return false;
+  }
+  const job = await getJob();
+  if (!job) return false;
   const patched = applyParseToJob(job, text);
   await saveJob(patched);
-  toast('Revise los datos organizados');
-  render();
+  if (options.toastOnOk) toast('Revise los datos organizados');
+  return true;
+}
+
+async function runParseBuffer() {
+  const ok = await flushCaptureAndParse({ toastOnEmpty: true, toastOnOk: true });
+  if (ok) render();
 }
 
 function bindVoice() {
@@ -260,7 +271,7 @@ function bindVoice() {
     },
     onEnd() {
       ui.listening = false;
-      render();
+      flushCaptureAndParse({ toastOnOk: true }).finally(() => render());
     },
   });
   ui.voiceSupported = !!voice.supported;
@@ -269,6 +280,12 @@ function bindVoice() {
 async function render() {
   const route = parseHash();
   ui.screen = route.screen;
+  if (route.clientId) ui.clientId = route.clientId;
+  if (route.equipmentId) ui.equipmentId = route.equipmentId;
+  if (route.screen === 'job' && route.jobId && route.jobId !== ui.jobId) {
+    ui.buffer = '';
+    ui.interim = '';
+  }
   if (route.screen === 'job' && route.jobId) ui.jobId = route.jobId;
   if (route.screen === 'job' && !route.jobId) ui.jobId = null;
   if (route.step) ui.step = route.step;
@@ -301,8 +318,39 @@ async function render() {
       const q = ui.search.toLowerCase();
       clients = clients.filter((c) => c.name.toLowerCase().includes(q) || (c.phone || '').includes(q));
     }
-    root.innerHTML = S.screenClients({ clients, search: ui.search });
+    root.innerHTML = S.screenClients({ clients, search: ui.search, showNew: ui.showNewClient });
     wireInputs();
+    return;
+  }
+
+  if (ui.screen === 'client-detail') {
+    const client = await store.get('clients', ui.clientId);
+    if (!client) { go('#/clientes'); return; }
+    const bags = {
+      equipment: await store.getAll('equipment'),
+      services: await store.getAll('services'),
+      followups: await store.getAll('followups'),
+    };
+    const view = assembleClientView(client.id, bags);
+    root.innerHTML = S.screenClientDetail({ client, ...view });
+    return;
+  }
+
+  if (ui.screen === 'equipment-detail') {
+    const equipment = await store.get('equipment', ui.equipmentId);
+    if (!equipment) { go('#/clientes'); return; }
+    const bags = {
+      services: await store.getAll('services'),
+      followups: await store.getAll('followups'),
+    };
+    const view = assembleEquipmentView(equipment.id, bags);
+    const brief = buildIntelligentBrief(equipment, view.services);
+    root.innerHTML = S.screenEquipmentDetail({
+      equipment,
+      brief,
+      services: view.services,
+      clientId: equipment.clientId,
+    });
     return;
   }
 
@@ -318,8 +366,10 @@ async function render() {
   if (ui.screen === 'followups') {
     const followups = await store.getAll('followups');
     const clients = await store.getAll('clients');
+    const filtered = filterFollowups(followups, ui.fuFilter);
     root.innerHTML = S.screenFollowups({
-      followups: followups.map((f) => ({
+      filter: ui.fuFilter,
+      followups: filtered.map((f) => ({
         ...f,
         clientName: clientNameOf(clients, f.clientId),
         overdue: isOverdue(f),
@@ -379,7 +429,7 @@ async function render() {
   }
 
   if (ui.step === 'captura') {
-    if (!ui.buffer) ui.buffer = (job.transcripts || []).map((t) => t.text).join('. ') || job.notes || '';
+    if (!ui.buffer) ui.buffer = job.captureText || (job.transcripts || []).map((t) => t.text).join('. ') || '';
     root.innerHTML = S.screenCapture({
       service: job,
       jobId: job.id,
@@ -393,6 +443,12 @@ async function render() {
     return;
   }
 
+  if (ui.step === 'repuestos') {
+    root.innerHTML = S.screenParts({ service: job, jobId: job.id });
+    wireReview();
+    return;
+  }
+
   if (ui.step === 'checklist') {
     root.innerHTML = S.screenChecklist({ service: job, jobId: job.id });
     return;
@@ -401,6 +457,27 @@ async function render() {
   if (ui.step === 'revision') {
     root.innerHTML = S.screenReview({ service: job, jobId: job.id });
     wireReview();
+    return;
+  }
+
+  if (ui.step === 'firma') {
+    const sig = mergeSignatures(job.signatures, {
+      client: { name: job.signatures?.client?.name || client?.name || '' },
+      technician: { name: job.signatures?.technician?.name || job.technician || company.technician || '' },
+    });
+    root.innerHTML = S.screenSign({
+      jobId: job.id,
+      signatures: sig,
+      clientName: client?.name || '',
+      technician: job.technician || company.technician || '',
+    });
+    wireSign(job);
+    return;
+  }
+
+  if (ui.step === 'informe') {
+    const model = buildReportModel(job, client, equipment, company);
+    root.innerHTML = S.screenReport({ model, jobId: job.id });
     return;
   }
 
@@ -421,18 +498,20 @@ async function render() {
       status: job.equipmentStatus,
       transcript: (job.transcripts || []).map((t) => t.text).join(' '),
     });
-    let quote = job.quote;
-    if (!quote || quote.status === 'empty') {
-      quote = draftQuoteFromAssistance(assistance, { catalogProducts: readLegacyCatalogProducts() });
-      await saveJob({ quote });
-    }
+    let quote = quoteFromService(job, assistance, readLegacyCatalogProducts());
+    const notesEl = document.getElementById('close-notes');
+    const notes = notesEl ? notesEl.value : job.notes;
+    const patch = {};
+    if (JSON.stringify(quote.items) !== JSON.stringify(job.quote?.items || [])) patch.quote = quote;
+    if (notes != null && notes !== (job.notes || '')) patch.notes = notes;
+    if (Object.keys(patch).length) await saveJob(patch);
     const followPlans = planFollowups({
       followUpTypes: assistance.followUpTypes,
       recommendations: job.recommendations,
       quoteHasItems: (quote.items || []).length > 0,
       serviceType: job.type,
     }).map((p) => ({ ...p, checked: true }));
-    root.innerHTML = S.screenQuote({ service: { ...job, quote }, followPlans, jobId: job.id });
+    root.innerHTML = S.screenQuote({ service: { ...job, quote, notes }, followPlans, jobId: job.id });
     wireQuote();
   }
 }
@@ -506,6 +585,11 @@ function wireReview() {
 }
 
 function wireQuote() {
+  const notes = document.getElementById('close-notes');
+  notes?.addEventListener('input', () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveJob({ notes: notes.value }), 400);
+  });
   root.querySelectorAll('[data-q]').forEach((input) => {
     input.addEventListener('change', async () => {
       const field = input.getAttribute('data-q');
@@ -514,10 +598,93 @@ function wireQuote() {
       const items = [...(job.quote?.items || [])];
       if (!items[idx]) return;
       items[idx] = { ...items[idx], [field]: Number(input.value) || 0 };
-      await saveJob({ quote: { ...job.quote, items, status: 'draft' } });
+      await saveJob({
+        quote: { ...job.quote, items, status: 'draft' },
+        notes: val('close-notes'),
+      });
       render();
     });
   });
+}
+
+async function persistSignMeta() {
+  const job = await getJob();
+  if (!job) return;
+  await saveJob({
+    signatures: mergeSignatures(job.signatures, {
+      client: {
+        name: val('sig-client-name').trim(),
+        doc: val('sig-client-doc').trim(),
+      },
+      technician: { name: val('sig-tech-name').trim() },
+    }),
+  });
+}
+
+function wireSign(job) {
+  const clientCanvas = document.getElementById('sig-client');
+  const techCanvas = document.getElementById('sig-tech');
+  bindSignaturePad(clientCanvas, {
+    onChange(dataUrl) {
+      getJob().then((current) => {
+        if (!current) return;
+        return saveJob({ signatures: mergeSignatures(current.signatures, { client: { dataUrl } }) });
+      });
+    },
+  });
+  bindSignaturePad(techCanvas, {
+    onChange(dataUrl) {
+      getJob().then((current) => {
+        if (!current) return;
+        return saveJob({ signatures: mergeSignatures(current.signatures, { technician: { dataUrl } }) });
+      });
+    },
+  });
+  restoreSignature(clientCanvas, job.signatures?.client?.dataUrl);
+  restoreSignature(techCanvas, job.signatures?.technician?.dataUrl);
+  ['sig-client-name', 'sig-client-doc', 'sig-tech-name'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('change', persistSignMeta);
+  });
+}
+
+async function shareCurrentDocument(kind, options = {}) {
+  const job = await getJob();
+  if (!job) return;
+  const client = job.clientId ? await store.get('clients', job.clientId) : null;
+  const equipment = job.equipmentId ? await store.get('equipment', job.equipmentId) : null;
+  if (kind === 'report' && !isSignedDataUrl(job.signatures?.client?.dataUrl)) {
+    toast('Falta la firma del cliente para compartir el informe');
+    go('#/servicio/' + job.id + '/firma');
+    return;
+  }
+  const model = kind === 'quote'
+    ? buildQuoteModel(job, client, company)
+    : buildReportModel(job, client, equipment, company);
+  toast('Generando PDF…');
+  let file;
+  try {
+    file = await pdfFileFromModel(kind, model);
+  } catch (err) {
+    console.warn('[arpa-next] pdf', err);
+    toast('No se pudo generar el PDF');
+    return;
+  }
+  const text = options.whatsapp
+    ? whatsAppMessage(kind, job.number, client?.name, company.name)
+    : shareMessage(kind, job.number, client?.name, company.name);
+  const result = await shareOrDownload({
+    file,
+    title: file.name,
+    text,
+  });
+  if (result === 'aborted') return;
+  if (options.whatsapp) {
+    openWhatsApp(client?.phone || '', text);
+    toast('WhatsApp abierto. Adjunte el PDF si no se envió solo.');
+    return;
+  }
+  if (result === 'shared') toast(kind === 'quote' ? 'Cotización lista para enviar' : 'Informe listo para enviar');
+  else toast(kind === 'quote' ? 'Cotización PDF guardada' : 'Informe PDF guardado');
 }
 
 function actions() {
@@ -583,13 +750,11 @@ function actions() {
       }
       if (ui.listening) {
         voice.stop();
-        ui.listening = false;
-        runParseBuffer();
-      } else {
-        ui.listening = true;
-        voice.start();
-        render();
+        return;
       }
+      ui.listening = true;
+      voice.start();
+      render();
     },
     'parse-text': () => runParseBuffer(),
     'chip': async (el) => {
@@ -601,6 +766,10 @@ function actions() {
       ui.buffer = next;
       if (ta) ta.value = next;
       await runParseBuffer();
+    },
+    'to-parts': async () => {
+      await flushCaptureAndParse({ toastOnOk: false });
+      go('#/servicio/' + ui.jobId + '/repuestos');
     },
     'to-checklist': () => go('#/servicio/' + ui.jobId + '/checklist'),
     'toggle-check': async (el) => {
@@ -628,7 +797,27 @@ function actions() {
     },
     'p-add': async () => {
       const job = await getJob();
-      await saveJob({ parts: [...(job.parts || []), { id: newId('pt'), name: '', qty: 1 }] });
+      await saveJob({ parts: [...(job.parts || []), { id: newId('pt'), name: '', qty: 1, source: 'user' }] });
+      render();
+    },
+    'part-chip': async (el) => {
+      const partId = el.getAttribute('data-id');
+      const chip = PART_CHIPS.find((c) => c.id === partId);
+      if (!chip) return;
+      const job = await getJob();
+      const parts = [...(job.parts || [])];
+      if (parts.some((p) => p.partId === partId)) {
+        toast('Ese repuesto ya está');
+        return;
+      }
+      parts.push({ id: newId('pt'), partId, name: chip.name, qty: 1, source: 'user' });
+      await saveJob({ parts });
+      render();
+    },
+    'p-del': async (el) => {
+      const idx = Number(el.getAttribute('data-idx'));
+      const job = await getJob();
+      await saveJob({ parts: (job.parts || []).filter((_, i) => i !== idx) });
       render();
     },
     'f-del': async (el) => {
@@ -651,13 +840,78 @@ function actions() {
     },
     'to-quote': () => go('#/servicio/' + ui.jobId + '/cierre'),
     'close-job': () => closeJob(),
-    'open-report': () => openReport(),
+    'open-report': () => go('#/servicio/' + ui.jobId + '/informe'),
+    'to-report': async () => {
+      await persistSignMeta();
+      go('#/servicio/' + ui.jobId + '/informe');
+    },
+    'sig-clear': async (el) => {
+      const who = el.getAttribute('data-id');
+      const canvas = document.getElementById(who === 'tech' ? 'sig-tech' : 'sig-client');
+      clearSignature(canvas);
+      const job = await getJob();
+      const patch = who === 'tech' ? { technician: { dataUrl: '' } } : { client: { dataUrl: '' } };
+      await saveJob({ signatures: mergeSignatures(job.signatures, patch) });
+    },
+    'share-report': () => shareCurrentDocument('report'),
+    'share-quote': () => shareCurrentDocument('quote'),
+    'wa-report': () => shareCurrentDocument('report', { whatsapp: true }),
+    'wa-quote': () => shareCurrentDocument('quote', { whatsapp: true }),
+    'print-report': () => window.print(),
+    'create-client-list': async () => {
+      const name = val('new-cli-name').trim();
+      if (!name) {
+        toast('El nombre es obligatorio');
+        return;
+      }
+      const client = createClient({
+        name,
+        phone: val('new-cli-phone'),
+        address: val('new-cli-addr'),
+        city: val('new-cli-city'),
+      });
+      await store.put('clients', client);
+      ui.showNewClient = false;
+      go('#/cliente/' + client.id);
+    },
+    'job-from-client': async (el) => {
+      await startNewJob('mantenimiento', company.technician, { clientId: el.getAttribute('data-id') });
+    },
+    'job-from-eq': async (el) => {
+      await startNewJob('mantenimiento', company.technician, {
+        equipmentId: el.getAttribute('data-id'),
+        clientId: el.getAttribute('data-client'),
+      });
+    },
+    'fu-filter': (el) => {
+      ui.fuFilter = el.getAttribute('data-id') || 'open';
+      render();
+    },
     'fu-done': async (el) => {
       const id = el.getAttribute('data-id');
       const row = await store.get('followups', id);
       if (!row) return;
       await store.put('followups', { ...row, status: 'done' });
       render();
+    },
+    'fu-cancel': async (el) => {
+      const id = el.getAttribute('data-id');
+      const row = await store.get('followups', id);
+      if (!row) return;
+      await store.put('followups', { ...row, status: 'cancelled' });
+      render();
+    },
+    'fu-start': async (el) => {
+      const id = el.getAttribute('data-id');
+      const row = await store.get('followups', id);
+      if (!row?.clientId) {
+        toast('Este seguimiento no tiene cliente');
+        return;
+      }
+      await startNewJob(serviceTypeFromFollowup(row.type), company.technician, {
+        clientId: row.clientId,
+        equipmentId: row.equipmentId,
+      });
     },
   };
 }
@@ -669,13 +923,14 @@ export async function boot() {
   company = readCompanySettings();
   if (!company.name) company.name = 'ARPASuite LAB';
   bindVoice();
-  await importLegacyClients(store);
+  await importLegacyData(store);
   await seedDemoIfNeeded();
   bindClicks(root, actions());
-  window.addEventListener('hashchange', () => {
+  window.addEventListener('hashchange', async () => {
     ui.search = '';
     ui.showNewClient = false;
     ui.showNewEq = false;
+    await flushCaptureText();
     render();
   });
   await render();

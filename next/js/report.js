@@ -25,7 +25,7 @@ export function buildReportModel(service, client, equipment, company) {
     number: service?.number || '',
     type: serviceTypeLabel(service?.type),
     date: fmtDate(service?.closedAt || service?.startedAt),
-    technician: service?.technician || '—',
+    technician: service?.technician || company?.technician || '—',
     clientName: client?.name || '—',
     clientMeta: [client?.phone, client?.address, client?.city].filter(Boolean).join(' · '),
     equipmentLabel: [equipmentTypeLabel(equipment?.type), equipment?.brand, equipment?.model]
@@ -37,10 +37,38 @@ export function buildReportModel(service, client, equipment, company) {
     workDone: (service?.workDone || []).map((w) => w.text),
     parts: (service?.parts || []).map((p) => `${p.qty || 1} × ${p.name}`),
     recommendations: (service?.recommendations || []).map((r) => r.text),
+    checklistDone: (service?.checklist || []).filter((i) => i.done).map((i) => i.label),
     photos: service?.photos || [],
     quoteItems: quote?.items || [],
     quoteTotal: totals ? money(totals.total) : '',
     notes: service?.notes || '',
+    clientSignedName: service?.signatures?.client?.name || client?.name || '',
+    clientSignedDoc: service?.signatures?.client?.doc || '',
+    clientSignature: service?.signatures?.client?.dataUrl || '',
+    technicianSignedName: service?.signatures?.technician?.name || service?.technician || company?.technician || '',
+    technicianSignature: service?.signatures?.technician?.dataUrl || '',
+  };
+}
+
+export function buildQuoteModel(service, client, company) {
+  const quote = service?.quote;
+  const totals = quote?.items ? quoteTotals(quote.items) : { parts: 0, labor: 0, total: 0 };
+  return {
+    companyName: company?.name || 'ARPASuite',
+    companyLine: [company?.phone, company?.city].filter(Boolean).join(' · '),
+    number: service?.number || '',
+    date: fmtDate(service?.closedAt || service?.startedAt),
+    technician: service?.technician || company?.technician || '—',
+    clientName: client?.name || '—',
+    clientMeta: [client?.phone, client?.address, client?.city].filter(Boolean).join(' · '),
+    items: quote?.items || [],
+    totals,
+    quoteTotal: money(totals.total),
+    notes: quote?.notes || '',
+    clientSignedName: service?.signatures?.client?.name || client?.name || '',
+    clientSignature: service?.signatures?.client?.dataUrl || '',
+    technicianSignedName: service?.signatures?.technician?.name || service?.technician || '',
+    technicianSignature: service?.signatures?.technician?.dataUrl || '',
   };
 }
 
@@ -124,8 +152,62 @@ export function renderReportHtml(model) {
     <p><strong>Total sugerido: ${esc(model.quoteTotal)}</strong></p>
   </section>` : ''}
   ${photos ? `<section><h2>Registro fotográfico</h2><div class="photos">${photos}</div></section>` : ''}
+  ${model.checklistDone?.length ? `<section><h2>Checklist</h2>${list(model.checklistDone, '')}</section>` : ''}
   ${model.notes ? `<section><h2>Notas</h2><p>${esc(model.notes)}</p></section>` : ''}
+  <section>
+    <h2>Aceptación</h2>
+    <div class="grid">
+      <div>
+        <strong>Cliente</strong>
+        ${model.clientSignature ? `<p><img src="${esc(model.clientSignature)}" alt="Firma del cliente" style="height:80px;max-width:100%;object-fit:contain"></p>` : '<p class="empty">Sin firma</p>'}
+        <p>${esc(model.clientSignedName || '')}${model.clientSignedDoc ? '<br><span class="muted">' + esc(model.clientSignedDoc) + '</span>' : ''}</p>
+      </div>
+      <div>
+        <strong>Técnico</strong>
+        ${model.technicianSignature ? `<p><img src="${esc(model.technicianSignature)}" alt="Firma del técnico" style="height:80px;max-width:100%;object-fit:contain"></p>` : '<p class="empty">Sin firma</p>'}
+        <p>${esc(model.technicianSignedName || '')}</p>
+      </div>
+    </div>
+  </section>
   <footer>Documento generado por ARPASuite NEXT a partir del servicio ${esc(model.number)}. El técnico no redactó este informe a mano.</footer>
+</body></html>`;
+}
+
+export function renderQuoteHtml(model) {
+  const rows = (model.items || []).map((i) =>
+    `<tr><td>${esc(i.name)}</td><td>${esc(i.qty)}</td><td>${esc(money(i.unitPrice))}</td><td>${esc(money(i.labor))}</td><td>${esc(money((Number(i.qty) || 0) * (Number(i.unitPrice) || 0) + (Number(i.labor) || 0)))}</td></tr>`
+  ).join('');
+  return `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Cotización ${esc(model.number)}</title>
+<style>
+  body{font-family:Segoe UI,Arial,sans-serif;color:#1e293b;margin:0;padding:24px;background:#fff}
+  header{border-bottom:3px solid #0f2044;padding-bottom:12px;margin-bottom:20px;display:flex;justify-content:space-between;gap:16px}
+  h1{font-size:20px;margin:0;color:#0f2044}
+  .muted{color:#64748b;font-size:12px}
+  .badge{background:#b45309;color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 8px;border-radius:4px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+  th,td{border-bottom:1px solid #e8edf5;text-align:left;padding:8px 4px}
+  .empty{color:#64748b}
+  footer{margin-top:28px;font-size:11px;color:#64748b}
+</style></head><body>
+  <header>
+    <div>
+      <h1>${esc(model.companyName)}</h1>
+      <div class="muted">${esc(model.companyLine)}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="badge">COTIZACIÓN BORRADOR</div>
+      <div style="margin-top:8px;font-weight:700">${esc(model.number)}</div>
+      <div class="muted">${esc(model.date)}</div>
+    </div>
+  </header>
+  <p><strong>Cliente</strong><br>${esc(model.clientName)}<br><span class="muted">${esc(model.clientMeta)}</span></p>
+  <p><strong>Técnico</strong><br>${esc(model.technician)}</p>
+  ${rows ? `<table><thead><tr><th>Ítem</th><th>Cant.</th><th>Precio</th><th>Mano de obra</th><th>Total</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p><strong>Total sugerido: ${esc(model.quoteTotal)}</strong></p>` : '<p class="empty">No hay ítems cotizables.</p>'}
+  ${model.notes ? `<p class="muted">${esc(model.notes)}</p>` : ''}
+  <footer>Borrador generado en el dispositivo. Revise precios antes de formalizar. No se envió por canales externos.</footer>
 </body></html>`;
 }
 

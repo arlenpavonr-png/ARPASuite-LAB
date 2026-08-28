@@ -1,5 +1,5 @@
 import { esc, fmtDate, severityLabel } from './ui.js';
-import { EQUIPMENT_TYPES, SERVICE_TYPES, QUICK_CHIPS, equipmentTypeLabel, serviceTypeLabel } from './ai/knowledge.js';
+import { EQUIPMENT_TYPES, SERVICE_TYPES, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel, serviceTypeLabel } from './ai/knowledge.js';
 import { money, quoteTotals } from './quote.js';
 import { followUpLabel } from './followup.js';
 
@@ -52,7 +52,7 @@ export function screenHome(d) {
 
 export function screenJobType(d) {
   return `${top('Nuevo servicio', '#/')}
-  ${progress(1, 7)}
+  ${progress(1, 8)}
   <main class="sheet">
     <h2 class="q">¿Qué van a hacer hoy?</h2>
     <div class="stack">
@@ -70,7 +70,7 @@ export function screenPickClient(d) {
   const q = (d.search || '').toLowerCase();
   const list = (d.clients || []).filter((c) => !q || c.name.toLowerCase().includes(q) || (c.phone || '').includes(q));
   return `${top('Cliente', '#/servicio/nuevo')}
-  ${progress(2, 7)}
+  ${progress(2, 8)}
   <main class="sheet">
     <input id="client-search" class="input" placeholder="Buscar cliente" value="${esc(d.search || '')}" data-act-input="search-client">
     <button type="button" class="btn btn-secondary btn-block" data-act="toggle-new-client">${d.showNew ? 'Cerrar alta' : 'Nuevo cliente'}</button>
@@ -95,7 +95,7 @@ export function screenPickClient(d) {
 export function screenPickEquipment(d) {
   const list = d.equipment || [];
   return `${top('Equipo', '#/servicio/' + esc(d.jobId) + '/cliente')}
-  ${progress(3, 7)}
+  ${progress(3, 8)}
   <main class="sheet">
     <p class="muted">${esc(d.clientName || '')}</p>
     <button type="button" class="btn btn-secondary btn-block" data-act="toggle-new-eq">${d.showNew ? 'Cerrar alta' : 'Nuevo equipo'}</button>
@@ -130,7 +130,7 @@ export function screenBrief(d) {
     return `<section class="brief-card"><h3>${esc(title)}</h3>${items.map(render).join('')}</section>`;
   };
   return `${top('Antes de empezar', '#/servicio/' + esc(d.jobId) + '/equipo')}
-  ${progress(4, 7)}
+  ${progress(4, 8)}
   <main class="sheet">
     <p class="equip-line">${esc(d.equipLine || '')}</p>
     ${last
@@ -151,7 +151,7 @@ export function screenCapture(d) {
   const recs = s.recommendations || [];
   const photos = s.photos || [];
   return `${top('En campo', '#/servicio/' + esc(d.jobId) + '/resumen')}
-  ${progress(5, 7)}
+  ${progress(5, 8)}
   <main class="sheet capture">
     <p class="muted">${esc(d.equipLine || '')}</p>
     <button type="button" class="mic ${d.listening ? 'is-on' : ''}" data-act="toggle-voice" ${d.voiceSupported ? '' : 'disabled'}>
@@ -178,6 +178,29 @@ export function screenCapture(d) {
     </div>
     ${photos.length ? `<div class="thumbs">${photos.map((p) =>
       `<img src="${esc(p.dataUrl)}" alt="${esc(p.kind)}">`).join('')}</div>` : ''}
+    <button type="button" class="btn btn-primary btn-block" data-act="to-parts">Siguiente: repuestos</button>
+  </main>`;
+}
+
+export function screenParts(d) {
+  const parts = d.service?.parts || [];
+  return `${top('Repuestos', '#/servicio/' + esc(d.jobId) + '/captura')}
+  ${progress(6, 8)}
+  <main class="sheet">
+    <p class="muted">Lo que se instaló o se usó en esta visita. La cotización va aparte.</p>
+    <div class="chips wrap">
+      ${PART_CHIPS.map((c) =>
+        `<button type="button" class="chip" data-act="part-chip" data-id="${esc(c.id)}">${esc(c.name)}</button>`
+      ).join('')}
+    </div>
+    ${(parts.length ? parts.map((p, idx) =>
+      `<div class="part-row">
+        <input class="input" data-part="name" data-idx="${idx}" value="${esc(p.name || '')}" placeholder="Repuesto">
+        <input class="input qty" data-part="qty" data-idx="${idx}" value="${esc(p.qty || 1)}" inputmode="numeric">
+        <button type="button" class="icon-del" data-act="p-del" data-idx="${idx}" aria-label="Quitar">×</button>
+      </div>`
+    ).join('') : '<p class="empty">Ningún repuesto todavía.</p>')}
+    <button type="button" class="btn btn-secondary btn-block" data-act="p-add">Otro repuesto</button>
     <button type="button" class="btn btn-primary btn-block" data-act="to-checklist">Siguiente: checklist</button>
   </main>`;
 }
@@ -185,8 +208,8 @@ export function screenCapture(d) {
 export function screenChecklist(d) {
   const items = d.service?.checklist || [];
   const done = items.filter((i) => i.done).length;
-  return `${top('Checklist', '#/servicio/' + esc(d.jobId) + '/captura')}
-  ${progress(6, 7)}
+  return `${top('Checklist', '#/servicio/' + esc(d.jobId) + '/repuestos')}
+  ${progress(7, 8)}
   <main class="sheet">
     <p class="muted">${done} de ${items.length} hechos</p>
     <div class="checks">
@@ -217,22 +240,13 @@ function editableList(title, items, actPrefix, field) {
 export function screenReview(d) {
   const s = d.service || {};
   return `${top('Revisar', '#/servicio/' + esc(d.jobId) + '/checklist')}
-  ${progress(7, 7)}
+  ${progress(8, 8)}
   <main class="sheet">
     <p class="status-line">${esc(s.equipmentStatus?.label || 'Sin estado')}</p>
     ${editableList('Hallazgos', s.findings, 'f', 'text')}
     ${editableList('Trabajo realizado', s.workDone, 'w', 'text')}
     ${editableList('Recomendaciones', s.recommendations, 'r', 'text')}
-    <section class="block">
-      <div class="block-head"><h2>Repuestos</h2>
-        <button type="button" class="text-btn" data-act="p-add">Añadir</button></div>
-      ${(s.parts || []).map((p, idx) =>
-        `<div class="part-row">
-          <input class="input" data-part="name" data-idx="${idx}" value="${esc(p.name || '')}" placeholder="Repuesto">
-          <input class="input qty" data-part="qty" data-idx="${idx}" value="${esc(p.qty || 1)}" inputmode="numeric">
-        </div>`
-      ).join('') || '<p class="muted">Ninguno.</p>'}
-    </section>
+    <p class="muted">${(s.parts || []).length ? (s.parts.length + ' repuesto(s) registrados.') : 'Sin repuestos en esta visita.'}</p>
     <button type="button" class="btn btn-primary btn-block" data-act="to-quote">Cotización y cierre</button>
   </main>`;
 }
@@ -243,6 +257,7 @@ export function screenQuote(d) {
   const tot = quoteTotals(items);
   const plans = d.followPlans || [];
   return `${top('Cierre', '#/servicio/' + esc(d.jobId) + '/revision')}
+  ${progress(9, 9)}
   <main class="sheet">
     <h2>Borrador de cotización</h2>
     <p class="muted">Revise precios. No se envía sola.</p>
@@ -276,9 +291,12 @@ export function screenClosed(d) {
     <ul class="summary">
       ${(s.findings || []).map((f) => `<li><strong>Hallazgo.</strong> ${esc(f.text)}</li>`).join('')}
       ${(s.workDone || []).map((w) => `<li><strong>Trabajo.</strong> ${esc(w.text)}</li>`).join('')}
+      ${(s.parts || []).filter((p) => p.name).map((p) => `<li><strong>Repuesto.</strong> ${esc((p.qty || 1) + ' × ' + p.name)}</li>`).join('')}
       ${(s.recommendations || []).map((r) => `<li><strong>Recomendación.</strong> ${esc(r.text)}</li>`).join('')}
     </ul>
-    <button type="button" class="btn btn-primary btn-block" data-act="open-report">Ver informe</button>
+    <a class="btn btn-primary btn-block" href="#/servicio/${esc(s.id)}/firma">Firmar e informar</a>
+    <a class="btn btn-secondary btn-block" href="#/servicio/${esc(s.id)}/informe">Ver informe</a>
+    <a class="btn btn-secondary btn-block" href="#/seguimiento">Ver seguimientos</a>
     <a class="btn btn-secondary btn-block" href="#/">Ir al inicio</a>
   </main>
   ${nav('home')}`;
@@ -288,12 +306,145 @@ export function screenClients(d) {
   return `${top('Clientes')}
   <main class="sheet">
     <input id="client-search" class="input" placeholder="Buscar" data-act-input="search-client" value="${esc(d.search || '')}">
-    <a class="btn btn-secondary btn-block" href="#/servicio/nuevo">Nuevo servicio</a>
+    <button type="button" class="btn btn-secondary btn-block" data-act="toggle-new-client">${d.showNew ? 'Cerrar alta' : 'Nuevo cliente'}</button>
+    ${d.showNew ? `<div class="card">
+      <input id="new-cli-name" class="input" placeholder="Nombre / empresa">
+      <input id="new-cli-phone" class="input" placeholder="Teléfono" inputmode="tel">
+      <input id="new-cli-addr" class="input" placeholder="Dirección">
+      <input id="new-cli-city" class="input" placeholder="Ciudad">
+      <button type="button" class="btn btn-primary btn-block" data-act="create-client-list">Guardar</button>
+    </div>` : ''}
     <div class="list">${(d.clients || []).map((c) =>
-      `<div class="row-card"><strong>${esc(c.name)}</strong><span>${esc([c.phone, c.city].filter(Boolean).join(' · '))}</span></div>`
+      `<a class="row-card" href="#/cliente/${esc(c.id)}"><strong>${esc(c.name)}</strong><span>${esc([c.phone, c.city].filter(Boolean).join(' · ') || 'Sin datos extra')}</span></a>`
     ).join('') || '<p class="empty">Aún no hay clientes.</p>'}</div>
   </main>
   ${nav('clients')}`;
+}
+
+export function screenClientDetail(d) {
+  const c = d.client || {};
+  return `${top(c.name || 'Cliente', '#/clientes')}
+  <main class="sheet">
+    <p class="muted">${esc([c.phone, c.address, c.city].filter(Boolean).join(' · ') || 'Sin datos de contacto')}</p>
+    <button type="button" class="btn btn-primary btn-block" data-act="job-from-client" data-id="${esc(c.id)}">Iniciar servicio</button>
+    <section class="block"><h2>Equipos</h2>
+      ${(d.equipment || []).map((e) =>
+        `<a class="row-card" href="#/equipo/${esc(e.id)}"><strong>${esc(equipmentTypeLabel(e.type))}${e.model ? ' · ' + esc(e.model) : ''}</strong><span>${esc([e.brand, e.location].filter(Boolean).join(' · ') || 'Sin ubicación')}</span></a>`
+      ).join('') || '<p class="empty">Sin equipos.</p>'}
+    </section>
+    <section class="block"><h2>Historial</h2>
+      ${(d.services || []).map((s) =>
+        `<a class="row-card" href="#/servicio/${esc(s.id)}/${s.status === 'closed' ? 'listo' : 'captura'}">
+          <strong>${esc(s.number)} · ${esc(serviceTypeLabel(s.type))}</strong>
+          <span>${esc(fmtDate(s.closedAt || s.startedAt))} · ${esc(s.status === 'closed' ? 'Cerrado' : 'En curso')}</span>
+        </a>`
+      ).join('') || '<p class="empty">Sin servicios.</p>'}
+    </section>
+    ${(d.followups || []).filter((f) => f.status === 'open').length ? `<section class="block"><h2>Seguimiento abierto</h2>
+      ${d.followups.filter((f) => f.status === 'open').map((f) =>
+        `<div class="row-card"><strong>${esc(f.label || followUpLabel(f.type))}</strong><span>${esc(fmtDate(f.dueDate))}</span></div>`
+      ).join('')}
+    </section>` : ''}
+  </main>
+  ${nav('clients')}`;
+}
+
+export function screenEquipmentDetail(d) {
+  const e = d.equipment || {};
+  const b = d.brief || {};
+  return `${top(equipmentTypeLabel(e.type), d.clientId ? '#/cliente/' + esc(d.clientId) : '#/clientes')}
+  <main class="sheet">
+    <p class="equip-line">${esc([e.brand, e.model, e.location].filter(Boolean).join(' · '))}</p>
+    <p class="muted">Serie ${esc(e.serial || '—')}</p>
+    <button type="button" class="btn btn-primary btn-block" data-act="job-from-eq" data-id="${esc(e.id)}" data-client="${esc(e.clientId || '')}">Iniciar servicio a este equipo</button>
+    ${b.lastService
+      ? `<section class="brief-card accent"><h3>Último servicio</h3><p>${esc(serviceTypeLabel(b.lastService.type))} · ${esc(fmtDate(b.lastService.closedAt || b.lastService.startedAt))}</p></section>`
+      : '<p class="empty">Sin visitas cerradas.</p>'}
+    ${b.findings?.length ? `<section class="brief-card"><h3>Fallas</h3>${b.findings.map((f) => `<p>• ${esc(f.text)}</p>`).join('')}</section>` : ''}
+    ${b.repairs?.length ? `<section class="brief-card"><h3>Trabajo</h3>${b.repairs.map((r) => `<p>• ${esc(r.text)}</p>`).join('')}</section>` : ''}
+    ${b.parts?.length ? `<section class="brief-card"><h3>Repuestos</h3>${b.parts.map((p) => `<p>• ${esc((p.qty || 1) + ' × ' + p.name)}</p>`).join('')}</section>` : ''}
+    <section class="block"><h2>Servicios</h2>
+      ${(d.services || []).map((s) =>
+        `<a class="row-card" href="#/servicio/${esc(s.id)}/${s.status === 'closed' ? 'listo' : 'captura'}">
+          <strong>${esc(s.number)}</strong>
+          <span>${esc(serviceTypeLabel(s.type))} · ${esc(fmtDate(s.closedAt || s.startedAt))}</span>
+        </a>`
+      ).join('') || '<p class="empty">Sin historial.</p>'}
+    </section>
+  </main>
+  ${nav('clients')}`;
+}
+
+export function screenSign(d) {
+  const s = d.signatures || {};
+  const client = s.client || {};
+  const tech = s.technician || {};
+  return `${top('Firmas', '#/servicio/' + esc(d.jobId) + '/listo')}
+  <main class="sheet">
+    <p class="muted">El informe ya tiene cliente, equipo, hallazgos y trabajo. Aquí solo se firma.</p>
+    <section class="sig-box">
+      <h2>Cliente</h2>
+      <canvas id="sig-client" class="sig-pad" width="600" height="200" aria-label="Firma del cliente"></canvas>
+      <button type="button" class="text-btn" data-act="sig-clear" data-id="client">Borrar firma</button>
+      <input id="sig-client-name" class="input" placeholder="Nombre completo" value="${esc(client.name || d.clientName || '')}">
+      <input id="sig-client-doc" class="input" placeholder="CC / NIT (opcional)" value="${esc(client.doc || '')}">
+    </section>
+    <section class="sig-box">
+      <h2>Técnico</h2>
+      <canvas id="sig-tech" class="sig-pad" width="600" height="200" aria-label="Firma del técnico"></canvas>
+      <button type="button" class="text-btn" data-act="sig-clear" data-id="tech">Borrar firma</button>
+      <input id="sig-tech-name" class="input" placeholder="Nombre del técnico" value="${esc(tech.name || d.technician || '')}">
+    </section>
+    <button type="button" class="btn btn-primary btn-block" data-act="to-report">Continuar al informe</button>
+  </main>`;
+}
+
+export function screenReport(d) {
+  const m = d.model || {};
+  return `${top('Informe', '#/servicio/' + esc(d.jobId) + '/firma')}
+  <main class="sheet report-view">
+    <div class="report-doc">
+      <p class="kicker">${esc(m.companyName)}</p>
+      <h2 class="q">Informe ${esc(m.number)}</h2>
+      <p class="muted">${esc(m.date)} · ${esc(m.type)} · ${esc(m.technician)}</p>
+      <section class="brief-card"><h3>Cliente y equipo</h3>
+        <p>${esc(m.clientName)}<br><span class="muted">${esc(m.clientMeta)}</span></p>
+        <p>${esc(m.equipmentLabel)}<br><span class="muted">Serie ${esc(m.serial)}</span></p>
+      </section>
+      <p class="status-line">${esc(m.status)}</p>
+      <section class="brief-card"><h3>Hallazgos</h3>${(m.findings || []).map((x) => `<p>• ${esc(x)}</p>`).join('') || '<p class="muted">Ninguno.</p>'}</section>
+      <section class="brief-card"><h3>Trabajo realizado</h3>${(m.workDone || []).map((x) => `<p>• ${esc(x)}</p>`).join('') || '<p class="muted">Ninguno.</p>'}</section>
+      <section class="brief-card"><h3>Repuestos</h3>${(m.parts || []).map((x) => `<p>• ${esc(x)}</p>`).join('') || '<p class="muted">Ninguno.</p>'}</section>
+      <section class="brief-card"><h3>Recomendaciones</h3>${(m.recommendations || []).map((x) => `<p>• ${esc(x)}</p>`).join('') || '<p class="muted">Ninguna.</p>'}</section>
+      ${m.checklistDone?.length ? `<section class="brief-card"><h3>Checklist</h3>${m.checklistDone.map((x) => `<p>• ${esc(x)}</p>`).join('')}</section>` : ''}
+      ${m.quoteItems?.length ? `<section class="brief-card"><h3>Borrador de cotización</h3>
+        ${m.quoteItems.map((i) => `<p>${esc(i.name)} · ${esc(money(i.unitPrice))} + MO ${esc(money(i.labor))}</p>`).join('')}
+        <p class="total">${esc(m.quoteTotal)}</p>
+      </section>` : ''}
+      ${(m.photos || []).length ? `<section class="brief-card"><h3>Fotos</h3><div class="thumbs">${m.photos.slice(0, 8).map((p) =>
+        `<img src="${esc(p.dataUrl)}" alt="${esc(p.kind || 'foto')}">`).join('')}</div></section>` : ''}
+      <section class="brief-card"><h3>Aceptación</h3>
+        <div class="sig-grid">
+          <div>
+            <p class="muted">Cliente</p>
+            ${m.clientSignature ? `<img class="sig-print" src="${esc(m.clientSignature)}" alt="Firma del cliente">` : '<p class="empty">Sin firmar</p>'}
+            <p>${esc(m.clientSignedName || '')}</p>
+          </div>
+          <div>
+            <p class="muted">Técnico</p>
+            ${m.technicianSignature ? `<img class="sig-print" src="${esc(m.technicianSignature)}" alt="Firma del técnico">` : '<p class="empty">Sin firmar</p>'}
+            <p>${esc(m.technicianSignedName || '')}</p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <button type="button" class="btn btn-primary btn-block no-print" data-act="share-report">Guardar PDF del informe</button>
+    ${m.quoteItems?.length ? '<button type="button" class="btn btn-secondary btn-block no-print" data-act="share-quote">Guardar PDF de cotización</button>' : ''}
+    <button type="button" class="btn btn-secondary btn-block no-print" data-act="wa-report">WhatsApp informe</button>
+    ${m.quoteItems?.length ? '<button type="button" class="btn btn-secondary btn-block no-print" data-act="wa-quote">WhatsApp cotización</button>' : ''}
+    <button type="button" class="btn btn-secondary btn-block no-print" data-act="print-report">Imprimir</button>
+    <a class="btn btn-secondary btn-block no-print" href="#/servicio/${esc(d.jobId)}/firma">Corregir firmas</a>
+  </main>`;
 }
 
 export function screenServices(d) {
@@ -310,15 +461,26 @@ export function screenServices(d) {
 }
 
 export function screenFollowups(d) {
+  const filter = d.filter || 'open';
   return `${top('Seguimiento')}
   <main class="sheet">
+    <div class="chips">
+      <button type="button" class="chip ${filter === 'open' ? 'is-on' : ''}" data-act="fu-filter" data-id="open">Abiertos</button>
+      <button type="button" class="chip ${filter === 'overdue' ? 'is-on' : ''}" data-act="fu-filter" data-id="overdue">Vencidos</button>
+      <button type="button" class="chip ${filter === 'done' ? 'is-on' : ''}" data-act="fu-filter" data-id="done">Hechos</button>
+    </div>
     <div class="list">${(d.followups || []).map((f) =>
       `<div class="row-card ${f.overdue ? 'is-overdue' : ''}">
         <strong>${esc(f.label || followUpLabel(f.type))}</strong>
         <span>${esc(f.clientName || '')} · ${esc(fmtDate(f.dueDate))}</span>
-        ${f.status === 'open' ? `<button type="button" class="text-btn" data-act="fu-done" data-id="${esc(f.id)}">Hecho</button>` : '<span class="pill">Cerrado</span>'}
+        ${f.notes ? `<span>${esc(f.notes)}</span>` : ''}
+        ${f.status === 'open' ? `<div class="row-actions">
+          <button type="button" class="text-btn" data-act="fu-start" data-id="${esc(f.id)}">Ir a servicio</button>
+          <button type="button" class="text-btn" data-act="fu-done" data-id="${esc(f.id)}">Hecho</button>
+          <button type="button" class="text-btn" data-act="fu-cancel" data-id="${esc(f.id)}">Cancelar</button>
+        </div>` : `<span class="pill">${esc(f.status === 'cancelled' ? 'Cancelado' : 'Cerrado')}</span>`}
       </div>`
-    ).join('') || '<p class="empty">Nada pendiente.</p>'}</div>
+    ).join('') || '<p class="empty">Nada en este filtro.</p>'}</div>
   </main>
   ${nav('followups')}`;
 }

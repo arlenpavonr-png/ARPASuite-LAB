@@ -271,7 +271,11 @@ export function createService(data) {
     recommendations: data.recommendations || [],
     equipmentStatus: data.equipmentStatus || null,
     quote: data.quote || null,
+    captureText: String(data.captureText || '').trim(),
     notes: String(data.notes || '').trim(),
+    signatures: data.signatures || { client: { name: '', doc: '', dataUrl: '' }, technician: { name: '', dataUrl: '' } },
+    source: data.source || 'next',
+    classicId: data.classicId || '',
     createdAt: data.createdAt || nowIso(),
     updatedAt: nowIso(),
   };
@@ -324,4 +328,29 @@ export function buildIntelligentBrief(equipment, services) {
     pendingRecommendations: pending.slice(0, 5),
     serviceCount: closed.length,
   };
+}
+
+export function assembleClientView(clientId, bags) {
+  const equipment = (bags.equipment || []).filter((e) => e.clientId === clientId);
+  const services = (bags.services || [])
+    .filter((s) => s.clientId === clientId)
+    .sort((a, b) => String(b.closedAt || b.startedAt || '').localeCompare(String(a.closedAt || a.startedAt || '')));
+  const followups = (bags.followups || []).filter((f) => f.clientId === clientId);
+  return { equipment, services, followups };
+}
+
+export function assembleEquipmentView(equipmentId, bags) {
+  const services = (bags.services || [])
+    .filter((s) => s.equipmentId === equipmentId)
+    .sort((a, b) => String(b.closedAt || b.startedAt || '').localeCompare(String(a.closedAt || a.startedAt || '')));
+  const followups = (bags.followups || []).filter((f) => f.equipmentId === equipmentId);
+  return { services, followups };
+}
+
+export async function cloneStore(from, to) {
+  const names = ['clients', 'equipment', 'services', 'followups', 'meta'];
+  for (const name of names) {
+    const rows = await from.getAll(name);
+    for (const row of rows) await to.put(name, { ...row });
+  }
 }

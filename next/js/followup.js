@@ -69,3 +69,16 @@ export function isOverdue(followup, todayIso) {
   const today = String(todayIso || new Date().toISOString()).slice(0, 10);
   return due && due < today;
 }
+
+export function serviceTypeFromFollowup(type) {
+  if (type === 'repair') return 'reparacion';
+  if (type === 'instalacion') return 'instalacion';
+  return 'mantenimiento';
+}
+
+export function filterFollowups(list, filter, todayIso) {
+  const rows = Array.isArray(list) ? list : [];
+  if (filter === 'done') return rows.filter((f) => f.status === 'done' || f.status === 'cancelled');
+  if (filter === 'overdue') return rows.filter((f) => isOverdue(f, todayIso));
+  return rows.filter((f) => f.status === 'open');
+}

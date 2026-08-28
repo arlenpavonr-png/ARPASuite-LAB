@@ -105,3 +105,8 @@ export function equipmentTypeLabel(id) {
 export function serviceTypeLabel(id) {
   return SERVICE_TYPES.find((t) => t.id === id)?.label || id || 'Servicio';
 }
+
+export const PART_CHIPS = Object.entries(PART_CATALOG).map(([id, p]) => ({
+  id,
+  name: p.name,
+}));
