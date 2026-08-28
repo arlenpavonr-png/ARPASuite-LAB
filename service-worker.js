@@ -1,6 +1,6 @@
 // ARPA Suite — Service Worker
 // Cambia CACHE_VERSION con cada deploy para que los usuarios reciban la versión nueva.
-const CACHE_VERSION = 'v20260826a';
+const CACHE_VERSION = 'v20260828-next';
 const CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
 
 const LOCAL_ASSETS = [
@@ -48,6 +48,20 @@ self.addEventListener('fetch', (event) => {
       url.includes('cdnjs.cloudflare.com') ||
       url.includes('fonts.googleapis.com') ||
       url.includes('fonts.gstatic.com')) {
+    return;
+  }
+
+  // NEXT: red primero para no servir una app de campo obsoleta
+  if (url.includes('/next/')) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response && response.status === 200 && response.type !== 'opaque') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
     return;
   }
 

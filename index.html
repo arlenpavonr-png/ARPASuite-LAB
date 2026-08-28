@@ -2538,6 +2538,20 @@
     font-weight: 700 !important;
     width: 100%;
   }
+  .arpa-next-lab-entry {
+    display: block;
+    text-align: center;
+    background: #0f2044;
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: .04em;
+    padding: 10px 12px;
+    text-decoration: none;
+  }
+  .arpa-next-lab-entry:hover { color: #fde68a; }
+  @media print { .arpa-next-lab-entry { display: none !important; } }
+
 </style>
 <script>
 (function () {
@@ -2617,7 +2631,11 @@
   }
 
   if (!hasCompanySettings() && !hasSalesEntry() && !hasActiveLicense()) {
-    window.location.replace(LANDING_URL);
+    var host = window.location.hostname;
+    var isLabLocal = host === 'localhost' || host === '127.0.0.1';
+    if (!isLabLocal) {
+      window.location.replace(LANDING_URL);
+    }
   }
 })();
 </script>
@@ -2739,6 +2757,7 @@ document.documentElement.classList.add('license-checking');
   </div>
 </div>
 
+<a class="arpa-next-lab-entry no-print" href="./next/">ARPASuite NEXT — flujo de campo (LAB)</a>
 <div class="page">
 
   <!-- HEADER -->

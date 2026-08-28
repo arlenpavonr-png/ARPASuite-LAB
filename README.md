@@ -1,36 +1,37 @@
-# ARPA Suite
+# ARPA Suite — LAB
 
 PWA de marca blanca para formatos de servicio, cotizaciones y reportes en campo.
 
+**Rama `arpa-suite-next-gen`:** incluye **ARPASuite NEXT** (`next/`), el flujo de campo para el técnico (voz → datos → informe), además de la suite clásica de documentos.
+
+Este repositorio es **laboratorio**. No desplegar ni fusionar hacia producción sin autorización explícita.
+
 ## Entrada
 
-- **Producción (PWA):** `index.html` → `https://arlenpavonr-png.github.io/Formato-Arlenpav/`
-- **Alias:** `arpa-suite.html` (redirige a `index.html`)
-- **Landing de marketing:** no está en este repo. La web pública es **`index.html`** en el repo **`arpatechnologyglobal.com`** → https://arpatechnologyglobal.com/
-- **`landing.html`** en este repo solo redirige a la landing oficial (evita duplicados)
+- **ARPASuite NEXT (flujo de campo):** `next/` o `next.html`
+- **Suite clásica (documentos PDF):** `index.html`
+- **Alias:** `arpa-suite.html` → `index.html`
 
 ## Estructura
 
 ```
-index.html          Suite principal (PWA)
-landing.html        Redirección → arpatechnologyglobal.com
-arpa-suite.html     Redirige a index.html
-manifest.json       Configuración PWA
-service-worker.js   Caché offline
-icon-192.png        Icono PWA
-icon-512.png        Icono PWA
-js/                 Módulos de la suite
+index.html          Suite clásica (PWA de documentos)
+next/               ARPASuite NEXT — servicio de campo
+next.html           Redirección a NEXT
+js/                 Módulos de la suite clásica
+service-worker.js   Caché PWA (NEXT usa red-primero)
 ```
 
-## GitHub Pages (esta app)
+## Pruebas NEXT
 
-URL: `https://arlenpavonr-png.github.io/Formato-Arlenpav/`
+```
+node next/tests/run.mjs
+```
 
-Despliegue desde la rama `main`, carpeta raíz (`/`).
+Sirva el repo con un servidor local para abrir la app (módulos ES):
 
-## Landing pública (otro repositorio)
+```
+npx --yes serve -l 4173
+```
 
-| Qué | Dónde |
-|-----|--------|
-| Sitio https://arpatechnologyglobal.com/ | Repo `arpatechnologyglobal.com`, archivo **`index.html`** |
-| Precios, perfiles, WhatsApp 573016092542 | Editar **`index.html`** en ese repo, no aquí |
+Luego `http://localhost:4173/next/`
