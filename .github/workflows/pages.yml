@@ -27,7 +27,7 @@ jobs:
       - name: Prepare demo site
         run: |
           mkdir -p _site
-          cp nextgen-field-v2.html _site/index.html
+          cp nextgen-v3.html _site/index.html
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
