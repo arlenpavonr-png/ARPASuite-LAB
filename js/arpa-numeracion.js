@@ -1,5 +1,6 @@
 /**
  * Numeración local por documento — prefijo de técnico en plan PYME (ej. PJ-001).
+ * Formato/OT sin prefijo de técnico: OT-001.
  */
 (function (global) {
   const SETTINGS_KEY = 'arpa_suite_user_settings';
@@ -67,7 +68,7 @@
   }
 
   function formatFormNumber(n) {
-    return formatWithPrefix(n, 3) || String(n).padStart(4, '0');
+    return formatWithPrefix(n, 3) || ('OT-' + String(n).padStart(3, '0'));
   }
 
   function formatCotNumber(n) {

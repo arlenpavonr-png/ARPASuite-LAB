@@ -16,7 +16,7 @@
       window.ArpaI18n.refreshDocTypeLabel();
     } else {
       const labels = {
-        formato: 'Formato de Servicio',
+        formato: 'Orden de Trabajo',
         cotizacion: '💰 Cotización',
         catalogo: '📦 Mi Catálogo',
         'cuenta-cobro': '🧾 Cuenta de Cobro',

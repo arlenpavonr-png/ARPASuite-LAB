@@ -320,6 +320,123 @@
   .mat-header > div:last-child  { border-radius: 0 8px 0 0; }
   .mat-wrap { border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
 
+  .ot-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: #eef2ff;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+  }
+  .ot-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    color: #0f2044;
+  }
+  .ot-badge[data-estado="BORRADOR"] { background: #e2e8f0; color: #334155; }
+  .ot-badge[data-estado="PROGRAMADA"] { background: #dbeafe; color: #1d4ed8; }
+  .ot-badge[data-estado="EN_EJECUCION"] { background: #fef3c7; color: #92400e; }
+  .ot-badge[data-estado="FINALIZADA"] { background: #dcfce7; color: #166534; }
+  .ot-badge[data-estado="CERRADA"] { background: var(--navy); color: #fff; }
+  .ot-lock-note {
+    font-size: 12px;
+    color: #92400e;
+    background: #fff7ed;
+    border: 1px solid #fdba74;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: 0 0 12px;
+  }
+  .ot-times-display {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .ot-times-display strong { color: var(--text); display: block; font-size: 13px; margin-top: 2px; }
+  .ot-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .ot-btn {
+    min-height: 44px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 10px 8px;
+  }
+  .ot-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .ot-btn-navy { background: var(--navy); color: #fff; }
+  .ot-btn-gold { background: var(--gold); color: #fff; }
+  .ot-btn-blue { background: #2563eb; color: #fff; }
+  .ot-btn-green { background: var(--green); color: #fff; }
+  .ot-btn-dark { background: #0f2044; color: #fff; }
+  .ot-mat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .ot-mat-table th {
+    background: var(--navy);
+    color: #fff;
+    font-size: 10px;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    padding: 7px 6px;
+    text-align: left;
+  }
+  .ot-mat-table td {
+    border-bottom: 1px solid var(--border);
+    padding: 4px;
+    vertical-align: middle;
+  }
+  .ot-mat-table input, .ot-mat-table select {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    outline: none;
+    padding: 4px;
+  }
+  .ot-mat-table input:focus, .ot-mat-table select:focus { background: #eff6ff; border-radius: 4px; }
+  .btn-mat-add, .btn-mat-del {
+    border: none;
+    background: transparent;
+    color: var(--navy);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-mat-add {
+    margin-top: 8px;
+    background: var(--light);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  #view-formato.ot-locked input, #view-formato.ot-locked select, #view-formato.ot-locked textarea {
+    background: #f8fafc;
+  }
+  #view-formato.ot-locked canvas { pointer-events: none; }
+
   /* ── VOLTAGE / EXTRAS ── */
   .check-group { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
   .check-item { display: flex; align-items: center; gap: 6px; cursor: pointer; }
@@ -1975,6 +2092,12 @@
     body.is-printing #view-catalogo { display: none !important; }
     body.is-printing:not(.is-printing-formato) #view-formato { display: none !important; }
     body.is-printing-formato #view-formato { display: block !important; }
+    body.is-printing-formato .ot-actions,
+    body.is-printing-formato .btn-mat-add,
+    body.is-printing-formato .btn-mat-del,
+    body.is-printing-formato .ot-mat-actions,
+    body.is-printing-formato .ot-lock-note,
+    body.is-printing-formato [data-i18n="ot.mat.hint"] { display: none !important; }
     body.is-printing-formato #view-cotizacion,
     body.is-printing-formato #view-cuenta-cobro { display: none !important; }
     body.is-printing-formato.formato-has-video-qr #formato-video-section { display: none !important; }
@@ -2781,11 +2904,11 @@ document.documentElement.classList.add('license-checking');
         <button type="button" class="lang-btn" data-lang="en" id="lang-btn-en">EN</button>
       </div>
       <button type="button" class="settings-btn" onclick="openSettingsModal()" data-i18n-title="header.settings.title" data-i18n-aria-label="header.settings.aria" title="Ajustes de empresa" aria-label="Ajustes de empresa">⚙️</button>
-      <div class="doc-type" id="doc-type-label" data-i18n="header.doc_type.formato">Formato de Servicio</div>
+      <div class="doc-type" id="doc-type-label" data-i18n="header.doc_type.formato">Orden de Trabajo</div>
       <div id="header-meta-formato">
         <div class="no-field">
           <label data-i18n="header.number_label">N°</label>
-          <input type="text" id="numero-formato" data-i18n-placeholder="header.placeholder.formato_number" placeholder="0001" style="cursor:pointer;" data-i18n-title="header.title.tap_new_number" title="Toca para generar nuevo número">
+          <input type="text" id="numero-formato" data-i18n-placeholder="header.placeholder.formato_number" placeholder="OT-001" style="cursor:pointer;" data-i18n-title="header.title.tap_new_number" title="Toca para generar nuevo número">
         </div>
         <div style="margin-top:5px;">
           <button onclick="nuevoNumero()" style="background:var(--gold);color:white;border:none;border-radius:5px;padding:4px 9px;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.5px;" data-i18n="header.btn_new_number">+ NUEVO N°</button>
@@ -2817,6 +2940,37 @@ document.documentElement.classList.add('license-checking');
   <div class="gold-bar"></div>
 
   <div id="view-formato" class="suite-view body">
+
+    <div class="ot-status-bar" id="formato-ot-status-bar">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" data-i18n="ot.status.label">Estado</div>
+        <span id="formato-ot-badge" class="ot-badge" data-estado="BORRADOR">Borrador</span>
+      </div>
+      <div class="ot-times-display">
+        <div><span data-i18n="ot.label.inicio">Inicio</span><strong id="formato-ot-inicio-display">—</strong></div>
+        <div><span data-i18n="ot.label.fin">Finalización</span><strong id="formato-ot-fin-display">—</strong></div>
+      </div>
+      <input type="hidden" id="formato-ot-estado" value="BORRADOR">
+      <input type="hidden" id="formato-ot-programada" value="">
+      <input type="hidden" id="formato-ot-inicio" value="">
+      <input type="hidden" id="formato-ot-fin" value="">
+    </div>
+    <p id="formato-ot-lock-note" class="ot-lock-note" hidden data-i18n="ot.lock.note">Esta orden está cerrada. Puede consultar o generar PDF, pero no se modifica.</p>
+
+    <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="ot.section.programacion">Programación</span></div>
+      <div class="grid g2">
+        <div class="field"><label for="formato-ot-fecha-prog" data-i18n="ot.label.fecha_programada">Fecha programada</label><input type="date" id="formato-ot-fecha-prog"></div>
+        <div class="field"><label for="formato-ot-hora-prog" data-i18n="ot.label.hora_programada">Hora programada</label><input type="time" id="formato-ot-hora-prog"></div>
+      </div>
+      <div class="ot-actions no-print">
+        <button type="button" class="ot-btn ot-btn-navy" id="ot-btn-guardar" data-i18n="ot.btn.guardar">Guardar borrador</button>
+        <button type="button" class="ot-btn ot-btn-blue" id="ot-btn-programar" data-i18n="ot.btn.programar">Programar</button>
+        <button type="button" class="ot-btn ot-btn-gold" id="ot-btn-iniciar" data-i18n="ot.btn.iniciar">Iniciar trabajo</button>
+        <button type="button" class="ot-btn ot-btn-green" id="ot-btn-finalizar" data-i18n="ot.btn.finalizar">Finalizar trabajo</button>
+        <button type="button" class="ot-btn ot-btn-dark" id="ot-btn-cerrar" data-i18n="ot.btn.cerrar" hidden>Cerrar OT</button>
+      </div>
+    </div>
 
     <!-- 1. TIPO DE SERVICIO -->
     <div class="section">
@@ -2957,6 +3111,27 @@ document.documentElement.classList.add('license-checking');
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- MATERIALES UTILIZADOS -->
+    <div class="section" id="formato-materiales-section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.materiales">Materiales utilizados</span></div>
+      <p style="font-size:11px;color:var(--muted);margin:-4px 0 10px;line-height:1.4;" data-i18n="ot.mat.hint">Registro de materiales usados en este trabajo. No descuenta inventario.</p>
+      <div class="mat-wrap">
+        <table class="ot-mat-table">
+          <thead>
+            <tr>
+              <th data-i18n="formato.mat.header.descripcion">Descripción</th>
+              <th data-i18n="formato.mat.header.cant">Cant.</th>
+              <th data-i18n="formato.mat.header.unidad">Unidad</th>
+              <th data-i18n="ot.mat.header.obs">Observación</th>
+              <th class="no-print"></th>
+            </tr>
+          </thead>
+          <tbody id="formato-materiales-body"></tbody>
+        </table>
+      </div>
+      <button type="button" class="btn-mat-add no-print" id="ot-btn-mat-add" data-i18n="ot.mat.agregar">+ Agregar material</button>
     </div>
 
     <!-- 8. FOTOS -->
@@ -3488,7 +3663,7 @@ document.documentElement.classList.add('license-checking');
 <nav class="main-menu" data-i18n-aria-label="menu.aria" aria-label="Menú principal">
   <button type="button" class="main-menu-btn active" onclick="scrollToTopMenu(this)">
     <span class="main-menu-icon" aria-hidden="true">📋</span>
-    <span data-i18n="menu.formato">Formato</span>
+    <span data-i18n="menu.formato">OT</span>
   </button>
   <button type="button" class="main-menu-btn" onclick="openCotizacionView(this)">
     <span class="main-menu-icon" aria-hidden="true">💰</span>
@@ -3819,6 +3994,9 @@ function collectFormatoDraft() {
   if (numero) data['numero-formato'] = numero.value;
   if (fecha) data['formato-fecha'] = fecha.value;
   data._formatoOficio = window.ArpaFormatoTipo?.getDocumentFormatoOficio?.() || 'automatismos';
+  if (window.ArpaOT && typeof window.ArpaOT.enrichDraft === 'function') {
+    window.ArpaOT.enrichDraft(data);
+  }
   return data;
 }
 
@@ -3851,6 +4029,7 @@ function clearFormatoDocumentFields(options) {
   });
   window.ArpaSignature?.clear?.('canvas-firma-cliente');
   window.ArpaSignature?.clear?.('canvas-firma-tecnico');
+  window.ArpaOT?.resetMeta?.({ keepNumero: !!preserveNumero });
 }
 
 function clearFormatoForm() {
@@ -3881,11 +4060,15 @@ function applyFormatoDraft() {
         if (radio) radio.checked = true;
         return;
       }
+      if (key.charAt(0) === '_') return;
       const el = document.getElementById(key);
       if (!el || el.type === 'file') return;
       if (el.type === 'checkbox') el.checked = !!val;
       else el.value = val == null ? '' : val;
     });
+    if (window.ArpaOT && typeof window.ArpaOT.restoreFromDraft === 'function') {
+      window.ArpaOT.restoreFromDraft(data);
+    }
   } catch (e) {}
 }
 
@@ -4021,7 +4204,7 @@ function guardarPDF() {
   if (qrBlock) document.body.classList.add('formato-has-video-qr');
 
   const viewRoot = document.getElementById('view-formato');
-  const elementos = viewRoot.querySelectorAll('input:not([type=file]):not([type=radio]):not([type=checkbox]), select, textarea');
+  const elementos = viewRoot.querySelectorAll('input:not([type=file]):not([type=radio]):not([type=checkbox]):not([type=hidden]), select, textarea');
   const respaldos = [];
 
   elementos.forEach(el => {
@@ -4880,6 +5063,7 @@ if ('serviceWorker' in navigator) {
 <script src="./js/arpa-views.js"></script>
 <script src="./js/arpa-onboarding.js"></script>
 <script src="./js/arpa-historial.js"></script>
+<script src="./js/arpa-ot.js"></script>
 <script src="./js/arpa-whatsapp.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
