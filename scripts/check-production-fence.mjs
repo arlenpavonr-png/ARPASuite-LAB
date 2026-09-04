@@ -115,6 +115,18 @@ function isDocMention(line, name) {
 function scanAddedLine(file, lineNo, rawLine) {
   const line = String(rawLine);
   const ctx = { linea: lineNo, contexto: redact(line.trim()) };
+  // Blocklist legítima del propio sistema de seguridad.
+  // Excepción estricta: solo estos tres archivos y los identificadores
+  // concretos que el Fence necesita conocer para detectar producción.
+  const securityBlocklistFiles = new Set([
+    'js/arpa-ia/copiloto/copiloto-llm.js',
+    'js/arpa-ia/cotizador-api.js',
+    'js/arpa-ia/informes/informes-api.js'
+  ]);
+  const isSecurityBlocklistLine =
+    securityBlocklistFiles.has(file)
+    && /(?:AKfycbzKBey|AKfycbyV0-C|154LeJlcAPa3|formato-arlenpav|arpa\.arpatechnologyglobal\.com)/i.test(line);
+  if (isSecurityBlocklistLine) return [];
 
   if (/\bLICENSE_API\b/.test(line) && !isDocMention(line, 'LICENSE_API')) {
     addFinding(file, 'B', 'introducción de LICENSE_API', ctx);
