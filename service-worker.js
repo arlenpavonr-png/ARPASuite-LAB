@@ -1,7 +1,16 @@
 // ARPA Suite — Service Worker
-// Cambia CACHE_VERSION con cada deploy para que los usuarios reciban la versión nueva.
-const CACHE_VERSION = 'v20260903-ia-fase5-tec-iso2';
-const CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
+// CACHE_VERSION: fallback hardcodeado + archivo externo NO protegido.
+// Si falla importScripts/arpa-ia-cache.js, la PWA igual se instala.
+var CACHE_VERSION = 'v20260903-ia-fase5-tec-iso2';
+try {
+  importScripts('./js/arpa-ia/arpa-ia-cache.js');
+  if (typeof self.ARPA_CACHE_VERSION === 'string' && self.ARPA_CACHE_VERSION) {
+    CACHE_VERSION = self.ARPA_CACHE_VERSION;
+  }
+} catch (err) {
+  // Conservar fallback. No abortar install.
+}
+var CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
 
 const LOCAL_ASSETS = [
   './',
