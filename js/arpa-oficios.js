@@ -35,7 +35,8 @@
     refrigeracion: 'generico',
     cctv: 'generico',
     solar: 'generico',
-    linea_blanca: 'generico'
+    linea_blanca: 'generico',
+    taller_motos: 'generico'
   };
 
   const FORMATO_EQUIPO_REF_DEFAULT = {
@@ -49,7 +50,8 @@
     refrigeracion: { i18nKey: 'formato.placeholder.ref.refrigeracion', default: 'Ej: Midea 12,000 BTU' },
     cctv: { i18nKey: 'formato.placeholder.ref.cctv', default: 'Ej: Hikvision DS-2CD2043G2' },
     solar: { i18nKey: 'formato.placeholder.ref.solar', default: 'Ej: JA Solar 450W' },
-    linea_blanca: { i18nKey: 'formato.placeholder.ref.linea_blanca', default: 'Ej: Lavadora Samsung 18kg' }
+    linea_blanca: { i18nKey: 'formato.placeholder.ref.linea_blanca', default: 'Ej: Lavadora Samsung 18kg' },
+    taller_motos: { i18nKey: 'formato.placeholder.ref.taller_motos', default: 'Ej: Honda CB 150' }
   };
 
   /** @type {{ id: string, i18nKey: string, formatoTitulo: string, formatoTituloI18nKey: string, formatoOpciones: object[] }[]} */
@@ -189,6 +191,20 @@
         { label: 'Estructura/montaje', i18nKey: 'formato.solar.estructura' },
         { label: 'Cableado DC/AC', i18nKey: 'formato.solar.cableado' },
         { label: 'Mantenimiento/limpieza', i18nKey: 'formato.solar.mantenimiento' },
+        { label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
+      ])
+    },
+    {
+      id: 'taller_motos',
+      i18nKey: 'oficio.taller_motos',
+      formatoTitulo: 'Tipo de Servicio de Moto',
+      formatoTituloI18nKey: 'formato.titulo.taller_motos',
+      formatoOpciones: buildFormatoOpciones('fmot', [
+        { label: 'Revisión general', i18nKey: 'formato.taller_motos.revision' },
+        { label: 'Mantenimiento', i18nKey: 'formato.taller_motos.mantenimiento' },
+        { label: 'Reparación', i18nKey: 'formato.taller_motos.reparacion' },
+        { label: 'Cambio de aceite', i18nKey: 'formato.taller_motos.aceite' },
+        { label: 'Frenos/llantas', i18nKey: 'formato.taller_motos.frenos' },
         { label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
       ])
     }
@@ -420,6 +436,17 @@
     ];
   }
 
+  /** Catálogo seed Taller de Motos — ítems genéricos, sin precios comerciales. */
+  function seedCatalog_taller_motos() {
+    return [
+      { cod: 'MOT-001', nom: 'Revisión general (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true },
+      { cod: 'MOT-002', nom: 'Mantenimiento preventivo (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true },
+      { cod: 'MOT-003', nom: 'Cambio de aceite (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true },
+      { cod: 'MOT-004', nom: 'Diagnóstico de falla (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true },
+      { cod: 'MOT-005', nom: 'Mano de obra (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true }
+    ];
+  }
+
   const SEED_CATALOG_BUILDERS = {
     gas: seedCatalog_gas,
     refrigeracion: seedCatalog_refrigeracion,
@@ -428,7 +455,8 @@
     metalmecanica: seedCatalog_metalmecanica,
     plagas: seedCatalog_plagas,
     linea_blanca: seedCatalog_linea_blanca,
-    solar: seedCatalog_solar
+    solar: seedCatalog_solar,
+    taller_motos: seedCatalog_taller_motos
   };
 
   /**
@@ -607,7 +635,8 @@
       metalmecanica: 'Metalmecánica y Soldadura',
       plagas: 'Control de Plagas / Fumigación',
       linea_blanca: 'Línea Blanca / Electrodomésticos',
-      solar: 'Energía Solar'
+      solar: 'Energía Solar',
+      taller_motos: 'Taller de motos'
     };
     return fallbacks[normalizeOficioId(oficioId)] || oficioId;
   }
@@ -909,6 +938,7 @@
     seedCatalog_plagas,
     seedCatalog_linea_blanca,
     seedCatalog_solar,
+    seedCatalog_taller_motos,
     ACTIVE_OFICIOS_KEY,
     normalizeOficioId,
     normalizeActiveOficiosList,

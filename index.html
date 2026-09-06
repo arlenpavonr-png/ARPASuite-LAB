@@ -3166,7 +3166,10 @@ document.documentElement.classList.add('license-checking');
       </div>
     </div>
 
-    <!-- 9. OBSERVACIONES -->
+    <!-- ARPA IA slot formato (paneles montados por js/arpa-ia) -->
+    <div id="arpa-ia-slot-formato" class="arpa-ia-slot no-print"></div>
+
+    <!-- 9. OBSERVACIONES -->    <!-- 9. OBSERVACIONES -->
     <div class="section" id="formato-section-observaciones">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.observaciones">Observaciones y Recomendaciones</span></div>
       <div class="obs-box">
@@ -3266,7 +3269,11 @@ document.documentElement.classList.add('license-checking');
 
   <div id="view-cotizacion" class="suite-view body" hidden>
 
+    <!-- ARPA IA slot cotización -->
+    <div id="arpa-ia-slot-cotizacion" class="arpa-ia-slot no-print"></div>
+
     <div class="section">
+      <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.datos_cliente">    <div class="section">
       <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.datos_cliente">Datos del Cliente</span></div>
       <div class="grid g2">
         <div class="field span2"><label data-i18n="formato.label.nombre_empresa">Nombre / Empresa</label><input id="cot-nombre" type="text" data-i18n-placeholder="formato.placeholder.nombre_empresa" placeholder="Nombre completo o razón social" autocomplete="off" list="arpa-clientes-datalist"></div>
@@ -3585,7 +3592,9 @@ document.documentElement.classList.add('license-checking');
       <p style="font-size:12px;color:var(--muted);margin:-4px 0 12px;line-height:1.5;" data-i18n="hist.intro">
         Registros guardados al exportar PDF desde Formato. Máximo 200 servicios.
       </p>
-      <div id="historial-stats" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      <!-- ARPA IA slot historial -->
+      <div id="arpa-ia-slot-historial" class="arpa-ia-slot no-print"></div>
+      <div id="historial-stats"      <div id="historial-stats" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
         <div style="flex:1;min-width:80px;background:var(--navy);color:#fff;border-radius:8px;padding:10px 8px;text-align:center;">
           <div style="font-size:22px;font-weight:700;" id="hist-stat-total-n">0</div>
           <div style="font-size:10px;opacity:.75;margin-top:2px;">Total docs</div>
@@ -5059,11 +5068,12 @@ if ('serviceWorker' in navigator) {
 <script src="./js/catalogo-bft-nas.js"></script>
 <script src="./js/catalogo-ppa.js"></script>
 <script src="./js/arpa-mi-catalogo.js"></script>
-<script src="./js/arpa-cuenta-cobro.js"></script>
+<script src="./js/arpa-cuenta-cobro.js"></script><script src="./js/arpa-cuenta-cobro.js"></script>
 <script src="./js/arpa-views.js"></script>
 <script src="./js/arpa-onboarding.js"></script>
 <script src="./js/arpa-historial.js"></script>
-<script src="./js/arpa-ot.js"></script>
+<script src="./js/arpa-ia/arpa-ia-bootstrap.js"></script>
+<script src="./js/arpa-ot.js"></script><script src="./js/arpa-ot.js"></script>
 <script src="./js/arpa-whatsapp.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

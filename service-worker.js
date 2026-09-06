@@ -1,7 +1,16 @@
 // ARPA Suite — Service Worker
-// Cambia CACHE_VERSION con cada deploy para que los usuarios reciban la versión nueva.
-const CACHE_VERSION = 'v20260901-ot';
-const CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
+// CACHE_VERSION: fallback hardcodeado + archivo externo NO protegido.
+// Si falla importScripts/arpa-ia-cache.js, la PWA igual se instala.
+var CACHE_VERSION = 'v20260903-ia-fase5-tec-iso2';
+try {
+  importScripts('./js/arpa-ia/arpa-ia-cache.js');
+  if (typeof self.ARPA_CACHE_VERSION === 'string' && self.ARPA_CACHE_VERSION) {
+    CACHE_VERSION = self.ARPA_CACHE_VERSION;
+  }
+} catch (err) {
+  // Conservar fallback. No abortar install.
+}
+var CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
 
 const LOCAL_ASSETS = [
   './',
@@ -46,11 +55,34 @@ self.addEventListener('fetch', (event) => {
 
   // No interceptar llamadas a la API de Google ni recursos de terceros
   if (url.includes('script.google.com') ||
+      url.includes('script.googleusercontent.com') ||
       url.includes('cdnjs.cloudflare.com') ||
       url.includes('fonts.googleapis.com') ||
       url.includes('fonts.gstatic.com')) {
     return;
   }
+
+  function networkFirst(request) {
+    return fetch(request).then((response) => {
+      if (response && response.status === 200 && response.type !== 'opaque') {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+      }
+      return response;
+    }).catch(() => caches.match(request));
+  }
+
+  // HTML e IA: red primero. Si no, el SW sirve un index.html viejo sin los motores IA.
+  try {
+    const parsed = new URL(url);
+    if (parsed.origin === self.location.origin) {
+      const path = parsed.pathname;
+      if (path === '/' || path.endsWith('/index.html') || path.indexOf('/js/arpa-ia/') !== -1) {
+        event.respondWith(networkFirst(event.request));
+        return;
+      }
+    }
+  } catch (err) {}
 
   // NEXT: red primero para no servir una app de campo obsoleta
   if (url.includes('/next/')) {

@@ -1,0 +1,366 @@
+﻿/* ARPA IA — estilos de paneles (fuera de index.html / Capa A) */
+.arpa-ia-cot-panel {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    border: 1.5px solid #c7d2e0;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .arpa-ia-prod,
+  .arpa-ia-usar-wrap,
+  .btn-arpa-ia,
+  .btn-arpa-ia-use {
+    scroll-margin-bottom: var(--arpa-nav-bottom);
+  }
+  .arpa-ia-cot-lead {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .arpa-ia-cot-panel textarea {
+    min-height: 88px;
+    font-size: 15px;
+  }
+  .arpa-ia-cot-actions { margin-top: 10px; }
+  .arpa-ia-cot-status {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .arpa-ia-cot-status.is-busy { color: var(--blue); }
+  .arpa-ia-cot-status.is-ok { color: var(--green); }
+  .arpa-ia-cot-status.is-warn { color: #92400e; }
+  .arpa-ia-oficio {
+    display: inline-flex;
+    align-items: center;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
+  .btn-arpa-ia {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 46px;
+    border: none;
+    border-radius: 8px;
+    background: var(--navy);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-arpa-ia:disabled { opacity: 0.65; cursor: wait; }
+  .arpa-ia-cot-error {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    font-size: 13px;
+  }
+  .arpa-ia-cot-resultado {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .arpa-ia-sub {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .arpa-ia-datos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .arpa-ia-dato {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .arpa-ia-dato-k {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .arpa-ia-dato-v {
+    display: block;
+    margin-top: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+  }
+  .arpa-ia-faltantes {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .arpa-ia-faltantes ul {
+    margin: 0;
+    padding-left: 18px;
+    color: #92400e;
+    font-size: 13px;
+  }
+  .arpa-ia-faltantes-note {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: #92400e;
+    line-height: 1.4;
+  }
+  .arpa-ia-prod {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .arpa-ia-prod-pick {
+    flex-shrink: 0;
+    display: flex;
+    padding-top: 2px;
+    cursor: pointer;
+  }
+  .arpa-ia-prod-check {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--navy);
+  }
+  .arpa-ia-prod-body { flex: 1; min-width: 0; }
+  .arpa-ia-prod-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .arpa-ia-prod-cod {
+    font-family: 'DM Mono', monospace;
+    color: var(--navy);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .arpa-ia-prod-score { color: var(--accent); }
+  .arpa-ia-prod-nom {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .arpa-ia-prod-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .arpa-ia-prod-precio { color: var(--green); font-weight: 700; font-family: 'DM Mono', monospace; }
+  .arpa-ia-prod-motivo {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .arpa-ia-usar-wrap {
+    margin-top: 10px;
+    padding-bottom: var(--arpa-nav-bottom);
+  }
+  .btn-arpa-ia-use {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    border: 1.5px solid var(--navy);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-arpa-ia-use:disabled { opacity: 0.65; cursor: wait; }
+  .arpa-ia-usar-note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .arpa-ia-vacio {
+    padding: 12px;
+    text-align: center;
+    color: var(--muted);
+    background: #fff;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  @media (max-width: 560px) {
+    .arpa-ia-datos { grid-template-columns: 1fr; }
+  }
+  .arpa-ia-tec-lead {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .arpa-ia-tec-actions { margin-top: 10px; }
+  .arpa-ia-tec-status {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .arpa-ia-tec-status.is-busy { color: var(--blue); }
+  .arpa-ia-tec-status.is-ok { color: var(--green); }
+  .arpa-ia-tec-status.is-warn { color: #92400e; }
+  .arpa-ia-tec-resultado {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .arpa-ia-tec-block {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .arpa-ia-tec-block ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--navy);
+    line-height: 1.45;
+  }
+  .arpa-ia-tec-empty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .arpa-ia-tec-mensaje {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--navy);
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .arpa-ia-tec-mensaje.is-warn {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #92400e;
+  }
+  .arpa-ia-tec-urgencia {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .arpa-ia-tec-urgencia.is-critica { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  .arpa-ia-tec-urgencia.is-alta { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+  .arpa-ia-tec-urgencia.is-media { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .arpa-ia-tec-urgencia.is-baja { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+  .arpa-ia-tec-urgencia.is-indet { background: #f8fafc; border: 1px solid var(--border); color: var(--muted); }
+  .arpa-ia-tec-seguridad ul { color: #991b1b; }
+  .arpa-ia-tec-faltantes-box { background: #fffbeb; border-color: #fde68a; }
+  .arpa-ia-tec-ot-panel {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    border: 1.5px solid #c7d2e0;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  #formato-ia-informes {
+    scroll-margin-bottom: calc(var(--arpa-nav-bottom) + 28px);
+    scroll-margin-top: 12px;
+  }
+  #formato-ia-informes .arpa-ia-tec-actions,
+  #formato-ia-informes .btn-arpa-ia,
+  #formato-ia-informes .btn-arpa-ia-use {
+    position: relative;
+    z-index: 910;
+    scroll-margin-bottom: calc(var(--arpa-nav-bottom) + 28px);
+  }
+  #formato-ia-tecnica[hidden] { display: none !important; }
+  .arpa-ia-tec-ot-panel textarea { min-height: 88px; font-size: 15px; }
+  .arpa-ia-tec-pregunta { margin-top: 8px; }
+  .arpa-ia-tec-saved {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    color: #166534;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  #arpa-ia-ot-oficio { margin-bottom: 12px; }
+  .arpa-ia-com-card {
+    background: #fff;
+    border: 1px solid #dbe3ee;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .arpa-ia-com-card.is-alta { border-left: 4px solid #b91c1c; }
+  .arpa-ia-com-card.is-media { border-left: 4px solid #d97706; }
+  .arpa-ia-com-card.is-baja { border-left: 4px solid #64748b; }
+  .arpa-ia-com-tipo { font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .arpa-ia-com-row { color: var(--text); }
+  .arpa-ia-com-k { color: var(--muted); font-weight: 600; }
+  #historial-ia-comercial { margin-bottom: 14px; }
+  .arpa-ia-com-resumen { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+  .arpa-ia-com-chip {
+    border: 1px solid #c7d2e0;
+    background: #fff;
+    color: var(--navy);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .arpa-ia-com-chip.is-on { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .arpa-ia-com-resumen-tipos { width: 100%; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .arpa-ia-com-ver { margin-top: 8px; }
+  .historial-card.arpa-ia-com-loc { outline: 2px solid var(--navy); box-shadow: 0 0 0 3px rgba(15,32,68,.12); }
+
+@media print {
+  .arpa-ia-cot-panel,
+  #formato-ia-tecnica,
+  #formato-ia-informes,
+  #historial-ia-comercial { display: none !important; }
+  body.is-printing-formato #formato-ia-tecnica,
+  body.is-printing-formato #formato-ia-informes { display: none !important; }
+}

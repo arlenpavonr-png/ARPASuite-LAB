@@ -86,6 +86,7 @@
     menuBtn?.classList.add('active');
     setHeaderActions('historial');
     global.ArpaHistorial?.render?.();
+    global.ArpaIaComercialUi?.refresh?.();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
