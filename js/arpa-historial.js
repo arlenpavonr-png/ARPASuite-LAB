@@ -462,7 +462,7 @@
     }
     const modulo = inferModulo(r);
     if (modulo === 'formato') {
-      document.querySelector('.main-menu-btn[onclick*="scrollToTopMenu"]')?.click();
+      global.scrollToTopMenu?.();
       setTimeout(() => {
         if (r.fullSnapshot && global.applyFormatoDraft) {
           try {
@@ -494,11 +494,12 @@
             _materiales: r.materiales
           });
         }
+        global.ArpaSimple?.prepararTrabajo?.({ verTodo: false, paso: 'cliente' });
         window.scrollTo(0, 0);
         alert(window.ArpaI18n.t('alert.historial.documento_restaurado'));
       }, 400);
     } else if (modulo === 'cotizacion') {
-      document.querySelector('.main-menu-btn[onclick*="openCotizacionView"]')?.click();
+      global.openCotizacionView?.();
       setTimeout(() => {
         var fs = r.fullSnapshot;
         if (fs && global.ArpaCotizacion?.loadCotizacion) {
@@ -527,7 +528,7 @@
         alert(window.ArpaI18n.t('alert.historial.documento_restaurado'));
       }, 400);
     } else {
-      document.querySelector('.main-menu-btn[onclick*="openCuentaCobroView"]')?.click();
+      global.openCuentaCobroView?.();
       setTimeout(() => {
         var fs = r.fullSnapshot;
         if (fs && global.ArpaCuentaCobro?.applyCcDraft) {
@@ -686,7 +687,7 @@
       orig();
       if (global.ArpaViews?.getCurrentView?.() === 'historial') {
         document.querySelectorAll('.main-menu-btn').forEach((b) => b.classList.remove('active'));
-        document.querySelector('.main-menu-btn[onclick*="openHistorialView"]')?.classList.add('active');
+        document.querySelector('.main-menu-btn[data-nav="mas"]')?.classList.add('active');
       }
     };
     global.closeSettingsModal.__historialPatch = true;

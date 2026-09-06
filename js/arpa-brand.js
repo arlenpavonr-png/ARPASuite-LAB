@@ -790,17 +790,15 @@
     document.getElementById('settings-modal')?.classList.remove('open');
     pendingLogoBase64 = null;
     pendingAppLogoBase64 = null;
-    const view = global.ArpaViews?.getCurrentView?.() || 'formato';
+    const view = global.ArpaViews?.getCurrentView?.() || 'inicio';
     document.querySelectorAll('.main-menu-btn').forEach((b) => b.classList.remove('active'));
     const sel = view === 'cotizacion'
-      ? '.main-menu-btn[onclick*="openCotizacionView"]'
-      : view === 'catalogo'
-      ? '.main-menu-btn[onclick*="openCatalogoView"]'
-      : view === 'cuenta-cobro'
-      ? '.main-menu-btn[onclick*="openCuentaCobroView"]'
-      : view === 'historial'
-      ? '.main-menu-btn[onclick*="openHistorialView"]'
-      : '.main-menu-btn[onclick*="scrollToTopMenu"]';
+      ? '.main-menu-btn[data-nav="cotizar"]'
+      : view === 'formato' || view === 'ia-tecnica'
+      ? '.main-menu-btn[data-nav="trabajos"]'
+      : view === 'inicio' || view === 'ia-copiloto' || view === 'ia-integral'
+      ? '.main-menu-btn[data-nav="inicio"]'
+      : '.main-menu-btn[data-nav="mas"]';
     document.querySelector(sel)?.classList.add('active');
   }
 

@@ -29,6 +29,7 @@
     --light: #e8edf5;
     --green: #16a34a;
     --radius: 10px;
+    --arpa-nav-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,6 +37,7 @@
   html {
     background-color: var(--shell);
     background-image: none;
+    scroll-padding-bottom: var(--arpa-nav-bottom);
   }
 
   body {
@@ -46,17 +48,28 @@
     font-size: 14px;
     min-height: 100vh;
     padding: 16px;
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--arpa-nav-bottom);
   }
 
   .page {
     max-width: 760px;
+    width: 100%;
     margin: 0 auto;
     background-color: var(--card);
     background-image: none;
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 4px 24px rgba(0,0,0,.10);
+  }
+  @media screen and (min-width: 768px) {
+    body {
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+    .page {
+      max-width: none;
+      width: 100%;
+    }
   }
 
   /* ── HEADER ── */
@@ -962,9 +975,19 @@
     letter-spacing: 0;
   }
   .catalogo-grupo-cards {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 10px;
+    width: 100%;
+  }
+  @media screen and (min-width: 640px) {
+    .catalogo-grupo-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media screen and (min-width: 1024px) {
+    .catalogo-grupo-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media screen and (min-width: 1366px) {
+    .catalogo-grupo-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
   .catalogo-empty,
   .catalogo-no-results {
@@ -980,6 +1003,7 @@
     border-radius: var(--radius);
     padding: 14px 16px;
     box-shadow: 0 1px 3px rgba(15, 32, 68, 0.06);
+    min-width: 0;
   }
   .catalogo-card-head {
     display: flex;
@@ -1727,6 +1751,237 @@
     border-radius: 8px;
     border: 1px dashed var(--border);
   }
+  .arpa-ia-cot-panel {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    border: 1.5px solid #c7d2e0;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .arpa-ia-prod,
+  .arpa-ia-usar-wrap,
+  .btn-arpa-ia,
+  .btn-arpa-ia-use {
+    scroll-margin-bottom: var(--arpa-nav-bottom);
+  }
+  .arpa-ia-cot-lead {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .arpa-ia-cot-panel textarea {
+    min-height: 88px;
+    font-size: 15px;
+  }
+  .arpa-ia-cot-actions {
+    margin-top: 10px;
+  }
+  .arpa-ia-cot-status {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .arpa-ia-cot-status.is-busy { color: var(--blue); }
+  .arpa-ia-cot-status.is-ok { color: var(--green); }
+  .arpa-ia-cot-status.is-warn { color: #92400e; }
+  .arpa-ia-oficio {
+    display: inline-flex;
+    align-items: center;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
+  .btn-arpa-ia {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 46px;
+    border: none;
+    border-radius: 8px;
+    background: var(--navy);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-arpa-ia:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+  .arpa-ia-cot-error {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    font-size: 13px;
+  }
+  .arpa-ia-cot-resultado {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .arpa-ia-sub {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .arpa-ia-datos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .arpa-ia-dato {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .arpa-ia-dato-k {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .arpa-ia-dato-v {
+    display: block;
+    margin-top: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+  }
+  .arpa-ia-faltantes {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .arpa-ia-faltantes ul {
+    margin: 0;
+    padding-left: 18px;
+    color: #92400e;
+    font-size: 13px;
+  }
+  .arpa-ia-faltantes-note {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: #92400e;
+    line-height: 1.4;
+  }
+  .arpa-ia-prod {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .arpa-ia-prod-pick {
+    flex-shrink: 0;
+    display: flex;
+    padding-top: 2px;
+    cursor: pointer;
+  }
+  .arpa-ia-prod-check {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--navy);
+  }
+  .arpa-ia-prod-body { flex: 1; min-width: 0; }
+  .arpa-ia-prod-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .arpa-ia-prod-cod {
+    font-family: 'DM Mono', monospace;
+    color: var(--navy);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .arpa-ia-prod-score { color: var(--accent); }
+  .arpa-ia-prod-nom {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .arpa-ia-prod-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .arpa-ia-prod-precio { color: var(--green); font-weight: 700; font-family: 'DM Mono', monospace; }
+  .arpa-ia-prod-motivo {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .arpa-ia-usar-wrap {
+    margin-top: 10px;
+    padding-bottom: var(--arpa-nav-bottom);
+  }
+  .btn-arpa-ia-use {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    border: 1.5px solid var(--navy);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-arpa-ia-use:disabled {
+    opacity: 0.65;
+    cursor: wait;
+  }
+  .arpa-ia-usar-note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .arpa-ia-vacio {
+    padding: 12px;
+    text-align: center;
+    color: var(--muted);
+    background: #fff;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  @media (max-width: 560px) {
+    .arpa-ia-datos { grid-template-columns: 1fr; }
+  }
   .cot-cierre-block {
     display: flex;
     flex-direction: column;
@@ -2031,7 +2286,13 @@
       page-break-inside: avoid;
       break-inside: avoid;
     }
-    .cot-catalog-hint { display: none !important; }
+    .cot-catalog-hint,
+    .arpa-ia-cot-panel,
+    #formato-ia-tecnica,
+    #formato-ia-informes,
+    #historial-ia-comercial,
+    #arpa-ia-cop-panel,
+    #arpa-ia-int-panel { display: none !important; }
   }
   .settings-modal-footer {
     padding: 14px 20px;
@@ -2090,6 +2351,11 @@
     body { padding: 0; padding-bottom: 0; margin-bottom: 28mm; }
     body.is-printing #view-historial { display: none !important; }
     body.is-printing #view-catalogo { display: none !important; }
+    body.is-printing #view-ia-tecnica,
+    body.is-printing #view-ia-copiloto,
+    body.is-printing #view-ia-integral { display: none !important; }
+    body.is-printing-formato #formato-ia-tecnica,
+    body.is-printing-formato #formato-ia-informes { display: none !important; }
     body.is-printing:not(.is-printing-formato) #view-formato { display: none !important; }
     body.is-printing-formato #view-formato { display: block !important; }
     body.is-printing-formato .ot-actions,
@@ -2215,7 +2481,8 @@
   html:not(.license-ok) .license-gate { display: flex; }
   html:not(.license-ok) .page,
   html:not(.license-ok) .main-menu,
-  html:not(.license-ok) .settings-overlay { visibility: hidden; }
+  html:not(.license-ok) .settings-overlay,
+  html:not(.license-ok) .simple-mas-sheet { visibility: hidden; }
   .trial-capture-gate {
     display: none;
     position: fixed;
@@ -2511,7 +2778,8 @@
   html.onboarding-active .onboarding-gate.open { display: flex; }
   html.onboarding-active .page,
   html.onboarding-active .main-menu,
-  html.onboarding-active .catalogo-fab { visibility: hidden !important; }
+  html.onboarding-active .catalogo-fab,
+  html.onboarding-active .simple-mas-sheet { visibility: hidden !important; }
   html.onboarding-active .settings-overlay:not(.onboarding-step-modal) { visibility: hidden !important; }
   html.onboarding-active .onboarding-step-modal.open {
     visibility: visible !important;
@@ -2673,7 +2941,435 @@
     text-decoration: none;
   }
   .arpa-next-lab-entry:hover { color: #fde68a; }
+  button.arpa-next-lab-entry {
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
   @media print { .arpa-next-lab-entry { display: none !important; } }
+
+  .arpa-ia-tec-panel {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    border: 1.5px solid #c7d2e0;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .arpa-ia-tec-lead {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .arpa-ia-tec-lab-note {
+    font-size: 12px;
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 14px;
+  }
+  .arpa-ia-tec-panel textarea {
+    min-height: 96px;
+    font-size: 15px;
+  }
+  .arpa-ia-tec-actions { margin-top: 10px; }
+  .arpa-ia-tec-status {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .arpa-ia-tec-status.is-busy { color: var(--blue); }
+  .arpa-ia-tec-status.is-ok { color: var(--green); }
+  .arpa-ia-tec-status.is-warn { color: #92400e; }
+  .arpa-ia-tec-resultado {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .arpa-ia-tec-block {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .arpa-ia-tec-block ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--navy);
+    line-height: 1.45;
+  }
+  .arpa-ia-tec-empty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .arpa-ia-tec-mensaje {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--navy);
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .arpa-ia-tec-mensaje.is-warn {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #92400e;
+  }
+  .arpa-ia-tec-urgencia {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .arpa-ia-tec-urgencia.is-critica { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  .arpa-ia-tec-urgencia.is-alta { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+  .arpa-ia-tec-urgencia.is-media { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .arpa-ia-tec-urgencia.is-baja { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+  .arpa-ia-tec-urgencia.is-indet { background: #f8fafc; border: 1px solid var(--border); color: var(--muted); }
+  .arpa-ia-tec-seguridad ul { color: #991b1b; }
+  .arpa-ia-tec-faltantes-box { background: #fffbeb; border-color: #fde68a; }
+  .arpa-ia-tec-ot-panel {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    border: 1.5px solid #c7d2e0;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  #formato-ia-informes {
+    scroll-margin-bottom: calc(var(--arpa-nav-bottom) + 28px);
+    scroll-margin-top: 12px;
+  }
+  #formato-ia-informes .arpa-ia-tec-actions,
+  #formato-ia-informes .btn-arpa-ia,
+  #formato-ia-informes .btn-arpa-ia-use {
+    position: relative;
+    z-index: 910;
+    scroll-margin-bottom: calc(var(--arpa-nav-bottom) + 28px);
+  }
+  #formato-ia-tecnica[hidden] { display: none !important; }
+  .arpa-ia-tec-ot-panel textarea { min-height: 88px; font-size: 15px; }
+  .arpa-ia-tec-pregunta { margin-top: 8px; }
+  .arpa-ia-tec-saved {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    color: #166534;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  #arpa-ia-ot-oficio { margin-bottom: 12px; }
+  .arpa-ia-com-card {
+    background: #fff;
+    border: 1px solid #dbe3ee;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .arpa-ia-com-card.is-alta { border-left: 4px solid #b91c1c; }
+  .arpa-ia-com-card.is-media { border-left: 4px solid #d97706; }
+  .arpa-ia-com-card.is-baja { border-left: 4px solid #64748b; }
+  .arpa-ia-com-tipo { font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .arpa-ia-com-row { color: var(--text); }
+  .arpa-ia-com-k { color: var(--muted); font-weight: 600; }
+  #historial-ia-comercial { margin-bottom: 14px; }
+  .arpa-ia-com-resumen { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+  .arpa-ia-com-chip {
+    border: 1px solid #c7d2e0;
+    background: #fff;
+    color: var(--navy);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .arpa-ia-com-chip.is-on { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .arpa-ia-com-resumen-tipos { width: 100%; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .arpa-ia-com-ver { margin-top: 8px; }
+  .historial-card.arpa-ia-com-loc { outline: 2px solid var(--navy); box-shadow: 0 0 0 3px rgba(15,32,68,.12); }
+  #view-ia-copiloto,
+  #view-ia-integral {
+    padding-bottom: 24px;
+  }
+  .arpa-ia-cop-panel {
+    padding-bottom: 28px;
+  }
+  .arpa-ia-cop-sugs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 12px;
+  }
+  .arpa-ia-cop-sug {
+    border: 1px solid #c7d2e0;
+    background: #fff;
+    color: var(--navy);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+  }
+  .arpa-ia-cop-sug:disabled { opacity: 0.55; cursor: default; }
+  .arpa-ia-cop-meta {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .arpa-ia-cop-nodisp .arpa-ia-sub { color: #92400e; }
+  .arpa-ia-int-otras {
+    margin-top: 14px;
+    background: #f8fafc;
+    border: 1px dashed #94a3b8;
+  }
+  .arpa-ia-int-otras .arpa-ia-sub { color: #475569; }
+  .arpa-ia-int-otras-marca { font-weight: 700; }
+  @media (max-width: 430px) {
+    .arpa-ia-cop-sug { width: 100%; }
+    #arpa-ia-cop-run { width: 100%; min-height: 48px; }
+  }
+
+  /* ── SIMPLE: Inicio + nav + OT por pasos ── */
+  .arpa-next-lab-entry,
+  .arpa-ia-tec-lab-note { display: none !important; }
+  body.simple-inicio .header { padding: 14px 16px 12px; }
+  body.simple-inicio .header-meta .doc-type { margin-bottom: 0; }
+  #view-inicio { gap: 18px; }
+  .simple-hello {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: -0.02em;
+  }
+  .simple-ia-card {
+    background: var(--navy);
+    color: #fff;
+    border-radius: 16px;
+    padding: 18px 16px 16px;
+  }
+  .simple-ia-card h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+  .simple-ia-card textarea {
+    width: 100%;
+    min-height: 96px;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    resize: vertical;
+    color: var(--text);
+  }
+  .simple-ia-run {
+    width: 100%;
+    margin-top: 10px;
+    min-height: 48px;
+    border: none;
+    border-radius: 10px;
+    background: var(--gold);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .simple-ia-status {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #fde68a;
+  }
+  .simple-ia-status.is-warn { color: #fde68a; }
+  .simple-ia-result {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,.08);
+    font-size: 13px;
+    line-height: 1.45;
+    color: #e2e8f0;
+  }
+  .simple-block-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .simple-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .simple-action {
+    min-height: 52px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--light);
+    color: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .simple-action.is-primary {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+  }
+  .simple-row {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .simple-row strong { display: block; color: var(--navy); font-size: 14px; }
+  .simple-row span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+  .simple-empty { font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .simple-need { outline: 2px solid var(--gold); }
+  .ot-pasos-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .ot-pasos-label { font-size: 13px; font-weight: 700; color: var(--navy); }
+  .ot-pasos-track { display: flex; gap: 6px; }
+  .ot-pasos-dot {
+    flex: 1;
+    height: 6px;
+    border-radius: 99px;
+    background: var(--light);
+  }
+  .ot-pasos-dot.is-done { background: var(--green); }
+  .ot-pasos-dot.is-now { background: var(--accent); }
+  .ot-pasos-all {
+    align-self: flex-start;
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 0;
+  }
+  .ot-pasos-nav {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    margin-top: 8px;
+    position: sticky;
+    bottom: var(--arpa-nav-bottom);
+    background: var(--card);
+    padding: 10px 0 8px;
+    z-index: 5;
+  }
+  .ot-pasos-nav button {
+    min-height: 48px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #ot-pasos-prev { background: #fff; color: var(--navy); }
+  #ot-pasos-next { background: var(--navy); color: #fff; border-color: var(--navy); }
+  #ot-pasos-prev:disabled { opacity: .4; }
+  #view-formato.ot-tipo-lock .toggle-group { pointer-events: none; }
+  #view-formato.ot-pasos-on [data-ot-paso]:not(.is-on) { display: none !important; }
+  #view-formato.ot-pasos-on [data-ot-paso].is-on { display: block; }
+  #view-formato.ot-pasos-on [data-ot-paso].is-on[hidden] { display: none !important; }
+  #view-formato.ot-pasos-print [data-ot-paso]:not([hidden]),
+  body.is-printing-formato #view-formato [data-ot-paso]:not([hidden]) { display: block !important; }
+  body.is-printing-formato .ot-pasos-bar,
+  body.is-printing-formato .ot-pasos-nav,
+  body.is-printing-formato #formato-simple-problema-wrap,
+  body.is-printing #view-inicio,
+  body.is-printing-formato #view-inicio,
+  body.is-printing #simple-mas-sheet { display: none !important; }
+  .main-menu-btn {
+    font-size: 11px;
+    min-height: 56px;
+    padding: 8px 4px;
+  }
+  .main-menu-icon { font-size: 18px; }
+  .simple-mas-sheet {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(15, 32, 68, .45);
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .simple-mas-sheet.open { display: flex; }
+  .simple-mas-panel {
+    width: 100%;
+    max-width: 760px;
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .simple-mas-panel h2 { font-size: 16px; color: var(--navy); margin-bottom: 12px; }
+  .simple-mas-item {
+    width: 100%;
+    min-height: 48px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    padding: 0 14px;
+    cursor: pointer;
+  }
+  .simple-mas-close {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 4px;
+    border: none;
+    background: var(--light);
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  @media (max-width: 390px) {
+    .simple-hello { font-size: 20px; }
+    .simple-ia-card h2 { font-size: 16px; }
+    .main-menu-btn { font-size: 11px; }
+  }
 
 </style>
 <script>
@@ -2880,7 +3576,10 @@ document.documentElement.classList.add('license-checking');
   </div>
 </div>
 
-<a class="arpa-next-lab-entry no-print" href="./next/">ARPASuite NEXT — flujo de campo (LAB)</a>
+<a class="arpa-next-lab-entry no-print" href="./next/" hidden>ARPASuite NEXT</a>
+<button type="button" class="arpa-next-lab-entry no-print" id="arpa-ia-tec-lab-entry" hidden>ARPA IA Técnica</button>
+<button type="button" class="arpa-next-lab-entry no-print" id="arpa-ia-cop-lab-entry" hidden>ARPA IA Copiloto</button>
+<button type="button" class="arpa-next-lab-entry no-print" id="arpa-ia-int-lab-entry" hidden>ARPA IA Integral</button>
 <div class="page">
 
   <!-- HEADER -->
@@ -2904,8 +3603,8 @@ document.documentElement.classList.add('license-checking');
         <button type="button" class="lang-btn" data-lang="en" id="lang-btn-en">EN</button>
       </div>
       <button type="button" class="settings-btn" onclick="openSettingsModal()" data-i18n-title="header.settings.title" data-i18n-aria-label="header.settings.aria" title="Ajustes de empresa" aria-label="Ajustes de empresa">⚙️</button>
-      <div class="doc-type" id="doc-type-label" data-i18n="header.doc_type.formato">Orden de Trabajo</div>
-      <div id="header-meta-formato">
+      <div class="doc-type" id="doc-type-label" data-i18n="header.doc_type.inicio">Inicio</div>
+      <div id="header-meta-formato" hidden>
         <div class="no-field">
           <label data-i18n="header.number_label">N°</label>
           <input type="text" id="numero-formato" data-i18n-placeholder="header.placeholder.formato_number" placeholder="OT-001" style="cursor:pointer;" data-i18n-title="header.title.tap_new_number" title="Toca para generar nuevo número">
@@ -2939,7 +3638,39 @@ document.documentElement.classList.add('license-checking');
   </div>
   <div class="gold-bar"></div>
 
-  <div id="view-formato" class="suite-view body">
+  <div id="view-inicio" class="suite-view body">
+    <p class="simple-hello" id="simple-hello">Hola</p>
+    <section class="simple-ia-card" aria-labelledby="simple-ia-title">
+      <h2 id="simple-ia-title" data-i18n="simple.ia.pregunta">¿Qué necesitas hacer?</h2>
+      <textarea id="simple-ia-text" data-i18n-placeholder="simple.ia.placeholder" placeholder="Escribe aquí lo que necesitas…"></textarea>
+      <button type="button" class="simple-ia-run" id="simple-ia-run" data-i18n="simple.ia.continuar">Continuar</button>
+      <div id="simple-ia-status" class="simple-ia-status" hidden></div>
+      <div id="simple-ia-result" class="simple-ia-result" hidden></div>
+    </section>
+    <section>
+      <div class="simple-block-title" data-i18n="simple.hoy">Hoy</div>
+      <div id="simple-hoy-list"></div>
+    </section>
+    <section>
+      <div class="simple-block-title" data-i18n="simple.acciones">Acciones rápidas</div>
+      <div class="simple-actions">
+        <button type="button" class="simple-action is-primary" id="simple-btn-trabajo" data-i18n="simple.btn.trabajo">Nuevo trabajo</button>
+        <button type="button" class="simple-action" id="simple-btn-cotizar" data-i18n="simple.btn.cotizar">Cotizar</button>
+      </div>
+    </section>
+    <section>
+      <div class="simple-block-title" data-i18n="simple.reciente">Reciente</div>
+      <div id="simple-reciente-list"></div>
+    </section>
+  </div>
+
+  <div id="view-formato" class="suite-view body ot-pasos-on" hidden>
+
+    <div class="ot-pasos-bar no-print" id="ot-pasos-bar">
+      <div class="ot-pasos-label" id="ot-pasos-label">Paso 1 de 4 · Cliente</div>
+      <div class="ot-pasos-track" id="ot-pasos-track"></div>
+      <button type="button" class="ot-pasos-all" id="ot-pasos-all" data-i18n="simple.pasos.ver_todos">Ver todos los campos</button>
+    </div>
 
     <div class="ot-status-bar" id="formato-ot-status-bar">
       <div>
@@ -2957,7 +3688,7 @@ document.documentElement.classList.add('license-checking');
     </div>
     <p id="formato-ot-lock-note" class="ot-lock-note" hidden data-i18n="ot.lock.note">Esta orden está cerrada. Puede consultar o generar PDF, pero no se modifica.</p>
 
-    <div class="section">
+    <div class="section" data-ot-paso="cierre">
       <div class="section-title"><span class="dot"></span><span data-i18n="ot.section.programacion">Programación</span></div>
       <div class="grid g2">
         <div class="field"><label for="formato-ot-fecha-prog" data-i18n="ot.label.fecha_programada">Fecha programada</label><input type="date" id="formato-ot-fecha-prog"></div>
@@ -2973,7 +3704,7 @@ document.documentElement.classList.add('license-checking');
     </div>
 
     <!-- 1. TIPO DE SERVICIO -->
-    <div class="section">
+    <div class="section is-on" data-ot-paso="cliente">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.tipo_servicio">Tipo de Servicio</span></div>
       <div class="toggle-group">
         <input type="radio" name="tipo" id="t1" value="instalacion" checked>
@@ -2985,21 +3716,28 @@ document.documentElement.classList.add('license-checking');
       </div>
     </div>
 
+    <div class="section no-print is-on" data-ot-paso="cliente" id="formato-simple-problema-wrap">
+      <div class="section-title"><span class="dot"></span><span data-i18n="simple.problema.titulo">¿Qué necesitas hacer?</span></div>
+      <div class="field">
+        <textarea id="formato-simple-problema" data-i18n-placeholder="simple.problema.placeholder" placeholder="Describe el trabajo o el problema. Ej. La puerta BFT no cierra."></textarea>
+      </div>
+    </div>
+
     <!-- 2. DATOS DEL CLIENTE -->
-    <div class="section">
+    <div class="section is-on" data-ot-paso="cliente">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.datos_cliente">Datos del Cliente</span></div>
       <div class="grid g2">
         <div class="field span2"><label data-i18n="formato.label.nombre_empresa">Nombre / Empresa</label><input type="text" id="formato-cliente-nombre" data-i18n-placeholder="formato.placeholder.nombre_empresa" placeholder="Nombre completo o razón social" autocomplete="off" list="arpa-clientes-datalist"></div>
         <div class="field"><label data-i18n="formato.label.nit_cedula">NIT / Cédula</label><input type="text" data-i18n-placeholder="formato.placeholder.nit_cedula" placeholder="000.000.000-0"></div>
         <div class="field"><label data-i18n="formato.label.telefono">Teléfono</label><input type="tel" id="formato-cliente-tel" data-i18n-placeholder="formato.placeholder.telefono" placeholder="Número de contacto"></div>
-        <div class="field span2"><label data-i18n="formato.label.direccion_instalacion">Dirección de instalación</label><input type="text" data-i18n-placeholder="formato.placeholder.direccion" placeholder="Calle, carrera, barrio..."></div>
+        <div class="field span2"><label data-i18n="formato.label.direccion_instalacion">Dirección de instalación</label><input type="text" id="formato-cliente-direccion" data-i18n-placeholder="formato.placeholder.direccion" placeholder="Calle, carrera, barrio..."></div>
         <div class="field"><label data-i18n="formato.label.ciudad">Ciudad</label><input type="text" id="formato-cliente-ciudad" data-i18n-placeholder="formato.placeholder.ciudad" placeholder="Medellín"></div>
         <div class="field"><label data-i18n="formato.label.fecha">Fecha</label><input type="date" id="formato-fecha"></div>
       </div>
     </div>
 
     <!-- 3. TÉCNICO -->
-    <div class="section">
+    <div class="section is-on" data-ot-paso="cliente">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.tecnico">Técnico Responsable</span></div>
       <div class="grid g2">
         <div class="field"><label data-i18n="formato.label.tecnico">Técnico</label><input type="text" id="campo-tecnico-responsable" data-i18n-placeholder="formato.placeholder.tecnico" placeholder="Nombre del técnico"></div>
@@ -3008,7 +3746,7 @@ document.documentElement.classList.add('license-checking');
     </div>
 
     <!-- 4. TIPO DE PUERTA -->
-    <div class="section" id="formato-tipo-section">
+    <div class="section" id="formato-tipo-section" data-ot-paso="sitio">
       <div class="section-title"><span class="dot"></span><span id="formato-tipo-titulo" data-i18n="formato.section.tipo_puerta">Tipo de Puerta / Motor</span></div>
       <div class="chips" id="formato-tipo-chips">
         <input type="checkbox" id="c1"><label for="c1" data-i18n="formato.puerta.corrediza">Corrediza</label>
@@ -3027,7 +3765,7 @@ document.documentElement.classList.add('license-checking');
     </div>
 
     <!-- 5. MEDIDAS -->
-    <div class="section" id="formato-medidas-section">
+    <div class="section" id="formato-medidas-section" data-ot-paso="sitio">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.medidas">Medidas del Vano</span></div>
       <div class="dims">
         <table class="dims-table">
@@ -3060,7 +3798,7 @@ document.documentElement.classList.add('license-checking');
     </div>
 
     <!-- 6. EQUIPO -->
-    <div class="section" id="formato-equipo-section">
+    <div class="section" id="formato-equipo-section" data-ot-paso="equipo">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.equipo">Equipo Instalado</span></div>
       <div class="grid g2">
         <div class="field" id="formato-equipo-marca-motor" data-formato-equipo-motor><label data-i18n="formato.label.marca_motor">Marca del motor</label>
@@ -3114,7 +3852,7 @@ document.documentElement.classList.add('license-checking');
     </div>
 
     <!-- MATERIALES UTILIZADOS -->
-    <div class="section" id="formato-materiales-section">
+    <div class="section" id="formato-materiales-section" data-ot-paso="trabajo">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.materiales">Materiales utilizados</span></div>
       <p style="font-size:11px;color:var(--muted);margin:-4px 0 10px;line-height:1.4;" data-i18n="ot.mat.hint">Registro de materiales usados en este trabajo. No descuenta inventario.</p>
       <div class="mat-wrap">
@@ -3135,7 +3873,7 @@ document.documentElement.classList.add('license-checking');
     </div>
 
     <!-- 8. FOTOS -->
-    <div class="section">
+    <div class="section" data-ot-paso="trabajo">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.fotos">Registro Fotográfico</span></div>
       <div class="photos-grid">
 
@@ -3166,8 +3904,91 @@ document.documentElement.classList.add('license-checking');
       </div>
     </div>
 
+    <!-- ARPA IA TÉCNICA -->
+    <div class="section arpa-ia-tec-ot-panel no-print" id="formato-ia-tecnica" data-ot-paso="diagnostico" hidden>
+      <div class="section-title"><span class="dot"></span><span>🔧 ARPA IA — Diagnóstico técnico</span></div>
+      <p class="arpa-ia-tec-lead">Usa el oficio configurado y los datos ya capturados en este trabajo. Usted agrega síntomas. Las causas son hipótesis, no un diagnóstico confirmado.</p>
+      <div id="arpa-ia-ot-oficio" class="arpa-ia-oficio">Oficio de la OT</div>
+      <div class="field">
+        <label for="arpa-ia-ot-text">Síntomas / observaciones del técnico</label>
+        <textarea id="arpa-ia-ot-text" placeholder="Describa la falla observada. No invente datos."></textarea>
+      </div>
+      <div class="arpa-ia-tec-actions">
+        <button type="button" class="btn-arpa-ia" id="arpa-ia-ot-run">Analizar diagnóstico</button>
+      </div>
+      <div id="arpa-ia-ot-status" class="arpa-ia-tec-status" hidden></div>
+      <div id="arpa-ia-ot-resultado" class="arpa-ia-tec-resultado" hidden>
+        <div id="arpa-ia-ot-oficio-usado" class="arpa-ia-oficio" hidden></div>
+        <div id="arpa-ia-ot-mensaje" class="arpa-ia-tec-mensaje" hidden></div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Síntomas detectados</div>
+          <div id="arpa-ia-ot-sintomas"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Datos conocidos</div>
+          <div id="arpa-ia-ot-datos"></div>
+        </div>
+        <div class="arpa-ia-tec-block arpa-ia-tec-faltantes-box">
+          <div class="arpa-ia-sub">Datos faltantes</div>
+          <div id="arpa-ia-ot-faltantes"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Posibles causas</div>
+          <div id="arpa-ia-ot-causas"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Pruebas recomendadas</div>
+          <div id="arpa-ia-ot-pruebas"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Procedimiento sugerido</div>
+          <div id="arpa-ia-ot-procedimiento"></div>
+        </div>
+        <div>
+          <div class="arpa-ia-sub">Nivel de urgencia</div>
+          <div id="arpa-ia-ot-urgencia" class="arpa-ia-tec-urgencia is-indet"></div>
+        </div>
+        <div class="arpa-ia-tec-block arpa-ia-tec-seguridad">
+          <div class="arpa-ia-sub">Advertencias de seguridad</div>
+          <div id="arpa-ia-ot-seguridad"></div>
+        </div>
+        <div id="arpa-ia-ot-preguntas-wrap" class="arpa-ia-tec-block arpa-ia-tec-faltantes-box" hidden>
+          <div class="arpa-ia-sub">Preguntas al técnico</div>
+          <p class="arpa-ia-tec-empty">Responda y pulse «Volver a analizar». No se almacena un chat, solo estas respuestas en el nuevo análisis.</p>
+          <div id="arpa-ia-ot-preguntas"></div>
+          <button type="button" class="btn-arpa-ia-use" id="arpa-ia-ot-reanalizar" style="margin-top:10px;">Volver a analizar</button>
+        </div>
+        <div class="arpa-ia-tec-actions">
+          <button type="button" class="btn-arpa-ia-use" id="arpa-ia-ot-guardar">Guardar análisis en la OT</button>
+        </div>
+      </div>
+      <div id="formato-ia-tecnica-resumen" class="arpa-ia-tec-saved" hidden></div>
+      <textarea id="formato-ia-tecnica-json" hidden></textarea>
+    </div>
+
+    <div class="section arpa-ia-tec-ot-panel no-print" id="formato-ia-informes" data-ot-paso="cierre">
+      <div class="section-title"><span class="dot"></span><span>ARPA IA — Informe técnico</span></div>
+      <p class="arpa-ia-tec-lead">Redacta un informe con los datos ya capturados en este trabajo. No inventa materiales ni precios. El PDF tradicional no cambia.</p>
+      <div class="arpa-ia-tec-actions">
+        <button type="button" class="btn-arpa-ia" id="arpa-ia-inf-run">Generar informe IA</button>
+      </div>
+      <div id="arpa-ia-inf-status" class="arpa-ia-tec-status" hidden></div>
+      <div id="arpa-ia-inf-resultado" class="arpa-ia-tec-resultado" hidden>
+        <div id="arpa-ia-inf-titulo" class="arpa-ia-tec-mensaje"></div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Resumen para el cliente</div>
+          <div id="arpa-ia-inf-resumen"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Hechos de la OT</div>
+          <div id="arpa-ia-inf-hechos"></div>
+        </div>
+      </div>
+      <textarea id="formato-ia-informe-json" hidden></textarea>
+    </div>
+
     <!-- 9. OBSERVACIONES -->
-    <div class="section" id="formato-section-observaciones">
+    <div class="section" id="formato-section-observaciones" data-ot-paso="trabajo">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.observaciones">Observaciones y Recomendaciones</span></div>
       <div class="obs-box">
         <div class="obs-lines">
@@ -3180,13 +4001,13 @@ document.documentElement.classList.add('license-checking');
     </div>
 
     <!-- NOTA -->
-    <div class="nota">
+    <div class="nota" data-ot-paso="cierre">
       <strong data-i18n="formato.nota.label">Nota:</strong> <span data-i18n-html="formato.nota.body">El cliente debe suministrar punto eléctrico (110V–220V) con polo a tierra para la instalación,
       incluyendo cableado y tubería para sensores si se requieren.</span>
     </div>
 
     <!-- GARANTÍA -->
-    <div class="section">
+    <div class="section" data-ot-paso="cierre">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.garantia">Términos de Garantía</span></div>
       <div class="garantia">
         <div class="garantia-header" id="brand-warranty-header">
@@ -3210,7 +4031,7 @@ document.documentElement.classList.add('license-checking');
     </div>
 
     <!-- VIDEO DE ENTREGA -->
-    <div class="section" id="formato-video-section">
+    <div class="section" id="formato-video-section" data-ot-paso="cierre">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.video">Video de Entrega</span></div>
       <div class="field span2">
         <label for="formato-video-url" data-i18n="formato.video.label">Enlace de Video de Entrega (Google Drive/YouTube) - Opcional</label>
@@ -3219,7 +4040,7 @@ document.documentElement.classList.add('license-checking');
     </div>
 
     <!-- 10. FIRMAS -->
-    <div class="section">
+    <div class="section" data-ot-paso="cierre">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.firmas">Aceptación y Firmas</span></div>
       <div class="firmas">
         <div class="firma-box">
@@ -3251,20 +4072,60 @@ document.documentElement.classList.add('license-checking');
       </div>
     </div>
 
-    <div class="verification-seal" style="margin-top: 20px; padding: 14px; border: 1.5px solid var(--border); border-radius: 10px; background: #ffffff;">
+    <div class="verification-seal" data-ot-paso="cierre" style="margin-top: 20px; padding: 14px; border: 1.5px solid var(--border); border-radius: 10px; background: #ffffff;">
       <p style="font-size: 10.5px; color: var(--muted); line-height: 1.4; margin: 0;" data-i18n-html="formato.verification">
         Documento emitido por <strong id="brand-verification-company">su empresa</strong> a través de <strong>Arpa Suite</strong>.
       </p>
     </div>
 
-    <div class="section">
+    <div class="section" data-ot-paso="cierre">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.datos_bancarios">Datos Bancarios</span></div>
       <div class="brand-bank-info" id="brand-bank-block-formato">&nbsp;</div>
+    </div>
+
+    <div class="ot-pasos-nav no-print" id="ot-pasos-nav">
+      <button type="button" id="ot-pasos-prev" data-i18n="simple.pasos.atras">Atrás</button>
+      <button type="button" id="ot-pasos-next" data-i18n="simple.pasos.continuar">Continuar</button>
     </div>
 
   </div><!-- /view-formato -->
 
   <div id="view-cotizacion" class="suite-view body" hidden>
+
+    <div class="section arpa-ia-cot-panel no-print" id="arpa-ia-cot-panel">
+      <div class="section-title"><span class="dot"></span><span>✨ ARPA IA — COTIZADOR</span></div>
+      <p class="arpa-ia-cot-lead">Asistente para preparar la cotización. Describe el trabajo en tus palabras. Extrae datos y sugiere productos reales del catálogo. No reemplaza ni guarda la cotización tradicional.</p>
+      <div class="field">
+        <label for="arpa-ia-cot-text">Solicitud</label>
+        <textarea id="arpa-ia-cot-text" placeholder="Ej. Necesito automatizar una puerta corrediza residencial de 500 kg, 5 metros, Medellín."></textarea>
+      </div>
+      <div class="arpa-ia-cot-actions">
+        <button type="button" class="btn-arpa-ia" id="arpa-ia-cot-run">Analizar con ARPA IA</button>
+      </div>
+      <div id="arpa-ia-cot-status" class="arpa-ia-cot-status" hidden></div>
+      <div id="arpa-ia-cot-error" class="arpa-ia-cot-error" hidden></div>
+      <div id="arpa-ia-cot-resultado" class="arpa-ia-cot-resultado" hidden>
+        <div id="arpa-ia-cot-oficio" class="arpa-ia-oficio" hidden></div>
+        <div>
+          <div class="arpa-ia-sub">Datos detectados</div>
+          <div id="arpa-ia-cot-datos" class="arpa-ia-datos"></div>
+        </div>
+        <div id="arpa-ia-cot-faltantes" class="arpa-ia-faltantes" hidden>
+          <div class="arpa-ia-sub">Datos que faltan</div>
+          <p class="arpa-ia-faltantes-note">Para recomendar con precisión hacen falta estos datos. No se asumieron peso, medidas ni accesorios.</p>
+          <ul id="arpa-ia-cot-faltantes-list"></ul>
+        </div>
+        <div>
+          <div class="arpa-ia-sub">Productos sugeridos por ARPA IA</div>
+          <div id="arpa-ia-cot-productos"></div>
+          <div id="arpa-ia-cot-vacio" class="arpa-ia-vacio" hidden>No encontramos un producto compatible en el catálogo.</div>
+          <div id="arpa-ia-cot-usar-wrap" class="arpa-ia-usar-wrap" hidden>
+            <button type="button" class="btn-arpa-ia-use" id="arpa-ia-cot-usar">Usar en cotización</button>
+            <p class="arpa-ia-usar-note">Pasa los productos seleccionados a la cotización actual. No guarda el documento.</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="section">
       <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.datos_cliente">Datos del Cliente</span></div>
@@ -3585,6 +4446,15 @@ document.documentElement.classList.add('license-checking');
       <p style="font-size:12px;color:var(--muted);margin:-4px 0 12px;line-height:1.5;" data-i18n="hist.intro">
         Registros guardados al exportar PDF desde Formato. Máximo 200 servicios.
       </p>
+      <div class="section arpa-ia-tec-ot-panel no-print" id="historial-ia-comercial">
+        <div class="section-title"><span class="dot"></span><span>ARPA IA COMERCIAL</span></div>
+        <p class="arpa-ia-tec-lead">Analiza clientes, historial, cotizaciones y cuentas de cobro que ya existen en ARPASuite. No inventa fechas ni precios. No envía WhatsApp.</p>
+        <div class="arpa-ia-tec-actions">
+          <button type="button" class="btn-arpa-ia" id="arpa-ia-com-run">Analizar oportunidades</button>
+        </div>
+        <div id="arpa-ia-com-status" class="arpa-ia-tec-status" hidden></div>
+        <div id="arpa-ia-com-resultado" class="arpa-ia-tec-resultado" hidden></div>
+      </div>
       <div id="historial-stats" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
         <div style="flex:1;min-width:80px;background:var(--navy);color:#fff;border-radius:8px;padding:10px 8px;text-align:center;">
           <div style="font-size:22px;font-weight:700;" id="hist-stat-total-n">0</div>
@@ -3621,8 +4491,105 @@ document.documentElement.classList.add('license-checking');
     </div>
   </div>
 
+  <div id="view-ia-tecnica" class="suite-view body" hidden>
+    <div class="section arpa-ia-tec-panel no-print" id="arpa-ia-tec-panel">
+      <div class="section-title"><span class="dot"></span><span>🔧 ARPA IA — TÉCNICA (LAB)</span></div>
+      <p class="arpa-ia-tec-lead">Asistente de diagnóstico técnico. El oficio lo elige usted; la IA no lo cambia. Extrae síntomas y datos del texto, lista hipótesis (no un diagnóstico confirmado) y advierte riesgos. Motor local + LLM DEV (sin guardar conversaciones).</p>
+      <p class="arpa-ia-tec-lab-note">Sección de prueba en LAB. El flujo real está en la Orden de Trabajo. No cotiza, no genera PDF y no envía WhatsApp.</p>
+      <div class="field">
+        <label for="arpa-ia-tec-oficio">Oficio</label>
+        <select id="arpa-ia-tec-oficio"></select>
+      </div>
+      <div class="field">
+        <label for="arpa-ia-tec-text">Descripción de la falla</label>
+        <textarea id="arpa-ia-tec-text" placeholder="Describa la falla observada. No invente datos."></textarea>
+      </div>
+      <div class="arpa-ia-tec-actions">
+        <button type="button" class="btn-arpa-ia" id="arpa-ia-tec-run">Analizar falla</button>
+      </div>
+      <div id="arpa-ia-tec-status" class="arpa-ia-tec-status" hidden></div>
+      <div id="arpa-ia-tec-resultado" class="arpa-ia-tec-resultado" hidden>
+        <div id="arpa-ia-tec-oficio-usado" class="arpa-ia-oficio" hidden></div>
+        <div id="arpa-ia-tec-mensaje" class="arpa-ia-tec-mensaje" hidden></div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Síntomas detectados</div>
+          <div id="arpa-ia-tec-sintomas"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Datos conocidos</div>
+          <div id="arpa-ia-tec-datos"></div>
+        </div>
+        <div class="arpa-ia-tec-block arpa-ia-tec-faltantes-box">
+          <div class="arpa-ia-sub">Datos faltantes</div>
+          <div id="arpa-ia-tec-faltantes"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Posibles causas</div>
+          <div id="arpa-ia-tec-causas"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Pruebas recomendadas</div>
+          <div id="arpa-ia-tec-pruebas"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Procedimiento sugerido</div>
+          <div id="arpa-ia-tec-procedimiento"></div>
+        </div>
+        <div>
+          <div class="arpa-ia-sub">Nivel de urgencia</div>
+          <div id="arpa-ia-tec-urgencia" class="arpa-ia-tec-urgencia is-indet"></div>
+        </div>
+        <div class="arpa-ia-tec-block arpa-ia-tec-seguridad">
+          <div class="arpa-ia-sub">Advertencias de seguridad</div>
+          <div id="arpa-ia-tec-seguridad"></div>
+        </div>
+        <div id="arpa-ia-tec-preguntas-wrap" class="arpa-ia-tec-block arpa-ia-tec-faltantes-box" hidden>
+          <div class="arpa-ia-sub">Preguntas al técnico</div>
+          <div id="arpa-ia-tec-preguntas"></div>
+          <button type="button" class="btn-arpa-ia-use" id="arpa-ia-tec-reanalizar" style="margin-top:10px;">Volver a analizar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-ia-copiloto" class="suite-view body" hidden>
+    <div class="section arpa-ia-tec-panel arpa-ia-cop-panel no-print" id="arpa-ia-cop-panel">
+      <div class="section-title"><span class="dot"></span><span>ARPA IA Copiloto</span></div>
+      <p class="arpa-ia-tec-lead">Pregúntale a ARPASuite sobre tus trabajos, clientes, mantenimientos y cotizaciones.</p>
+      <p class="arpa-ia-tec-lab-note">Solo lectura. Consulta el historial y los clientes ya guardados. No inventa datos. No envía WhatsApp. No usa LLM.</p>
+      <div id="arpa-ia-cop-sugs" class="arpa-ia-cop-sugs"></div>
+      <div class="field">
+        <label for="arpa-ia-cop-text">Pregunta</label>
+        <textarea id="arpa-ia-cop-text" placeholder="Escriba su pregunta sobre trabajos, clientes o cotizaciones."></textarea>
+      </div>
+      <div class="arpa-ia-tec-actions">
+        <button type="button" class="btn-arpa-ia" id="arpa-ia-cop-run">Consultar</button>
+      </div>
+      <div id="arpa-ia-cop-status" class="arpa-ia-tec-status" hidden></div>
+      <div id="arpa-ia-cop-resultado" class="arpa-ia-tec-resultado" hidden></div>
+    </div>
+  </div>
+
+  <div id="view-ia-integral" class="suite-view body" hidden>
+    <div class="section arpa-ia-tec-panel arpa-ia-cop-panel no-print" id="arpa-ia-int-panel">
+      <div class="section-title"><span class="dot"></span><span>ARPA IA Integral</span></div>
+      <p class="arpa-ia-tec-lead">Una sola entrada para cotizar, diagnosticar, informar o consultar. Reutiliza los motores que ya existen. El oficio lo configura usted.</p>
+      <p class="arpa-ia-tec-lab-note">No es un módulo administrativo. No escribe OT, cotizaciones ni clientes. Si la intención no es clara, pide aclaración y no ejecuta nada.</p>
+      <div id="arpa-ia-int-sugs" class="arpa-ia-cop-sugs"></div>
+      <div class="field">
+        <label for="arpa-ia-int-text">¿Qué necesita?</label>
+        <textarea id="arpa-ia-int-text" placeholder="Ej. Necesito cotizar un motor, o la puerta no cierra, o qué mantenimientos tengo próximos."></textarea>
+      </div>
+      <div class="arpa-ia-tec-actions">
+        <button type="button" class="btn-arpa-ia" id="arpa-ia-int-run">Consultar</button>
+      </div>
+      <div id="arpa-ia-int-status" class="arpa-ia-tec-status" hidden></div>
+      <div id="arpa-ia-int-resultado" class="arpa-ia-tec-resultado" hidden></div>
+    </div>
+  </div>
+
   <!-- BOTÓN GUARDAR PDF -->
-  <div id="pdf-actions-formato" style="padding: 16px 24px; background: var(--bg); border-top: 1px solid var(--border);">
+  <div id="pdf-actions-formato" hidden style="padding: 16px 24px; background: var(--bg); border-top: 1px solid var(--border);">
     <div class="pdf-actions-stack">
       <button type="button" class="btn-pdf-primary" onclick="guardarPDFYHistorial()" data-i18n="pdf.btn.guardar_formato">
         📄 Guardar como PDF
@@ -3661,31 +4628,35 @@ document.documentElement.classList.add('license-checking');
 
 <!-- MENÚ PRINCIPAL -->
 <nav class="main-menu" data-i18n-aria-label="menu.aria" aria-label="Menú principal">
-  <button type="button" class="main-menu-btn active" onclick="scrollToTopMenu(this)">
+  <button type="button" class="main-menu-btn active" data-nav="inicio" onclick="openInicioView(this)">
+    <span class="main-menu-icon" aria-hidden="true">🏠</span>
+    <span data-i18n="menu.inicio">Inicio</span>
+  </button>
+  <button type="button" class="main-menu-btn" data-nav="trabajos" onclick="scrollToTopMenu(this)">
     <span class="main-menu-icon" aria-hidden="true">📋</span>
-    <span data-i18n="menu.formato">OT</span>
+    <span data-i18n="menu.trabajos">Trabajos</span>
   </button>
-  <button type="button" class="main-menu-btn" onclick="openCotizacionView(this)">
+  <button type="button" class="main-menu-btn" data-nav="cotizar" onclick="openCotizacionView(this)">
     <span class="main-menu-icon" aria-hidden="true">💰</span>
-    <span data-i18n="menu.cotizacion">Cotización</span>
+    <span data-i18n="menu.cotizar">Cotizar</span>
   </button>
-  <button type="button" class="main-menu-btn" onclick="openCatalogoView(this)">
-    <span class="main-menu-icon" aria-hidden="true">📦</span>
-    <span data-i18n="menu.catalogo">Catálogo</span>
-  </button>
-  <button type="button" class="main-menu-btn" onclick="openHistorialView(this)">
-    <span class="main-menu-icon" aria-hidden="true">🗂️</span>
-    <span data-i18n="menu.historial">Historial</span>
-  </button>
-  <button type="button" class="main-menu-btn" onclick="openCuentaCobroView(this)">
-    <span class="main-menu-icon" aria-hidden="true">🧾</span>
-    <span data-i18n="menu.cuenta_cobro">Cuenta de Cobro</span>
-  </button>
-  <button type="button" class="main-menu-btn" onclick="openSettingsModal(this)">
-    <span class="main-menu-icon" aria-hidden="true">⚙️</span>
-    <span data-i18n="menu.configuracion">Configuración</span>
+  <button type="button" class="main-menu-btn" data-nav="mas" onclick="openMasSheet(this)">
+    <span class="main-menu-icon" aria-hidden="true">☰</span>
+    <span data-i18n="menu.mas">Más</span>
   </button>
 </nav>
+
+<div class="simple-mas-sheet" id="simple-mas-sheet">
+  <div class="simple-mas-panel" role="dialog" aria-labelledby="simple-mas-title">
+    <h2 id="simple-mas-title" data-i18n="simple.mas.titulo">Más</h2>
+    <button type="button" class="simple-mas-item" data-simple-mas="historial" data-i18n="menu.historial">Historial</button>
+    <button type="button" class="simple-mas-item" data-simple-mas="catalogo" data-i18n="menu.catalogo">Catálogo</button>
+    <button type="button" class="simple-mas-item" data-simple-mas="cuenta-cobro" data-i18n="menu.cuenta_cobro">Cuentas de cobro</button>
+    <button type="button" class="simple-mas-item" data-simple-mas="config" data-i18n="menu.configuracion">Configuración</button>
+    <button type="button" class="simple-mas-item" data-simple-mas="ayuda">Ayuda</button>
+    <button type="button" class="simple-mas-close" id="simple-mas-close" data-i18n="simple.mas.cerrar">Cerrar</button>
+  </div>
+</div>
 
 <button type="button" class="catalogo-fab" id="btn-catalogo-fab" hidden data-i18n-aria-label="menu.fab_add.aria" aria-label="Agregar">+</button>
 
@@ -4069,6 +5040,7 @@ function applyFormatoDraft() {
     if (window.ArpaOT && typeof window.ArpaOT.restoreFromDraft === 'function') {
       window.ArpaOT.restoreFromDraft(data);
     }
+    window.ArpaIaTecnicaUi?.restoreFromOt?.();
   } catch (e) {}
 }
 
@@ -4208,6 +5180,7 @@ function guardarPDF() {
   const respaldos = [];
 
   elementos.forEach(el => {
+    if (el.id === 'formato-ia-informe-json' || el.closest?.('#formato-ia-informes')) return;
     if (window.ArpaFormatoTipo?.shouldIncludePdfField?.(el) === false) return;
 
     const valor = el.tagName === 'SELECT'
@@ -5042,28 +6015,65 @@ if ('serviceWorker' in navigator) {
 </script>
 
 <script src="./js/qrcode.min.js"></script>
-<script src="./js/arpa-i18n.js"></script>
+<script src="./js/arpa-i18n.js?v=fase10"></script>
 <script src="./js/html2canvas.min.js"></script>
 <script src="./js/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script src="./js/arpa-license.js"></script>
-<script src="./js/arpa-oficios.js"></script>
+<script src="./js/arpa-oficios.js?v=fase46"></script>
 <script src="./js/arpa-formato-tipo.js"></script>
 <script src="./js/arpa-numeracion.js"></script>
-<script src="./js/arpa-brand.js"></script>
+<script src="./js/arpa-brand.js?v=fase10"></script>
 <script src="./js/arpa-cloud-sync.js"></script>
 <script src="./js/arpa-pricing.js"></script>
 <script src="./js/arpa-cobros.js"></script>
 <script src="./js/arpa-signature.js"></script>
-<script src="./js/arpa-cotizacion.js"></script>
+<script src="./js/arpa-cotizacion.js?v=fase10"></script>
 <script src="./js/catalogo-bft-nas.js"></script>
 <script src="./js/catalogo-ppa.js"></script>
 <script src="./js/arpa-mi-catalogo.js"></script>
+<script src="./js/arpa-ia/perfiles.js?v=fase417"></script>
+<script src="./js/arpa-ia/cotizador-parser.js?v=fase417"></script>
+<script src="./js/arpa-ia/cotizador-llm.js?v=fase54"></script>
+<script src="./js/arpa-ia/cotizador-api.js?v=fase514b"></script>
+<script src="./js/arpa-ia/cotizador-catalogo.js?v=fase412"></script>
+<script src="./js/arpa-ia/cotizador-matcher.js"></script>
+<script src="./js/arpa-ia/cotizador.js?v=fase412"></script>
+<script src="./js/arpa-ia/cotizador-config.js?v=fase513"></script>
+<script src="./js/arpa-ia/cotizador-ui.js?v=fase412"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-parser.js?v=fase5iso2"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-seguridad.js?v=fase5iso2"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-conocimiento.js?v=fase5iso2"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-llm.js?v=fase5iso2"></script>
+<script src="./js/arpa-ia/tecnica/tecnica.js?v=fase5iso2"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-ui.js?v=fase5iso2"></script>
+<script src="./js/arpa-ia/informes/informes-parser.js?v=fase68"></script>
+<script src="./js/arpa-ia/informes/informes-prompts.js?v=fase68"></script>
+<script src="./js/arpa-ia/informes/informes-generador.js?v=fase68"></script>
+<script src="./js/arpa-ia/informes/informes-api.js?v=fase68"></script>
+<script src="./js/arpa-ia/informes/informes-ui.js?v=fase612"></script>
 <script src="./js/arpa-cuenta-cobro.js"></script>
-<script src="./js/arpa-views.js"></script>
-<script src="./js/arpa-onboarding.js"></script>
-<script src="./js/arpa-historial.js"></script>
-<script src="./js/arpa-ot.js"></script>
+<script src="./js/arpa-views.js?v=fase10e"></script>
+<script src="./js/arpa-simple.js?v=fase5iso2"></script>
+<script src="./js/arpa-onboarding.js?v=fase10"></script>
+<script src="./js/arpa-historial.js?v=fase10c"></script>
+<script src="./js/arpa-ia/comercial/comercial-datos.js?v=fase77"></script>
+<script src="./js/arpa-ia/comercial/comercial-reglas.js?v=fase77"></script>
+<script src="./js/arpa-ia/comercial/comercial-analizador.js?v=fase77"></script>
+<script src="./js/arpa-ia/comercial/comercial-api.js?v=fase77"></script>
+<script src="./js/arpa-ia/comercial/comercial-ui.js?v=fase77"></script>
+<script src="./js/arpa-ia/copiloto/copiloto-parser.js?v=fase86"></script>
+<script src="./js/arpa-ia/copiloto/copiloto-consultas.js?v=fase86"></script>
+<script src="./js/arpa-ia/copiloto/copiloto-respuesta.js?v=fase86"></script>
+<script src="./js/arpa-ia/copiloto/copiloto-llm.js?v=fase86"></script>
+<script src="./js/arpa-ia/copiloto/copiloto-api.js?v=fase86"></script>
+<script src="./js/arpa-ia/copiloto/copiloto-ui.js?v=fase86"></script>
+<script src="./js/arpa-ia/integral/integral-parser.js?v=fase9"></script>
+<script src="./js/arpa-ia/integral/integral-validacion.js?v=fase9"></script>
+<script src="./js/arpa-ia/integral/integral-router.js?v=fase9s"></script>
+<script src="./js/arpa-ia/integral/integral-api.js?v=fase9"></script>
+<script src="./js/arpa-ia/integral/integral-ui.js?v=fase9s"></script>
+<script src="./js/arpa-ot.js?v=fase10"></script>
 <script src="./js/arpa-whatsapp.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

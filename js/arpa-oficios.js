@@ -484,8 +484,11 @@
 
   function normalizeOficioId(id) {
     const v = String(id || '').trim().toLowerCase();
-    if (!v || v === OFICIO_AUTOMATISMOS) return OFICIO_AUTOMATISMOS;
+    if (!v || v === OFICIO_AUTOMATISMOS || v === 'automatizacion') return OFICIO_AUTOMATISMOS;
     if (v === 'cerrajeria') return 'metalmecanica';
+    if (v === 'control_de_plagas') return 'plagas';
+    if (v === 'energia_solar') return 'solar';
+    if (v === 'cctv_seguridad') return 'cctv';
     return OFICIOS.some((o) => o.id === v) ? v : OFICIO_AUTOMATISMOS;
   }
 

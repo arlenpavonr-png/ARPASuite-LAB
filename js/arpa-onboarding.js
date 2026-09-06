@@ -81,11 +81,9 @@
       loadDemoCatalog();
     }
     if (opts?.goToCatalog) {
-      const btn = document.querySelector('[data-onboarding-oficio="' + OFICIO_AUTOMATISMOS + '"]')
-        || document.querySelector('.main-menu-btn[onclick*="openCatalogoView"]');
-      global.openCatalogoView?.(btn);
       global.ArpaMiCatalogo?.refreshView?.();
     }
+    global.openInicioView?.();
   }
 
   function onOficioSelected(oficioId) {

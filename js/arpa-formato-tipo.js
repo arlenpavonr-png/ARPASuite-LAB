@@ -170,6 +170,8 @@
 
   function shouldIncludePdfField(el) {
     if (!el) return false;
+    if (el.id === 'formato-ia-informe-json') return false;
+    if (typeof el.closest === 'function' && el.closest('#formato-ia-informes')) return false;
     const section = document.getElementById('formato-equipo-section');
     if (section?.hidden && el.closest('#formato-equipo-section')) return false;
     if (isHiddenEquipoBlock(el)) return false;

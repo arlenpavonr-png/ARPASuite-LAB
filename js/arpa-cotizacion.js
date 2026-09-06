@@ -810,13 +810,32 @@
       return;
     }
 
-    document.querySelector('.main-menu-btn[onclick*="openCuentaCobroView"]')?.click();
+    global.openCuentaCobroView?.();
 
     setTimeout(function() {
       global.ArpaCuentaCobro?.applyCcDraft?.();
       global.ArpaCuentaCobro?.refreshView?.();
       window.scrollTo(0, 0);
     }, 450);
+  }
+
+  function addProductoPorCodigo(cod, options) {
+    const prod = findProductoCot(cod);
+    if (!prod) return { ok: false, reason: 'no_en_catalogo' };
+    const existente = filas.find((f) => f.cod === prod.cod);
+    if (existente) return { ok: false, reason: 'duplicado', fila: existente };
+    let pvp = resolveProductPvp(prod);
+    const hinted = options && options.pvp != null ? Number(options.pvp) : 0;
+    if (!(pvp > 0) && Number.isFinite(hinted) && hinted > 0) pvp = hinted;
+    filas.push({
+      cod: prod.cod,
+      nom: prod.nom,
+      pvp: pvp,
+      cant: 1,
+      tipo: 'producto'
+    });
+    renderTablaCot();
+    return { ok: true, cod: prod.cod, pvp: pvp };
   }
 
   global.ArpaCotizacion = {
@@ -832,6 +851,8 @@
     getFilas,
     loadCotizacion,
     getCatalogoActivo,
+    findProductoCot,
+    addProductoPorCodigo,
     updateCatalogHint,
     exportarACuentaCobro,
     clearCotDraft,
