@@ -59,14 +59,6 @@
           './js/arpa-ia/comercial/comercial-api.js',
           './js/arpa-ia/comercial/comercial-ui.js'
         ]
-      },
-      {
-        id: 'prueba',
-        slot: 'arpa-ia-slot-historial',
-        panel: 'prueba',
-        scripts: [
-          './js/arpa-ia/nueva-ia-prueba.js'
-        ]
       }
     ]
   };

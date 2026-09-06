@@ -107,17 +107,6 @@
       '  <div id="arpa-ia-com-status" class="arpa-ia-tec-status" hidden></div>',
       '  <div id="arpa-ia-com-resultado" class="arpa-ia-tec-resultado" hidden></div>',
       '</div>'
-    ].join('\n'),
-
-    prueba: [
-      '<div class="section arpa-ia-tec-ot-panel no-print" id="historial-ia-prueba">',
-      '  <div class="section-title"><span class="dot"></span><span>ARPA IA — PRUEBA FASE B</span></div>',
-      '  <p class="arpa-ia-tec-lead">Módulo ficticio para validar que una IA nueva se integra sin tocar index.html ni service-worker.js.</p>',
-      '  <div class="arpa-ia-tec-actions">',
-      '    <button type="button" class="btn-arpa-ia" id="arpa-ia-prueba-run">Probar módulo dummy</button>',
-      '  </div>',
-      '  <div id="arpa-ia-prueba-status" class="arpa-ia-tec-status" hidden></div>',
-      '</div>'
     ].join('\n')
   };
 
