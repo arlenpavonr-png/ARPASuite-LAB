@@ -2089,6 +2089,10 @@
     html, body { background-color: #ffffff !important; background-image: none !important; }
     body { padding: 0; padding-bottom: 0; margin-bottom: 28mm; }
     body.is-printing #view-historial { display: none !important; }
+    body.is-printing .arpa-ia-cot-panel,
+    body.is-printing #formato-ia-tecnica,
+    body.is-printing #formato-ia-informes,
+    body.is-printing #historial-ia-comercial { display: none !important; }
     body.is-printing #view-catalogo { display: none !important; }
     body.is-printing:not(.is-printing-formato) #view-formato { display: none !important; }
     body.is-printing-formato #view-formato { display: block !important; }
@@ -2100,6 +2104,8 @@
     body.is-printing-formato [data-i18n="ot.mat.hint"] { display: none !important; }
     body.is-printing-formato #view-cotizacion,
     body.is-printing-formato #view-cuenta-cobro { display: none !important; }
+    body.is-printing-formato #formato-ia-tecnica,
+    body.is-printing-formato #formato-ia-informes { display: none !important; }
     body.is-printing-formato.formato-has-video-qr #formato-video-section { display: none !important; }
     body.is-printing-formato .formato-video-qr-print.formato-video-qr-visible {
       display: block !important;
@@ -2675,6 +2681,364 @@
   .arpa-next-lab-entry:hover { color: #fde68a; }
   @media print { .arpa-next-lab-entry { display: none !important; } }
 
+  /* ARPA IA — wiring LAB (snapshot 20260906, selectivo) */
+  .arpa-ia-cot-panel {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    border: 1.5px solid #c7d2e0;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .arpa-ia-prod,
+  .arpa-ia-usar-wrap,
+  .btn-arpa-ia,
+  .btn-arpa-ia-use {
+    scroll-margin-bottom: var(--arpa-nav-bottom);
+  }
+  .arpa-ia-cot-lead {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .arpa-ia-cot-panel textarea {
+    min-height: 88px;
+    font-size: 15px;
+  }
+  .arpa-ia-cot-actions { margin-top: 10px; }
+  .arpa-ia-cot-status {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .arpa-ia-cot-status.is-busy { color: var(--blue); }
+  .arpa-ia-cot-status.is-ok { color: var(--green); }
+  .arpa-ia-cot-status.is-warn { color: #92400e; }
+  .arpa-ia-oficio {
+    display: inline-flex;
+    align-items: center;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
+  .btn-arpa-ia {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 46px;
+    border: none;
+    border-radius: 8px;
+    background: var(--navy);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-arpa-ia:disabled { opacity: 0.65; cursor: wait; }
+  .arpa-ia-cot-error {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    font-size: 13px;
+  }
+  .arpa-ia-cot-resultado {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .arpa-ia-sub {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .arpa-ia-datos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .arpa-ia-dato {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .arpa-ia-dato-k {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .arpa-ia-dato-v {
+    display: block;
+    margin-top: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+  }
+  .arpa-ia-faltantes {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .arpa-ia-faltantes ul {
+    margin: 0;
+    padding-left: 18px;
+    color: #92400e;
+    font-size: 13px;
+  }
+  .arpa-ia-faltantes-note {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: #92400e;
+    line-height: 1.4;
+  }
+  .arpa-ia-prod {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .arpa-ia-prod-pick {
+    flex-shrink: 0;
+    display: flex;
+    padding-top: 2px;
+    cursor: pointer;
+  }
+  .arpa-ia-prod-check {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--navy);
+  }
+  .arpa-ia-prod-body { flex: 1; min-width: 0; }
+  .arpa-ia-prod-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .arpa-ia-prod-cod {
+    font-family: 'DM Mono', monospace;
+    color: var(--navy);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .arpa-ia-prod-score { color: var(--accent); }
+  .arpa-ia-prod-nom {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .arpa-ia-prod-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .arpa-ia-prod-precio { color: var(--green); font-weight: 700; font-family: 'DM Mono', monospace; }
+  .arpa-ia-prod-motivo {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .arpa-ia-usar-wrap {
+    margin-top: 10px;
+    padding-bottom: var(--arpa-nav-bottom);
+  }
+  .btn-arpa-ia-use {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    border: 1.5px solid var(--navy);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-arpa-ia-use:disabled { opacity: 0.65; cursor: wait; }
+  .arpa-ia-usar-note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .arpa-ia-vacio {
+    padding: 12px;
+    text-align: center;
+    color: var(--muted);
+    background: #fff;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  @media (max-width: 560px) {
+    .arpa-ia-datos { grid-template-columns: 1fr; }
+  }
+  .arpa-ia-tec-lead {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+  .arpa-ia-tec-actions { margin-top: 10px; }
+  .arpa-ia-tec-status {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .arpa-ia-tec-status.is-busy { color: var(--blue); }
+  .arpa-ia-tec-status.is-ok { color: var(--green); }
+  .arpa-ia-tec-status.is-warn { color: #92400e; }
+  .arpa-ia-tec-resultado {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .arpa-ia-tec-block {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .arpa-ia-tec-block ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--navy);
+    line-height: 1.45;
+  }
+  .arpa-ia-tec-empty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .arpa-ia-tec-mensaje {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--navy);
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .arpa-ia-tec-mensaje.is-warn {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #92400e;
+  }
+  .arpa-ia-tec-urgencia {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .arpa-ia-tec-urgencia.is-critica { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  .arpa-ia-tec-urgencia.is-alta { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+  .arpa-ia-tec-urgencia.is-media { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .arpa-ia-tec-urgencia.is-baja { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+  .arpa-ia-tec-urgencia.is-indet { background: #f8fafc; border: 1px solid var(--border); color: var(--muted); }
+  .arpa-ia-tec-seguridad ul { color: #991b1b; }
+  .arpa-ia-tec-faltantes-box { background: #fffbeb; border-color: #fde68a; }
+  .arpa-ia-tec-ot-panel {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    border: 1.5px solid #c7d2e0;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  #formato-ia-informes {
+    scroll-margin-bottom: calc(var(--arpa-nav-bottom) + 28px);
+    scroll-margin-top: 12px;
+  }
+  #formato-ia-informes .arpa-ia-tec-actions,
+  #formato-ia-informes .btn-arpa-ia,
+  #formato-ia-informes .btn-arpa-ia-use {
+    position: relative;
+    z-index: 910;
+    scroll-margin-bottom: calc(var(--arpa-nav-bottom) + 28px);
+  }
+  #formato-ia-tecnica[hidden] { display: none !important; }
+  .arpa-ia-tec-ot-panel textarea { min-height: 88px; font-size: 15px; }
+  .arpa-ia-tec-pregunta { margin-top: 8px; }
+  .arpa-ia-tec-saved {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    color: #166534;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  #arpa-ia-ot-oficio { margin-bottom: 12px; }
+  .arpa-ia-com-card {
+    background: #fff;
+    border: 1px solid #dbe3ee;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .arpa-ia-com-card.is-alta { border-left: 4px solid #b91c1c; }
+  .arpa-ia-com-card.is-media { border-left: 4px solid #d97706; }
+  .arpa-ia-com-card.is-baja { border-left: 4px solid #64748b; }
+  .arpa-ia-com-tipo { font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .arpa-ia-com-row { color: var(--text); }
+  .arpa-ia-com-k { color: var(--muted); font-weight: 600; }
+  #historial-ia-comercial { margin-bottom: 14px; }
+  .arpa-ia-com-resumen { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+  .arpa-ia-com-chip {
+    border: 1px solid #c7d2e0;
+    background: #fff;
+    color: var(--navy);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .arpa-ia-com-chip.is-on { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .arpa-ia-com-resumen-tipos { width: 100%; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .arpa-ia-com-ver { margin-top: 8px; }
+  .historial-card.arpa-ia-com-loc { outline: 2px solid var(--navy); box-shadow: 0 0 0 3px rgba(15,32,68,.12); }
+
 </style>
 <script>
 (function () {
@@ -3166,6 +3530,89 @@ document.documentElement.classList.add('license-checking');
       </div>
     </div>
 
+    <!-- ARPA IA TÉCNICA (snapshot 20260906, selectivo) -->
+    <div class="section arpa-ia-tec-ot-panel no-print" id="formato-ia-tecnica" data-ot-paso="diagnostico" hidden>
+      <div class="section-title"><span class="dot"></span><span>🔧 ARPA IA — Diagnóstico técnico</span></div>
+      <p class="arpa-ia-tec-lead">Usa el oficio configurado y los datos ya capturados en este trabajo. Usted agrega síntomas. Las causas son hipótesis, no un diagnóstico confirmado.</p>
+      <div id="arpa-ia-ot-oficio" class="arpa-ia-oficio">Oficio de la OT</div>
+      <div class="field">
+        <label for="arpa-ia-ot-text">Síntomas / observaciones del técnico</label>
+        <textarea id="arpa-ia-ot-text" placeholder="Describa la falla observada. No invente datos."></textarea>
+      </div>
+      <div class="arpa-ia-tec-actions">
+        <button type="button" class="btn-arpa-ia" id="arpa-ia-ot-run">Analizar diagnóstico</button>
+      </div>
+      <div id="arpa-ia-ot-status" class="arpa-ia-tec-status" hidden></div>
+      <div id="arpa-ia-ot-resultado" class="arpa-ia-tec-resultado" hidden>
+        <div id="arpa-ia-ot-oficio-usado" class="arpa-ia-oficio" hidden></div>
+        <div id="arpa-ia-ot-mensaje" class="arpa-ia-tec-mensaje" hidden></div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Síntomas detectados</div>
+          <div id="arpa-ia-ot-sintomas"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Datos conocidos</div>
+          <div id="arpa-ia-ot-datos"></div>
+        </div>
+        <div class="arpa-ia-tec-block arpa-ia-tec-faltantes-box">
+          <div class="arpa-ia-sub">Datos faltantes</div>
+          <div id="arpa-ia-ot-faltantes"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Posibles causas</div>
+          <div id="arpa-ia-ot-causas"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Pruebas recomendadas</div>
+          <div id="arpa-ia-ot-pruebas"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Procedimiento sugerido</div>
+          <div id="arpa-ia-ot-procedimiento"></div>
+        </div>
+        <div>
+          <div class="arpa-ia-sub">Nivel de urgencia</div>
+          <div id="arpa-ia-ot-urgencia" class="arpa-ia-tec-urgencia is-indet"></div>
+        </div>
+        <div class="arpa-ia-tec-block arpa-ia-tec-seguridad">
+          <div class="arpa-ia-sub">Advertencias de seguridad</div>
+          <div id="arpa-ia-ot-seguridad"></div>
+        </div>
+        <div id="arpa-ia-ot-preguntas-wrap" class="arpa-ia-tec-block arpa-ia-tec-faltantes-box" hidden>
+          <div class="arpa-ia-sub">Preguntas al técnico</div>
+          <p class="arpa-ia-tec-empty">Responda y pulse «Volver a analizar». No se almacena un chat, solo estas respuestas en el nuevo análisis.</p>
+          <div id="arpa-ia-ot-preguntas"></div>
+          <button type="button" class="btn-arpa-ia-use" id="arpa-ia-ot-reanalizar" style="margin-top:10px;">Volver a analizar</button>
+        </div>
+        <div class="arpa-ia-tec-actions">
+          <button type="button" class="btn-arpa-ia-use" id="arpa-ia-ot-guardar">Guardar análisis en la OT</button>
+        </div>
+      </div>
+      <div id="formato-ia-tecnica-resumen" class="arpa-ia-tec-saved" hidden></div>
+      <textarea id="formato-ia-tecnica-json" hidden></textarea>
+    </div>
+
+    <div class="section arpa-ia-tec-ot-panel no-print" id="formato-ia-informes" data-ot-paso="cierre">
+      <div class="section-title"><span class="dot"></span><span>ARPA IA — Informe técnico</span></div>
+      <p class="arpa-ia-tec-lead">Redacta un informe con los datos ya capturados en este trabajo. No inventa materiales ni precios. El PDF tradicional no cambia.</p>
+      <div class="arpa-ia-tec-actions">
+        <button type="button" class="btn-arpa-ia" id="arpa-ia-inf-run">Generar informe IA</button>
+      </div>
+      <div id="arpa-ia-inf-status" class="arpa-ia-tec-status" hidden></div>
+      <div id="arpa-ia-inf-resultado" class="arpa-ia-tec-resultado" hidden>
+        <div id="arpa-ia-inf-titulo" class="arpa-ia-tec-mensaje"></div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Resumen para el cliente</div>
+          <div id="arpa-ia-inf-resumen"></div>
+        </div>
+        <div class="arpa-ia-tec-block">
+          <div class="arpa-ia-sub">Hechos de la OT</div>
+          <div id="arpa-ia-inf-hechos"></div>
+        </div>
+      </div>
+      <textarea id="formato-ia-informe-json" hidden></textarea>
+    </div>
+
     <!-- 9. OBSERVACIONES -->
     <div class="section" id="formato-section-observaciones">
       <div class="section-title"><span class="dot"></span><span data-i18n="formato.section.observaciones">Observaciones y Recomendaciones</span></div>
@@ -3265,6 +3712,41 @@ document.documentElement.classList.add('license-checking');
   </div><!-- /view-formato -->
 
   <div id="view-cotizacion" class="suite-view body" hidden>
+
+    <div class="section arpa-ia-cot-panel no-print" id="arpa-ia-cot-panel">
+      <div class="section-title"><span class="dot"></span><span>✨ ARPA IA — COTIZADOR</span></div>
+      <p class="arpa-ia-cot-lead">Asistente para preparar la cotización. Describe el trabajo en tus palabras. Extrae datos y sugiere productos reales del catálogo. No reemplaza ni guarda la cotización tradicional.</p>
+      <div class="field">
+        <label for="arpa-ia-cot-text">Solicitud</label>
+        <textarea id="arpa-ia-cot-text" placeholder="Ej. Necesito automatizar una puerta corrediza residencial de 500 kg, 5 metros, Medellín."></textarea>
+      </div>
+      <div class="arpa-ia-cot-actions">
+        <button type="button" class="btn-arpa-ia" id="arpa-ia-cot-run">Analizar con ARPA IA</button>
+      </div>
+      <div id="arpa-ia-cot-status" class="arpa-ia-cot-status" hidden></div>
+      <div id="arpa-ia-cot-error" class="arpa-ia-cot-error" hidden></div>
+      <div id="arpa-ia-cot-resultado" class="arpa-ia-cot-resultado" hidden>
+        <div id="arpa-ia-cot-oficio" class="arpa-ia-oficio" hidden></div>
+        <div>
+          <div class="arpa-ia-sub">Datos detectados</div>
+          <div id="arpa-ia-cot-datos" class="arpa-ia-datos"></div>
+        </div>
+        <div id="arpa-ia-cot-faltantes" class="arpa-ia-faltantes" hidden>
+          <div class="arpa-ia-sub">Datos que faltan</div>
+          <p class="arpa-ia-faltantes-note">Para recomendar con precisión hacen falta estos datos. No se asumieron peso, medidas ni accesorios.</p>
+          <ul id="arpa-ia-cot-faltantes-list"></ul>
+        </div>
+        <div>
+          <div class="arpa-ia-sub">Productos sugeridos por ARPA IA</div>
+          <div id="arpa-ia-cot-productos"></div>
+          <div id="arpa-ia-cot-vacio" class="arpa-ia-vacio" hidden>No encontramos un producto compatible en el catálogo.</div>
+          <div id="arpa-ia-cot-usar-wrap" class="arpa-ia-usar-wrap" hidden>
+            <button type="button" class="btn-arpa-ia-use" id="arpa-ia-cot-usar">Usar en cotización</button>
+            <p class="arpa-ia-usar-note">Pasa los productos seleccionados a la cotización actual. No guarda el documento.</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="section">
       <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.datos_cliente">Datos del Cliente</span></div>
@@ -3585,6 +4067,15 @@ document.documentElement.classList.add('license-checking');
       <p style="font-size:12px;color:var(--muted);margin:-4px 0 12px;line-height:1.5;" data-i18n="hist.intro">
         Registros guardados al exportar PDF desde Formato. Máximo 200 servicios.
       </p>
+      <div class="section arpa-ia-tec-ot-panel no-print" id="historial-ia-comercial">
+        <div class="section-title"><span class="dot"></span><span>ARPA IA COMERCIAL</span></div>
+        <p class="arpa-ia-tec-lead">Analiza clientes, historial, cotizaciones y cuentas de cobro que ya existen en ARPASuite. No inventa fechas ni precios. No envía WhatsApp.</p>
+        <div class="arpa-ia-tec-actions">
+          <button type="button" class="btn-arpa-ia" id="arpa-ia-com-run">Analizar oportunidades</button>
+        </div>
+        <div id="arpa-ia-com-status" class="arpa-ia-tec-status" hidden></div>
+        <div id="arpa-ia-com-resultado" class="arpa-ia-tec-resultado" hidden></div>
+      </div>
       <div id="historial-stats" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
         <div style="flex:1;min-width:80px;background:var(--navy);color:#fff;border-radius:8px;padding:10px 8px;text-align:center;">
           <div style="font-size:22px;font-weight:700;" id="hist-stat-total-n">0</div>
@@ -5059,10 +5550,35 @@ if ('serviceWorker' in navigator) {
 <script src="./js/catalogo-bft-nas.js"></script>
 <script src="./js/catalogo-ppa.js"></script>
 <script src="./js/arpa-mi-catalogo.js"></script>
+<script src="./js/arpa-ia/perfiles.js"></script>
+<script src="./js/arpa-ia/cotizador-parser.js"></script>
+<script src="./js/arpa-ia/cotizador-llm.js"></script>
+<script src="./js/arpa-ia/cotizador-api.js"></script>
+<script src="./js/arpa-ia/cotizador-catalogo.js"></script>
+<script src="./js/arpa-ia/cotizador-matcher.js"></script>
+<script src="./js/arpa-ia/cotizador.js"></script>
+<script src="./js/arpa-ia/cotizador-config.js"></script>
+<script src="./js/arpa-ia/cotizador-ui.js"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-parser.js"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-seguridad.js"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-conocimiento.js"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-llm.js"></script>
+<script src="./js/arpa-ia/tecnica/tecnica.js"></script>
+<script src="./js/arpa-ia/tecnica/tecnica-ui.js"></script>
+<script src="./js/arpa-ia/informes/informes-parser.js"></script>
+<script src="./js/arpa-ia/informes/informes-prompts.js"></script>
+<script src="./js/arpa-ia/informes/informes-generador.js"></script>
+<script src="./js/arpa-ia/informes/informes-api.js"></script>
+<script src="./js/arpa-ia/informes/informes-ui.js"></script>
 <script src="./js/arpa-cuenta-cobro.js"></script>
 <script src="./js/arpa-views.js"></script>
 <script src="./js/arpa-onboarding.js"></script>
 <script src="./js/arpa-historial.js"></script>
+<script src="./js/arpa-ia/comercial/comercial-datos.js"></script>
+<script src="./js/arpa-ia/comercial/comercial-reglas.js"></script>
+<script src="./js/arpa-ia/comercial/comercial-analizador.js"></script>
+<script src="./js/arpa-ia/comercial/comercial-api.js"></script>
+<script src="./js/arpa-ia/comercial/comercial-ui.js"></script>
 <script src="./js/arpa-ot.js"></script>
 <script src="./js/arpa-whatsapp.js"></script>
 <script>
