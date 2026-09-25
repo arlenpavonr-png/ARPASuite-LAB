@@ -149,12 +149,12 @@
     renderEditor(storeId);
   }
 
-  function setLines(storeId, rawLines) {
+  function setLines(storeId, rawLines, options) {
     const store = getStore(storeId);
     store.lines = (rawLines || []).map(function(l) {
       return createLine(l.desc || l.nom || '', l.value != null ? l.value : (l.pvp || 0));
     });
-    store.seeded = false;
+    store.seeded = !!(options && options.keepSeeded);
     renderEditor(storeId);
   }
   function notifyChange(storeId) {

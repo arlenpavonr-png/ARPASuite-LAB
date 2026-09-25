@@ -172,16 +172,16 @@
     const { value, sincronizado } = await global.ArpaNumeracion.nextNumberAsync('cc', document.getElementById('cc-numero')?.value);
     if (!sincronizado) console.warn('[ARPA] Número de cuenta de cobro generado offline, no sincronizado con la nube todavía.');
     const badge = document.getElementById('sync-status-cc');
-    if (badge) {
+    if (badge && !global.ArpaLabDemo?.paintLocalBadge?.(badge)) {
       badge.style.display = 'inline-block';
-      const licActiva = (localStorage.getItem('arpa_suite_license_code') || '(vacio)').trim();
-      badge.title = 'Licencia activa: ' + licActiva;
-      if (sincronizado) {
+      const licActiva = (localStorage.getItem('arpa_suite_license_code') || '').trim();
+      badge.title = licActiva ? ('Licencia activa: ' + licActiva) : 'Sin licencia';
+      if (sincronizado && licActiva) {
         badge.textContent = '☁️ ' + licActiva.slice(-6);
         badge.style.background = 'rgba(76,175,128,0.15)';
         badge.style.color = '#2e7d4f';
       } else {
-        badge.textContent = '⚠️ ' + licActiva.slice(-6) + ' (local)';
+        badge.textContent = licActiva ? ('⚠️ ' + licActiva.slice(-6) + ' (local)') : '⚠️ local';
         badge.style.background = 'rgba(224,82,82,0.15)';
         badge.style.color = '#c0392b';
       }
@@ -746,14 +746,21 @@
 
     // Auto-rellenar cobrador desde ajustes
     (function() {
-      var settings = getRawSettings();
+      var settings = getRawSettings() || {};
       var nombreEl = document.getElementById('cc-firma-cobrador-nombre');
       var telEl = document.getElementById('cc-cobrador-tel');
-      if (nombreEl && !nombreEl.textContent.trim()) {
+      if (nombreEl && !String(nombreEl.textContent || '').trim()) {
         nombreEl.textContent = settings.companyName || '';
       }
-      if (telEl && !telEl.value.trim()) {
-        telEl.value = settings.phone || '';
+      if (telEl) {
+        var currentTel = (telEl.tagName === 'INPUT' || telEl.tagName === 'TEXTAREA')
+          ? String(telEl.value || '').trim()
+          : String(telEl.textContent || '').trim();
+        if (!currentTel || currentTel === '—') {
+          var phone = settings.phone || '';
+          if (telEl.tagName === 'INPUT' || telEl.tagName === 'TEXTAREA') telEl.value = phone;
+          else telEl.textContent = phone || '—';
+        }
       }
     })();
   }

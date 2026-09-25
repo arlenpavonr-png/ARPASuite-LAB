@@ -21,7 +21,10 @@
     const code = window.ArpaPricing?.getDefaultCurrency?.() || 'COP';
     const nameKey = 'currency.name.' + code.toLowerCase();
     const monedaNombre = window.ArpaI18n?.t?.(nameKey) || code;
-    return window.ArpaI18n?.t?.('cot.nota_legal', { moneda_nombre: monedaNombre, moneda_codigo: code }) || COT_NOTA_LEGAL_HTML;
+    const html = window.ArpaI18n?.t?.('cot.nota_legal', { moneda_nombre: monedaNombre, moneda_codigo: code });
+    if (html && !/cot\.nota_legal/i.test(html)) return html;
+    return COT_NOTA_LEGAL_HTML
+      .replace('pesos colombianos (COP)', (monedaNombre || 'pesos') + ' (' + (code || 'COP') + ')');
   }
 
   function isInternalAppUrl(url) {
@@ -471,7 +474,8 @@
       : accountType === 'CLABE'
         ? 'cc.cuenta.clabe'
         : 'cc.cuenta.ahorros';
-    const accountTypeLabel = window.ArpaI18n?.t?.(accountTypeKey) || accountType;
+    let accountTypeLabel = window.ArpaI18n?.t?.(accountTypeKey) || accountType;
+    if (!accountTypeLabel || /cc\.cuenta\./i.test(accountTypeLabel)) accountTypeLabel = accountType;
     return window.ArpaI18n.t('brand.banco.linea', { bank: val(bankName, '—'), tipo: accountTypeLabel, numero: val(accountNumber, '—') })
       .replace(/^(.*?):/, '<strong>$1:</strong>');
   }
@@ -616,7 +620,7 @@
       const el = document.getElementById(id);
       if (!el) return;
       const next = (value || '').trim();
-      if (fillPago === 'always' || !el.value.trim()) el.value = next;
+      if (fillPago === 'always' || !String(el.value || '').trim()) el.value = next;
     };
     assignPago('cc-pago-banco', s.bankName);
     assignPago('cc-pago-numero', s.accountNumber);

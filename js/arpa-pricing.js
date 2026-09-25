@@ -93,8 +93,14 @@
   function getTaxLabelText(countryCode) {
     const profile = getCountryProfile(countryCode);
     const pct = Math.round(profile.taxRate * 100);
-    const labelWord = window.ArpaI18n?.t?.(profile.taxLabelKey) || 'IVA';
-    return { labelWord, pct, full: labelWord + ' ' + pct + '%', toggle: 'Incluir ' + labelWord + ' ' + pct + '%' };
+    let labelWord = window.ArpaI18n?.t?.(profile.taxLabelKey) || '';
+    if (!labelWord || /tax\.label\./i.test(labelWord)) {
+      labelWord = window.ArpaI18n?.getLang?.() === 'en'
+        ? (profile.taxLabelKey === 'tax.label.igv' ? 'IGV' : profile.taxLabelKey === 'tax.label.sales_tax' ? 'Sales tax' : 'VAT')
+        : (profile.taxLabelKey === 'tax.label.igv' ? 'IGV' : profile.taxLabelKey === 'tax.label.sales_tax' ? 'Impuesto sobre ventas' : 'IVA');
+    }
+    const prefix = window.ArpaI18n?.getLang?.() === 'en' ? 'Include ' : 'Incluir ';
+    return { labelWord, pct, full: labelWord + ' ' + pct + '%', toggle: prefix + labelWord + ' ' + pct + '%' };
   }
 
   function getDefaultCurrency() {

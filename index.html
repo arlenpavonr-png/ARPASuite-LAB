@@ -3299,7 +3299,6 @@ document.documentElement.classList.add('license-checking');
     <div id="arpa-ia-slot-cotizacion" class="arpa-ia-slot no-print"></div>
 
     <div class="section">
-      <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.datos_cliente">    <div class="section">
       <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.datos_cliente">Datos del Cliente</span></div>
       <div class="grid g2">
         <div class="field span2"><label data-i18n="formato.label.nombre_empresa">Nombre / Empresa</label><input id="cot-nombre" type="text" data-i18n-placeholder="formato.placeholder.nombre_empresa" placeholder="Nombre completo o razón social" autocomplete="off" list="arpa-clientes-datalist"></div>
@@ -4387,16 +4386,18 @@ async function nuevoNumero() {
   const badge = document.getElementById('sync-status-formato');
   if (badge) {
     badge.style.display = 'inline-block';
-    const licActiva = (localStorage.getItem('arpa_suite_license_code') || '(vacio)').trim();
-    badge.title = 'Licencia activa: ' + licActiva;
-    if (sincronizado) {
-      badge.textContent = '☁️ ' + licActiva.slice(-6);
-      badge.style.background = 'rgba(76,175,128,0.15)';
-      badge.style.color = '#2e7d4f';
-    } else {
-      badge.textContent = '⚠️ ' + licActiva.slice(-6) + ' (local)';
-      badge.style.background = 'rgba(224,82,82,0.15)';
-      badge.style.color = '#c0392b';
+    if (!(window.ArpaLabDemo && window.ArpaLabDemo.paintLocalBadge && window.ArpaLabDemo.paintLocalBadge(badge))) {
+      const licActiva = (localStorage.getItem('arpa_suite_license_code') || '').trim();
+      badge.title = licActiva ? ('Licencia activa: ' + licActiva) : 'Sin licencia';
+      if (sincronizado && licActiva) {
+        badge.textContent = '☁️ ' + licActiva.slice(-6);
+        badge.style.background = 'rgba(76,175,128,0.15)';
+        badge.style.color = '#2e7d4f';
+      } else {
+        badge.textContent = licActiva ? ('⚠️ ' + licActiva.slice(-6) + ' (local)') : '⚠️ local';
+        badge.style.background = 'rgba(224,82,82,0.15)';
+        badge.style.color = '#c0392b';
+      }
     }
   }
   if (field) field.value = value;
@@ -5115,12 +5116,12 @@ if ('serviceWorker' in navigator) {
 <script src="./js/catalogo-bft-nas.js"></script>
 <script src="./js/catalogo-ppa.js"></script>
 <script src="./js/arpa-mi-catalogo.js"></script>
-<script src="./js/arpa-cuenta-cobro.js"></script><script src="./js/arpa-cuenta-cobro.js"></script>
+<script src="./js/arpa-cuenta-cobro.js"></script>
 <script src="./js/arpa-views.js"></script>
 <script src="./js/arpa-onboarding.js"></script>
 <script src="./js/arpa-historial.js"></script>
 <script src="./js/arpa-ia/arpa-ia-bootstrap.js"></script>
-<script src="./js/arpa-ot.js"></script><script src="./js/arpa-ot.js"></script>
+<script src="./js/arpa-ot.js"></script>
 <script src="./js/arpa-whatsapp.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

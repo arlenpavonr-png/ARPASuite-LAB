@@ -641,31 +641,85 @@
     });
   }
 
+  function looksLikeI18nKey(value) {
+    return /^[a-z0-9]+(?:[._][a-z0-9]+)+$/i.test(String(value || '').trim());
+  }
+
+  function looksLikeUnresolvedKey(value) {
+    return /(?:^|[\s:(])[a-z0-9]+(?:\.[a-z0-9_]+)+/i.test(String(value || ''));
+  }
+
+  var STATIC_FALLBACKS = {
+    es: {
+      'tax.label.iva': 'IVA',
+      'tax.label.igv': 'IGV',
+      'tax.label.sales_tax': 'Impuesto sobre ventas',
+      'cc.cuenta.clabe': 'CLABE',
+      'cc.cuenta.ahorros': 'Ahorros',
+      'cc.cuenta.corriente': 'Corriente',
+      'cot.nota_legal': '<strong>Nota:</strong> Cotización válida por <strong>15 días calendario</strong>. Precios en {moneda_nombre} ({moneda_codigo}).',
+      'cot.iva.toggle': 'Incluir IVA 19%',
+      'cot.total.iva': 'IVA 19%:'
+    },
+    en: {
+      'tax.label.iva': 'VAT',
+      'tax.label.igv': 'IGV',
+      'tax.label.sales_tax': 'Sales tax',
+      'cc.cuenta.clabe': 'CLABE',
+      'cc.cuenta.ahorros': 'Savings',
+      'cc.cuenta.corriente': 'Checking',
+      'cot.nota_legal': '<strong>Note:</strong> Quote valid for <strong>15 calendar days</strong>. Prices in {moneda_nombre} ({moneda_codigo}).',
+      'cot.iva.toggle': 'Include VAT 19%',
+      'cot.total.iva': 'VAT 19%:'
+    }
+  };
+
+  function lookupDict(dict, key) {
+    if (!dict || !key) return null;
+    if (dict[key] != null) return dict[key];
+    var lower = String(key).toLowerCase();
+    if (dict[lower] != null) return dict[lower];
+    return null;
+  }
+
+  function lookupText(key, lang) {
+    var k = String(key || '').trim();
+    if (!k) return null;
+    var overrides = getCountryOverrides(lang);
+    var text = lookupDict(overrides, k);
+    if (text != null && !looksLikeI18nKey(text)) return text;
+    var dict = lang === 'en' ? I18N_EN : I18N_ES;
+    text = lookupDict(dict, k);
+    if (text != null && !looksLikeI18nKey(text)) return text;
+    if (lang === 'en') {
+      text = lookupDict(I18N_ES, k);
+      if (text != null && !looksLikeI18nKey(text)) return text;
+    }
+    text = lookupDict(STATIC_FALLBACKS[lang] || STATIC_FALLBACKS.es, k);
+    if (text != null) return text;
+    if (lang === 'en') return lookupDict(STATIC_FALLBACKS.es, k);
+    return null;
+  }
+
   function getLang() {
     return currentLang;
   }
 
   function t(key, vars) {
-    var overrides = getCountryOverrides(currentLang);
-    var text = overrides[key];
-    if (text == null) {
-      var dict = currentLang === 'en' ? I18N_EN : I18N_ES;
-      text = dict[key];
-    }
-    if (text == null && currentLang === 'en') text = I18N_ES[key];
+    var text = lookupText(key, currentLang);
     if (text == null) text = key;
     return interpolate(text, vars);
   }
 
   function translateIn(key, lang) {
-    var dict = lang === 'en' ? I18N_EN : I18N_ES;
-    var text = dict[key];
+    var text = lookupText(key, lang === 'en' ? 'en' : 'es');
     if (text == null) text = key;
     return text;
   }
 
   function storeDefaultKey(key, value) {
-    if (key && value != null && I18N_ES[key] == null) {
+    if (!key || value == null || looksLikeUnresolvedKey(value)) return;
+    if (I18N_ES[key] == null) {
       I18N_ES[key] = value;
     }
   }
@@ -842,9 +896,11 @@
       'cc.cuenta.clabe': 'CLABE',
       'tax.label.iva': 'IVA',
       'tax.label.igv': 'IGV',
-      'tax.label.sales_tax': 'Sales tax'
+      'tax.label.sales_tax': 'Impuesto sobre ventas'
     });
   }
+
+  supplementSpanishKeys();
 
   function getCountryOverrides(lang) {
     var country = (global.ArpaPricing && typeof global.ArpaPricing.getCountryCode === 'function')
@@ -867,6 +923,9 @@
         'cc.label.nit_cc': 'RFC',
         'cc.label.nit_titular': 'RFC titular',
         'cc.placeholder.doc_titular': 'RFC del titular',
+        'cc.cuenta.clabe': 'CLABE',
+        'tax.label.iva': 'IVA',
+        'cot.nota_legal': '<strong>Nota:</strong> Cotización válida por <strong>15 días calendario</strong>. Precios en {moneda_nombre} ({moneda_codigo}).',
         'brand.banco.linea': 'Datos para transferencia: {bank} · {tipo} · {numero}'
       });
       Object.assign(en, {
@@ -883,6 +942,9 @@
         'cc.label.nit_cc': 'RFC',
         'cc.label.nit_titular': 'Holder RFC',
         'cc.placeholder.doc_titular': 'Holder RFC',
+        'cc.cuenta.clabe': 'CLABE',
+        'tax.label.iva': 'VAT',
+        'cot.nota_legal': '<strong>Note:</strong> Quote valid for <strong>15 calendar days</strong>. Prices in {moneda_nombre} ({moneda_codigo}).',
         'brand.banco.linea': 'Transfer details: {bank} · {tipo} · No. {numero}'
       });
     }
@@ -895,8 +957,13 @@
     var overrides = getCountryOverrides(currentLang);
     scope.querySelectorAll('[data-i18n]').forEach(function (el) {
       var key = el.getAttribute('data-i18n');
-      if (!key || overrides[key] == null) return;
-      el.textContent = interpolate(overrides[key]);
+      if (!key) return;
+      var text = overrides[key];
+      if (text == null && looksLikeUnresolvedKey(el.textContent)) {
+        text = lookupText(key, currentLang);
+      }
+      if (text == null || looksLikeI18nKey(text)) return;
+      el.textContent = interpolate(text);
     });
     scope.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
       var key = el.getAttribute('data-i18n-placeholder');
@@ -968,23 +1035,21 @@
     document.querySelectorAll(selector).forEach(function (el) {
       var key = el.getAttribute(attr);
       if (!key) return;
+      var resolved = lookupText(key, lang);
       if (lang === 'es') {
         var def = el.getAttribute(defaultAttr);
-        if (def != null) {
-          if (attr === 'data-i18n-placeholder') el.setAttribute('placeholder', def);
-          else if (attr === 'data-i18n-title') el.setAttribute('title', def);
-          else if (attr === 'data-i18n-aria-label') el.setAttribute('aria-label', def);
-          else if (attr === 'data-i18n-html') el.innerHTML = def;
-          else el.textContent = def;
+        if (def != null && !looksLikeUnresolvedKey(def)) {
+          resolved = def;
         }
-      } else {
-        var text = resolveText(key, lang);
-        if (attr === 'data-i18n-placeholder') el.setAttribute('placeholder', text);
-        else if (attr === 'data-i18n-title') el.setAttribute('title', text);
-        else if (attr === 'data-i18n-aria-label') el.setAttribute('aria-label', text);
-        else if (attr === 'data-i18n-html') el.innerHTML = text;
-        else el.textContent = text;
       }
+      if (resolved == null || looksLikeI18nKey(resolved) || looksLikeUnresolvedKey(resolved)) {
+        return;
+      }
+      if (attr === 'data-i18n-placeholder') el.setAttribute('placeholder', resolved);
+      else if (attr === 'data-i18n-title') el.setAttribute('title', resolved);
+      else if (attr === 'data-i18n-aria-label') el.setAttribute('aria-label', resolved);
+      else if (attr === 'data-i18n-html') el.innerHTML = resolved;
+      else el.textContent = resolved;
     });
   }
 
@@ -1063,7 +1128,9 @@
       brandDefaults['brand-verification-p'] = companyEl.parentElement.innerHTML;
     }
     var nota = document.getElementById('cot-nota-legal');
-    if (nota) brandDefaults['cot-nota-legal'] = nota.innerHTML;
+    if (nota && !looksLikeUnresolvedKey(nota.textContent || nota.innerHTML)) {
+      brandDefaults['cot-nota-legal'] = nota.innerHTML;
+    }
     var techLabel = document.getElementById('brand-technician-signature-label');
     if (techLabel) brandDefaults['brand-technician-signature-label'] = techLabel.textContent;
     var cotLabel = document.getElementById('cot-elaborado-label');

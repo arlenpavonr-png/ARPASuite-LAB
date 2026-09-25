@@ -281,16 +281,16 @@
     const { value, sincronizado } = await global.ArpaNumeracion.nextNumberAsync('cot', numField?.value);
     if (!sincronizado) console.warn('[ARPA] Número de cotización generado offline, no sincronizado con la nube todavía.');
     const badge = document.getElementById('sync-status-cot');
-    if (badge) {
+    if (badge && !global.ArpaLabDemo?.paintLocalBadge?.(badge)) {
       badge.style.display = 'inline-block';
-      const licActiva = (localStorage.getItem('arpa_suite_license_code') || '(vacio)').trim();
-      badge.title = 'Licencia activa: ' + licActiva;
-      if (sincronizado) {
+      const licActiva = (localStorage.getItem('arpa_suite_license_code') || '').trim();
+      badge.title = licActiva ? ('Licencia activa: ' + licActiva) : 'Sin licencia';
+      if (sincronizado && licActiva) {
         badge.textContent = '☁️ ' + licActiva.slice(-6);
         badge.style.background = 'rgba(76,175,128,0.15)';
         badge.style.color = '#2e7d4f';
       } else {
-        badge.textContent = '⚠️ ' + licActiva.slice(-6) + ' (local)';
+        badge.textContent = licActiva ? ('⚠️ ' + licActiva.slice(-6) + ' (local)') : '⚠️ local';
         badge.style.background = 'rgba(224,82,82,0.15)';
         badge.style.color = '#c0392b';
       }
