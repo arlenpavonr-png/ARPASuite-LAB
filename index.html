@@ -1695,11 +1695,32 @@
     background: white;
     outline: none;
   }
+  .cot-marcas { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cot-marca-chip {
+    border: 1.5px solid var(--border);
+    background: white;
+    color: var(--text);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    min-height: 32px;
+  }
+  .cot-marca-chip.active { background: var(--navy); border-color: var(--navy); color: white; }
+  .resultado-conteo {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--light);
+    color: var(--muted);
+    font-size: 11px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+  }
   .resultados-cot {
     background: white;
     border: 1.5px solid var(--border);
     border-radius: 8px;
-    max-height: 200px;
+    max-height: 340px;
     overflow-y: auto;
     display: none;
   }

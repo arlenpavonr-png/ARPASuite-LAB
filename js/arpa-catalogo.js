@@ -390,6 +390,8 @@
     const c = String(raw || '').trim();
     if (AUTO_CATEGORY_ALIASES[c]) return AUTO_CATEGORY_ALIASES[c];
     const lower = c.toLowerCase();
+    if (lower.includes('cortina de aire') || lower.includes('cortinas de aire')) return 'Cortinas de Aire';
+    if (lower.includes('puerta') && lower.includes('seccional')) return 'Puertas Seccionales';
     if (lower.includes('garaje') || lower.includes('levadiza') || lower.includes('seccional')) return 'Motores Garaje';
     if (lower.includes('corrediz')) return 'Corredizas';
     if (lower.includes('batiente')) return 'Motores Batientes';

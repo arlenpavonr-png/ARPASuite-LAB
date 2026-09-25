@@ -795,8 +795,30 @@
     global.ArpaCotizacion?.updateCatalogHint?.();
   }
 
+  // Versión del catálogo base de automatismos. Subirla cuando se agreguen productos nuevos al seed:
+  // a quien ya tenía el catálogo se le AGREGAN solo los códigos que le falten (no toca precios ni
+  // nombres editados, no duplica). Si el técnico borró un producto a propósito, puede volver a
+  // aparecer una vez por versión.
+  const AUTOMATISMOS_SEED_VERSION = '2026-09-listas-distribuidor';
+  const AUTOMATISMOS_SEED_VERSION_KEY = 'arpa_seed_version_automatismos';
+
   function seedOficioIfNeeded(oficioId) {
-    return importSeedCatalog(oficioId, { force: false });
+    const id = normalizeOficioId(oficioId);
+    if (id === OFICIO_AUTOMATISMOS && getSeededOficios().includes(id)) {
+      let current = '';
+      try { current = localStorage.getItem(AUTOMATISMOS_SEED_VERSION_KEY) || ''; } catch (e) { /* ignore */ }
+      if (current !== AUTOMATISMOS_SEED_VERSION) {
+        const result = importSeedCatalog(id, { force: true });
+        try { localStorage.setItem(AUTOMATISMOS_SEED_VERSION_KEY, AUTOMATISMOS_SEED_VERSION); } catch (e) { /* ignore */ }
+        if (result.added > 0) global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
+        return result;
+      }
+    }
+    const result = importSeedCatalog(id, { force: false });
+    if (id === OFICIO_AUTOMATISMOS && !result.skipped) {
+      try { localStorage.setItem(AUTOMATISMOS_SEED_VERSION_KEY, AUTOMATISMOS_SEED_VERSION); } catch (e) { /* ignore */ }
+    }
+    return result;
   }
 
   function getSeedProductCount(oficioId) {
