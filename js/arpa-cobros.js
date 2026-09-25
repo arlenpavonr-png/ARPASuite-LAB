@@ -205,14 +205,21 @@
     store.lines.forEach((line) => {
       attachPrecargadoMeta(line);
       const key = line.priceKey;
-      if (key && list[key]?.userEdited) {
+      const known = (line.valueCop != null && isKnownConversion(line.valueCop, line.value))
+        || (key && global.ArpaPricing?.isKnownConvertedPrice?.(
+          global.ArpaPricing.DEFAULT_PRICE_LIST[key]?.value,
+          line.value
+        ));
+      if (known) line.userEdited = false;
+      if (key && list[key]?.userEdited && !known) {
         line.userEdited = true;
         line.value = Number(list[key].value) || line.value;
         return;
       }
-      if (line.userEdited) return;
+      if (line.userEdited && !known) return;
+      line.userEdited = false;
       applyConvertedValue(line);
-      if (key && list[key]?.label && !line.userEdited) {
+      if (key && list[key]?.label) {
         line.desc = list[key].label;
       }
     });

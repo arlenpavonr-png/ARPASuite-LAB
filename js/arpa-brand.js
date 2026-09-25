@@ -276,6 +276,7 @@
   }
 
   let companyApiCounter = 0;
+  let countryWhenSettingsOpened = '';
 
   function getLicenseCode() {
     if (global.ArpaLabDemo && typeof global.ArpaLabDemo.isActive === 'function' && global.ArpaLabDemo.isActive()) {
@@ -755,6 +756,7 @@
       if (currency && currencySelect) currencySelect.value = currency;
       const current = getSettings();
       saveSettings({ ...current, country: code, currency: currency || current.currency });
+      global.ArpaPricing?.renderPriceListSettings?.();
       global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
       global.ArpaMiCatalogo?.render?.();
       global.ArpaCobros?.refreshPrecargadoValues?.('cot');
@@ -811,6 +813,7 @@
     const countryCode = (s.country && global.ArpaPricing?.COUNTRY_PROFILES?.[s.country])
       ? s.country
       : 'CO';
+    countryWhenSettingsOpened = countryCode;
     if (countrySelect) countrySelect.value = countryCode;
     if (currencySelect) {
       const fromCountry = global.ArpaPricing?.COUNTRY_PROFILES?.[countryCode]?.currency;
@@ -940,9 +943,11 @@
       global.ArpaMiCatalogo?.render?.();
       global.ArpaCatalogo?.invalidateListaCache?.();
       global.ArpaCotizacion?.updateCatalogHint?.();
-      if (country === (current.country || 'CO')) {
+      if (country === (countryWhenSettingsOpened || current.country || 'CO')) {
         global.ArpaPricing?.savePriceList?.(global.ArpaPricing.readPriceListFromSettingsForm());
       }
+      countryWhenSettingsOpened = country;
+      global.ArpaPricing?.renderPriceListSettings?.();
       global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
       global.ArpaI18n?.applyCountryLabels?.();
       global.ArpaCobros?.seedFromPriceList?.('cot');

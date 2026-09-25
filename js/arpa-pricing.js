@@ -176,6 +176,14 @@
     return Object.keys(COUNTRY_PROFILES).some((code) => current === convertCop(cop, code));
   }
 
+  function isKnownConvertedPrice(copAmount, value) {
+    const cop = Number(copAmount);
+    const val = Number(value);
+    if (!Number.isFinite(cop) || !Number.isFinite(val)) return false;
+    if (val === cop) return true;
+    return Object.keys(COUNTRY_PROFILES).some((code) => val === convertCop(cop, code));
+  }
+
   function getPriceList() {
     try {
       const saved = JSON.parse(localStorage.getItem(PRICE_LIST_KEY) || '{}');
@@ -184,14 +192,15 @@
         const defaultCop = DEFAULT_PRICE_LIST[key].value;
         const converted = convertCop(defaultCop);
         const savedVal = Number(saved[key]?.value);
-        const matchesKnown = saved[key] && Object.keys(COUNTRY_PROFILES).some((code) => (
-          savedVal === defaultCop || savedVal === convertCop(defaultCop, code)
-        ));
-        const userEdited = !!saved[key]?.userEdited || (saved[key] && Number.isFinite(savedVal) && !matchesKnown);
+        const matchesKnown = saved[key] && isKnownConvertedPrice(defaultCop, savedVal);
+        const userEdited = matchesKnown
+          ? false
+          : !!(saved[key]?.userEdited || (saved[key] && Number.isFinite(savedVal)));
         merged[key] = {
           label: saved[key]?.label || getDefaultLabel(key),
           value: userEdited ? (savedVal || 0) : converted,
-          userEdited
+          userEdited,
+          valueCop: defaultCop
         };
       });
       return merged;
@@ -201,7 +210,8 @@
         fallback[key] = {
           label: getDefaultLabel(key),
           value: convertCop(DEFAULT_PRICE_LIST[key].value),
-          userEdited: false
+          userEdited: false,
+          valueCop: DEFAULT_PRICE_LIST[key].value
         };
       });
       return fallback;
@@ -209,7 +219,20 @@
   }
 
   function savePriceList(list) {
-    localStorage.setItem(PRICE_LIST_KEY, JSON.stringify(list));
+    const sanitized = {};
+    Object.keys(DEFAULT_PRICE_LIST).forEach((key) => {
+      const item = (list && list[key]) || {};
+      const defaultCop = DEFAULT_PRICE_LIST[key].value;
+      const value = Number(item.value);
+      const matchesKnown = isKnownConvertedPrice(defaultCop, value);
+      sanitized[key] = {
+        label: item.label || getDefaultLabel(key),
+        value: matchesKnown ? defaultCop : (Number.isFinite(value) ? value : defaultCop),
+        valueCop: defaultCop,
+        userEdited: matchesKnown ? false : !!item.userEdited
+      };
+    });
+    localStorage.setItem(PRICE_LIST_KEY, JSON.stringify(sanitized));
   }
 
   function readPriceListFromSettingsForm() {
@@ -217,12 +240,14 @@
     document.querySelectorAll('[data-price-key]').forEach((input) => {
       const key = input.dataset.priceKey;
       const labelInput = document.querySelector(`[data-price-label="${key}"]`);
-      const converted = convertCop(DEFAULT_PRICE_LIST[key]?.value || 0);
+      const defaultCop = DEFAULT_PRICE_LIST[key]?.value || 0;
       const value = Number(String(input.value).replace(/\D/g, '')) || 0;
+      const matchesKnown = isKnownConvertedPrice(defaultCop, value);
       list[key] = {
         label: labelInput?.value.trim() || getDefaultLabel(key) || key,
-        value,
-        userEdited: value !== converted
+        value: matchesKnown ? defaultCop : value,
+        valueCop: defaultCop,
+        userEdited: !matchesKnown
       };
     });
     return list;
@@ -320,6 +345,7 @@
     formatCompanyPhone,
     getTaxIdLabel,
     showsConvertedPriceNotice,
+    isKnownConvertedPrice,
     formatoPesos
   };
 })(window);
