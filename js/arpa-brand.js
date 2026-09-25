@@ -44,6 +44,7 @@
     technicianName: '',
     technicianDocument: '',
     technicianCode: '',
+    country: '',
     activeOficios: ['automatismos'],
     logoBase64: '',
     appBrandName: '',
@@ -462,7 +463,11 @@
       }
       return '<em>' + window.ArpaI18n.t('brand.banco.completar') + '</em>';
     }
-    const accountTypeKey = accountType === 'Corriente' ? 'cc.cuenta.corriente' : 'cc.cuenta.ahorros';
+    const accountTypeKey = accountType === 'Corriente'
+      ? 'cc.cuenta.corriente'
+      : accountType === 'CLABE'
+        ? 'cc.cuenta.clabe'
+        : 'cc.cuenta.ahorros';
     const accountTypeLabel = window.ArpaI18n?.t?.(accountTypeKey) || accountType;
     return window.ArpaI18n.t('brand.banco.linea', { bank: val(bankName, '—'), tipo: accountTypeLabel, numero: val(accountNumber, '—') })
       .replace(/^(.*?):/, '<strong>$1:</strong>');
@@ -505,7 +510,9 @@
         el.innerHTML = window.ArpaI18n?.t?.('brand.company_contact.placeholder') || 'Configure su empresa en <strong>⚙️ Ajustes</strong> para personalizar este documento.';
         return;
       }
-      let html = `NIT: ${val(s.nit, '—')} &nbsp;|&nbsp; Tel: ${val(s.phone, '—')}<br>${val(s.address, '—')}`;
+      const taxId = global.ArpaPricing?.getTaxIdLabel?.() || 'NIT';
+      const phone = global.ArpaPricing?.formatCompanyPhone?.(s.phone) || val(s.phone, '—');
+      let html = `${taxId}: ${val(s.nit, '—')} &nbsp;|&nbsp; Tel: ${phone}<br>${val(s.address, '—')}`;
       const website = (s.website || '').trim();
       if (website && !isInternalAppUrl(website)) html += `<br>${website}`;
       el.innerHTML = html;
@@ -516,7 +523,9 @@
         el.innerHTML = window.ArpaI18n?.t?.('brand.screen_footer.placeholder') || 'Configure los datos de su empresa en ⚙️ Ajustes';
         return;
       }
-      el.innerHTML = `${company} &nbsp;|&nbsp; NIT ${val(s.nit, '—')} &nbsp;|&nbsp; Tel ${val(s.phone, '—')}`;
+      const taxId = global.ArpaPricing?.getTaxIdLabel?.() || 'NIT';
+      const phone = global.ArpaPricing?.formatCompanyPhone?.(s.phone) || val(s.phone, '—');
+      el.innerHTML = `${company} &nbsp;|&nbsp; ${taxId} ${val(s.nit, '—')} &nbsp;|&nbsp; Tel ${phone}`;
     });
     set('brand-bank-block', (el) => { el.innerHTML = formatBankBlock(s); });
     set('brand-bank-block-formato', (el) => { el.innerHTML = formatBankBlock(s); });
@@ -556,12 +565,17 @@
     const cotNom = document.getElementById('cot-elaborado-nombre');
     const cotTel = document.getElementById('cot-elaborado-tel');
     if (configured && cotNom && !cotNom.value.trim() && s.technicianName) cotNom.value = s.technicianName;
-    if (configured && cotTel && !cotTel.value.trim() && s.phone?.trim()) cotTel.value = s.phone.trim();
+    if (configured && cotTel && !cotTel.value.trim() && s.phone?.trim()) {
+      cotTel.value = global.ArpaPricing?.formatCompanyPhone?.(s.phone) || s.phone.trim();
+    }
 
     document.title = document.title.includes('–') ? document.title : (configured ? `${appBrandName} – ${company}` : appBrandName);
     if (!configured) resetUnconfiguredFormFields();
     applyCuentaCobroFromSettings(s, { fillPago: 'if-empty' });
     window.ArpaI18n?.refreshBrandTexts?.();
+    window.ArpaI18n?.applyCountryLabels?.();
+    global.ArpaCotizacion?.syncTaxLabels?.();
+    global.ArpaMiCatalogo?.renderConvertedPriceNotice?.();
   }
 
   function applyCuentaCobroFromSettings(s, options) {
@@ -578,7 +592,7 @@
     setText('cc-cobrador-doc', configured ? s.technicianDocument : '');
     setText('cc-cobrador-empresa', configured ? s.companyName : '');
     setText('cc-cobrador-nit', configured ? s.nit : '');
-    setText('cc-cobrador-tel', configured ? s.phone : '');
+    setText('cc-cobrador-tel', configured ? (global.ArpaPricing?.formatCompanyPhone?.(s.phone) || s.phone) : '');
     setText('cc-cobrador-dir', configured ? s.address : '');
     const website = configured ? (s.website || '').trim() : '';
     setText('cc-cobrador-web', website && !isInternalAppUrl(website) ? website : '');
@@ -722,6 +736,18 @@
     if (input) input.required = required;
   }
 
+  function bindCountryCurrencySync() {
+    const countrySelect = document.getElementById('settings-country');
+    const currencySelect = document.getElementById('settings-currency');
+    if (!countrySelect || countrySelect.dataset.arpaCountryBound === '1') return;
+    countrySelect.dataset.arpaCountryBound = '1';
+    countrySelect.addEventListener('change', function () {
+      const code = countrySelect.value;
+      const currency = global.ArpaPricing?.COUNTRY_PROFILES?.[code]?.currency;
+      if (currency && currencySelect) currencySelect.value = currency;
+    });
+  }
+
   function applyBrandCustomizationPolicy() {
     const allowed = canCustomizeAppBrand();
     const lockEl = document.getElementById('settings-brand-lock');
@@ -766,7 +792,19 @@
       if (el) el.value = v || '';
     });
     const currencySelect = document.getElementById('settings-currency');
-    if (currencySelect) currencySelect.value = s.currency || window.ArpaPricing?.getDefaultCurrency?.() || 'COP';
+    const countrySelect = document.getElementById('settings-country');
+    const countryCode = (s.country && global.ArpaPricing?.COUNTRY_PROFILES?.[s.country])
+      ? s.country
+      : 'CO';
+    if (countrySelect) countrySelect.value = countryCode;
+    if (currencySelect) {
+      const fromCountry = global.ArpaPricing?.COUNTRY_PROFILES?.[countryCode]?.currency;
+      currencySelect.value = fromCountry
+        || s.currency
+        || global.ArpaPricing?.getDefaultCurrency?.()
+        || 'COP';
+    }
+    bindCountryCurrencySync();
     const preview = document.getElementById('settings-logo-preview');
     if (preview) preview.src = getLogo(s);
     const appPreview = document.getElementById('settings-app-logo-preview');
@@ -812,7 +850,13 @@
     const address = document.getElementById('settings-address')?.value.trim();
     const city = document.getElementById('settings-city')?.value.trim();
     const phone = document.getElementById('settings-phone')?.value.trim();
-    const currency = document.getElementById('settings-currency')?.value.trim() || 'COP';
+    const countryRaw = document.getElementById('settings-country')?.value.trim() || '';
+    const country = (countryRaw && global.ArpaPricing?.COUNTRY_PROFILES?.[countryRaw])
+      ? countryRaw
+      : 'CO';
+    const currency = global.ArpaPricing?.COUNTRY_PROFILES?.[country]?.currency
+      || document.getElementById('settings-currency')?.value.trim()
+      || 'COP';
     const bankName = document.getElementById('settings-bank')?.value.trim();
     const accountType = document.getElementById('settings-account-type')?.value.trim();
     const accountNumber = document.getElementById('settings-account-number')?.value.trim();
@@ -841,6 +885,7 @@
       address,
       city,
       phone,
+      country,
       currency,
       website: (() => {
         const w = document.getElementById('settings-website')?.value.trim() || '';
@@ -880,10 +925,17 @@
       global.ArpaMiCatalogo?.render?.();
       global.ArpaCatalogo?.invalidateListaCache?.();
       global.ArpaCotizacion?.updateCatalogHint?.();
-      global.ArpaPricing?.savePriceList?.(global.ArpaPricing.readPriceListFromSettingsForm());
+      if (country === (current.country || 'CO')) {
+        global.ArpaPricing?.savePriceList?.(global.ArpaPricing.readPriceListFromSettingsForm());
+      }
+      global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
+      global.ArpaI18n?.applyCountryLabels?.();
       global.ArpaCobros?.seedFromPriceList?.('cot');
+      global.ArpaCobros?.refreshPrecargadoValues?.('cot');
       global.ArpaCotizacion?.refreshCobros?.();
+      global.ArpaCotizacion?.syncTaxLabels?.();
       global.ArpaCuentaCobro?.refreshView?.();
+      global.ArpaMiCatalogo?.renderConvertedPriceNotice?.();
     } catch (e) {
       console.warn('[arpa-brand] post-save hooks', e);
     }

@@ -112,6 +112,24 @@
     renderEditor(storeId);
   }
 
+  function refreshPrecargadoValues(storeId) {
+    const store = getStore(storeId);
+    const list = global.ArpaPricing?.getPriceList?.();
+    if (!list || !store.lines.length) return;
+    const items = Object.values(list);
+    if (store.lines.length !== items.length) {
+      renderEditor(storeId);
+      return;
+    }
+    store.lines.forEach((line, index) => {
+      const item = items[index];
+      if (!item || item.userEdited) return;
+      line.desc = item.label;
+      line.value = item.value;
+    });
+    renderEditor(storeId);
+  }
+
   function refreshDefaultLabels(storeId) {
     const store = getStore(storeId);
     if (!store.seeded || !store.lines.length) return;
@@ -157,6 +175,7 @@
     setLines,
     getSubtotal,
     seedFromPriceList,
+    refreshPrecargadoValues,
     refreshDefaultLabels,
     renderEditor,
     syncFromEditor

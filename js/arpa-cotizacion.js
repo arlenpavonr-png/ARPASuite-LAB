@@ -39,6 +39,27 @@
     return global.ArpaPricing?.formatoPesos(n) || ('$ ' + (Number(n) || 0).toLocaleString('es-CO'));
   }
 
+  function getTaxRate() {
+    const rate = Number(global.ArpaPricing?.getTaxRate?.());
+    return Number.isFinite(rate) ? rate : 0.19;
+  }
+
+  function getTaxLabelInfo() {
+    return global.ArpaPricing?.getTaxLabelText?.() || { labelWord: 'IVA', pct: 19, full: 'IVA 19%', toggle: 'Incluir IVA 19%' };
+  }
+
+  function syncTaxLabels() {
+    const tax = getTaxLabelInfo();
+    const toggle = document.querySelector('#view-cotizacion .iva-toggle [data-i18n="cot.iva.toggle"], #view-cotizacion .iva-toggle span');
+    if (toggle) toggle.textContent = tax.toggle;
+    const ivaLabel = document.querySelector('#iva-row-cot .total-label');
+    if (ivaLabel) ivaLabel.textContent = tax.full + ':';
+    const ccToggle = document.querySelector('#view-cuenta-cobro .iva-toggle [data-i18n="cot.iva.toggle"], #view-cuenta-cobro .iva-toggle span');
+    if (ccToggle) ccToggle.textContent = tax.toggle;
+    const ccIvaLabel = document.querySelector('#cc-iva-row .total-label');
+    if (ccIvaLabel) ccIvaLabel.textContent = tax.full + ':';
+  }
+
   function getCatalogoActivo() {
     const oid = global.ArpaMiCatalogo?.getActiveOficioId?.()
       || global.ArpaOficios?.getActiveOficiosFromSettings?.()?.[0]
@@ -227,7 +248,7 @@
     const subtotalCobros = getCobrosLineas().reduce((s, f) => s + f.pvp * f.cant, 0);
     const subtotal = subtotalProductos + subtotalCobros;
     const conIva = document.getElementById('iva-check-cot')?.checked;
-    const iva = conIva ? subtotal * 0.19 : 0;
+    const iva = conIva ? subtotal * getTaxRate() : 0;
     const total = subtotal + iva;
     const subEl = document.getElementById('subtotal-val-cot');
     const ivaEl = document.getElementById('iva-val-cot');
@@ -237,6 +258,7 @@
     if (ivaEl) ivaEl.textContent = formatoPesos(iva);
     if (totalEl) totalEl.textContent = formatoPesos(total);
     if (ivaRow) ivaRow.style.display = conIva ? 'flex' : 'none';
+    syncTaxLabels();
   }
 
   function formatCotNumero(n) {
@@ -321,7 +343,7 @@
     const subtotalCobros = getCobrosLineas().reduce((s, f) => s + f.pvp * f.cant, 0);
     const subtotal = subtotalProductos + subtotalCobros;
     const conIva = document.getElementById('iva-check-cot')?.checked;
-    const iva = conIva ? subtotal * 0.19 : 0;
+    const iva = conIva ? subtotal * getTaxRate() : 0;
     const total = subtotal + iva;
 
     return {
@@ -402,6 +424,7 @@
     document.body.classList.add('is-printing');
     global.ArpaBrand?.prepareForPrint?.();
     global.ArpaI18n?.preparePdfSpanish?.('view-cotizacion');
+    syncTaxLabels();
     global.ArpaCobros?.syncFromEditor?.('cot');
     renderTablaCot();
     const rowPrintBackups = lockCotRowsForPrint(viewRoot);
@@ -415,8 +438,8 @@
         : el.value || '';
       const span = document.createElement('span');
       span.className = 'pdf-valor';
-      span.textContent = valor || el.placeholder || '';
-      span.style.cssText = `display:inline-block;width:100%;font-size:13px;color:${valor ? '#1e293b' : '#9ca3af'};padding:8px 10px;font-family:'DM Sans',sans-serif;border-bottom:1px solid #d1d5db;min-height:36px;`;
+      span.textContent = valor;
+      span.style.cssText = `display:inline-block;width:100%;font-size:13px;color:${valor ? '#1e293b' : '#1e293b'};padding:8px 10px;font-family:'DM Sans',sans-serif;border-bottom:1px solid #d1d5db;min-height:36px;`;
       respaldos.push({ el, parent: el.parentNode });
       el.parentNode.replaceChild(span, el);
     });
@@ -750,6 +773,7 @@
       }
     });
     renderTablaCot();
+    syncTaxLabels();
     updateCatalogHint();
     applyCotDraft();
     bindCotDraftListeners();
@@ -833,6 +857,7 @@
     loadCotizacion,
     getCatalogoActivo,
     updateCatalogHint,
+    syncTaxLabels,
     exportarACuentaCobro,
     clearCotDraft,
     scheduleCotDraftSave,

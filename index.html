@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ARPA Suite">
+<meta name="format-detection" content="telephone=no">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -1904,6 +1905,7 @@
     .tabla-cot-wrap { overflow: visible; }
     .tabla-productos thead { display: table-header-group; }
     .tabla-productos tbody { display: table-row-group; }
+    .tabla-productos tr,
     .tabla-productos tbody tr {
       page-break-inside: avoid !important;
       break-inside: avoid-page !important;
@@ -1924,7 +1926,11 @@
       display: block !important;
     }
     body.is-printing #cot-cobros-section,
-    body.is-printing #view-cotizacion .buscador-wrap-cot {
+    body.is-printing #cot-buscar-section,
+    body.is-printing #view-cotizacion .buscador-wrap-cot,
+    body.is-printing .iva-toggle,
+    body.is-printing .lang-switch,
+    body.is-printing [id^="sync-status-"] {
       display: none !important;
     }
     body.is-printing #view-cotizacion .tabla-productos tbody tr.row-cobro {
@@ -2032,7 +2038,20 @@
       break-inside: avoid;
     }
     .cot-catalog-hint { display: none !important; }
+    .catalogo-fx-notice { display: none !important; }
   }
+  .catalogo-fx-notice {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    color: #92400e;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+  .catalogo-fx-notice[hidden] { display: none !important; }
   .settings-modal-footer {
     padding: 14px 20px;
     border-top: 1px solid var(--border);
@@ -3294,7 +3313,7 @@ document.documentElement.classList.add('license-checking');
       </div>
     </div>
 
-    <div class="section">
+    <div class="section" id="cot-buscar-section">
       <div class="section-title"><span class="dot"></span><span data-i18n="cot.section.buscar">Buscar y Agregar Productos</span></div>
       <div class="buscador-wrap-cot">
         <div class="buscador-row-cot">
@@ -3329,7 +3348,7 @@ document.documentElement.classList.add('license-checking');
               <th data-i18n="cot.table.codigo">Código</th>
               <th data-i18n="cot.table.descripcion">Descripción</th>
               <th style="text-align:center;" data-i18n="cot.table.cant">Cant.</th>
-              <th style="text-align:right;" data-i18n="cot.table.pvp_unit">P.V.P Unit.</th>
+              <th style="text-align:right;" data-i18n="cot.table.pvp_unit">PRECIO UNIT.</th>
               <th style="text-align:right;" data-i18n="cot.table.total">Total</th>
               <th></th>
             </tr>
@@ -3354,7 +3373,7 @@ document.documentElement.classList.add('license-checking');
             <span class="total-val" id="subtotal-val-cot">$ 0</span>
           </div>
           <div class="total-row" id="iva-row-cot" style="display:none;">
-            <span class="total-label" data-i18n="cot.total.iva">IVA (19%)</span>
+            <span class="total-label" data-i18n="cot.total.iva">IVA 19%:</span>
             <span class="total-val" id="iva-val-cot">$ 0</span>
           </div>
           <div class="total-row grand">
@@ -3420,6 +3439,7 @@ document.documentElement.classList.add('license-checking');
       <p style="font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.5;" data-i18n="cat.intro">
         Sus productos se agrupan por categoría. Cotización usará este catálogo cuando tenga ítems cargados.
       </p>
+      <p class="catalogo-fx-notice" hidden data-i18n="cat.aviso.precios_convertidos">Precios de referencia convertidos desde Colombia. Revísalos antes de cotizar.</p>
       <div class="catalogo-toolbar">
         <div class="catalogo-toolbar-row">
           <input type="search" id="catalogo-buscar" data-i18n-placeholder="cat.placeholder.buscar" placeholder="🔍 Buscar por nombre o referencia…" autocomplete="off" inputmode="search">
@@ -3519,7 +3539,7 @@ document.documentElement.classList.add('license-checking');
           <span class="total-val" id="cc-subtotal-val">$ 0</span>
         </div>
         <div class="total-row" id="cc-iva-row" style="display:none;">
-          <span class="total-label" data-i18n="cot.total.iva">IVA (19%)</span>
+          <span class="total-label" data-i18n="cot.total.iva">IVA 19%:</span>
           <span class="total-val" id="cc-iva-val">$ 0</span>
         </div>
         <div class="total-row" id="cc-ret-row" style="display:none;">
@@ -3541,6 +3561,7 @@ document.documentElement.classList.add('license-checking');
           <select id="cc-pago-tipo">
             <option value="Ahorros" data-i18n="cc.cuenta.ahorros">Ahorros</option>
             <option value="Corriente" data-i18n="cc.cuenta.corriente">Corriente</option>
+            <option value="CLABE" data-i18n="cc.cuenta.clabe">CLABE</option>
           </select>
         </div>
         <div class="field span2"><label data-i18n="cc.label.numero_cuenta">Número de cuenta</label><input type="text" id="cc-pago-numero" inputmode="numeric" data-i18n-placeholder="settings.placeholder.account_number" placeholder="Número de cuenta"></div>
@@ -3870,6 +3891,17 @@ document.documentElement.classList.add('license-checking');
       </div>
       <div class="settings-section-title" data-i18n="settings.section.currency">Moneda</div>
       <div class="field">
+        <label for="settings-country" data-i18n="settings.label.country">País</label>
+        <select id="settings-country">
+          <option value="CO">🇨🇴 Colombia</option>
+          <option value="MX">🇲🇽 México</option>
+          <option value="CL">🇨🇱 Chile</option>
+          <option value="PE">🇵🇪 Perú</option>
+          <option value="US">🇺🇸 Estados Unidos</option>
+        </select>
+        <small data-i18n="settings.label.country_hint">Define automáticamente moneda e impuesto de tus documentos</small>
+      </div>
+      <div class="field">
         <label for="settings-currency" data-i18n="settings.label.currency">Moneda de tus documentos</label>
         <select id="settings-currency">
           <option value="COP" data-i18n="currency.cop">🇨🇴 COP — Peso colombiano</option>
@@ -3889,6 +3921,7 @@ document.documentElement.classList.add('license-checking');
         <select id="settings-account-type" required>
           <option value="Ahorros" data-i18n="cc.cuenta.ahorros">Ahorros</option>
           <option value="Corriente" data-i18n="cc.cuenta.corriente">Corriente</option>
+          <option value="CLABE" data-i18n="cc.cuenta.clabe">CLABE</option>
         </select>
       </div>
       <div class="field">
@@ -4227,7 +4260,7 @@ function guardarPDF() {
     const inDimsExtra = !!el.closest('.dims-extra');
     const span = document.createElement('span');
     span.className = inDimsTable ? 'pdf-valor pdf-valor-dim' : 'pdf-valor';
-    span.textContent = valor || (inObs ? '' : (el.placeholder || ''));
+    span.textContent = valor;
     span.style.cssText = inDimsTable
       ? `display:block; width:100%; box-sizing:border-box; font-size:13px; color:${valor ? '#1e293b' : '#9ca3af'}; padding:6px 4px; font-family:'DM Mono',monospace; font-weight:600; text-align:center; border-bottom:1px solid #d1d5db; min-height:32px;`
       : inDimsExtra

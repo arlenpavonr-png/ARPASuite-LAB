@@ -442,11 +442,21 @@
       if (opts.normalizeCategory !== false && global.ArpaCatalogo?.normalizeAutomatismosCategory) {
         categoria = global.ArpaCatalogo.normalizeAutomatismosCategory(categoria);
       }
-      products.push({
+      const pvpCop = Number(row.precio != null ? row.precio : row.pvp) || 0;
+      products.push(global.ArpaPricing?.markPrecargadoProduct?.({
         id: newId(),
         cod,
         nom,
-        pvp: Number(row.precio != null ? row.precio : row.pvp) || 0,
+        unidad: String(row.unidad || 'unidad').trim() || 'unidad',
+        marca: String(row.marca || defaultMarca || '').trim(),
+        categoriaId: ensureCategory(categoria),
+        oficioId: OFICIO_AUTOMATISMOS,
+        fechaAgregado: ahora
+      }, pvpCop) || {
+        id: newId(),
+        cod,
+        nom,
+        pvp: pvpCop,
         unidad: String(row.unidad || 'unidad').trim() || 'unidad',
         marca: String(row.marca || defaultMarca || '').trim(),
         categoriaId: ensureCategory(categoria),

@@ -332,13 +332,16 @@
     'cot.table.codigo': 'Code',
     'cot.table.descripcion': 'Description',
     'cot.table.cant': 'Qty.',
-    'cot.table.pvp_unit': 'Unit Price',
+    'cot.table.pvp_unit': 'UNIT PRICE',
     'cot.table.total': 'Total',
     'cot.table.empty': 'Add products, services, or additional items',
     'cot.section.resumen': 'Quote Summary',
     'cot.iva.toggle': 'Include VAT 19%',
     'cot.total.subtotal': 'Subtotal',
-    'cot.total.iva': 'VAT (19%)',
+    'cot.total.iva': 'VAT 19%:',
+    'tax.label.iva': 'VAT',
+    'tax.label.igv': 'IGV',
+    'tax.label.sales_tax': 'Sales tax',
     'cot.total.grand': 'TOTAL',
     'cot.section.datos_bancarios': 'Bank Details',
     'cot.section.observaciones': 'Notes',
@@ -361,6 +364,7 @@
     'cat.btn.cargar_bft_nas': '📦 Load BFT + NAS',
     'cat.btn.cargar_ppa': '📦 Load PPA',
     'cat.empty': 'No products yet.<br>Tap <strong>+</strong> to add the first one.',
+    'cat.aviso.precios_convertidos': 'Reference prices converted from Colombia. Review them before quoting.',
     'cat.oficio.intro': 'Editable starter catalog. Adjust prices and products for your business.',
     'cat.btn.agregar_producto': '+ Add product',
     'cat.btn.cargar_catalogo_base': '📦 Load starter catalog',
@@ -411,6 +415,7 @@
     'cc.label.tipo_cuenta': 'Account type',
     'cc.cuenta.ahorros': 'Savings',
     'cc.cuenta.corriente': 'Checking',
+    'cc.cuenta.clabe': 'CLABE',
     'cc.label.numero_cuenta': 'Account number',
     'cc.label.titular': 'Account holder',
     'cc.placeholder.titular': 'Account holder name',
@@ -477,6 +482,8 @@
     'settings.close.aria': 'Close',
     'settings.label.company': 'Company Name',
     'settings.placeholder.company': 'Your company name',
+    'settings.label.country': 'Country',
+    'settings.label.country_hint': 'Automatically sets currency and tax for your documents',
     'settings.label.nit': 'Tax ID',
     'settings.label.address': 'Address',
     'settings.placeholder.address': 'Business address',
@@ -639,9 +646,13 @@
   }
 
   function t(key, vars) {
-    var dict = currentLang === 'en' ? I18N_EN : I18N_ES;
-    var text = dict[key];
-    if (text == null && currentLang === 'en') text = I18N_EN[key];
+    var overrides = getCountryOverrides(currentLang);
+    var text = overrides[key];
+    if (text == null) {
+      var dict = currentLang === 'en' ? I18N_EN : I18N_ES;
+      text = dict[key];
+    }
+    if (text == null && currentLang === 'en') text = I18N_ES[key];
     if (text == null) text = key;
     return interpolate(text, vars);
   }
@@ -823,7 +834,74 @@
       'currency.name.usd': 'dólares estadounidenses',
       'currency.name.mxn': 'pesos mexicanos',
       'currency.name.pen': 'soles peruanos',
-      'currency.name.clp': 'pesos chilenos'
+      'currency.name.clp': 'pesos chilenos',
+      'cot.table.pvp_unit': 'PRECIO UNIT.',
+      'cat.aviso.precios_convertidos': 'Precios de referencia convertidos desde Colombia. Revísalos antes de cotizar.',
+      'settings.label.country': 'País',
+      'settings.label.country_hint': 'Define automáticamente moneda e impuesto de tus documentos',
+      'cc.cuenta.clabe': 'CLABE',
+      'tax.label.iva': 'IVA',
+      'tax.label.igv': 'IGV',
+      'tax.label.sales_tax': 'Sales tax'
+    });
+  }
+
+  function getCountryOverrides(lang) {
+    var country = (global.ArpaPricing && typeof global.ArpaPricing.getCountryCode === 'function')
+      ? global.ArpaPricing.getCountryCode()
+      : 'CO';
+    var es = { 'cot.table.pvp_unit': 'PRECIO UNIT.' };
+    var en = { 'cot.table.pvp_unit': 'UNIT PRICE' };
+    if (country === 'MX') {
+      Object.assign(es, {
+        'settings.label.nit': 'RFC',
+        'formato.label.nit_cedula': 'RFC',
+        'formato.placeholder.nit_cedula': 'RFC',
+        'formato.firma.placeholder.doc': 'RFC',
+        'settings.label.holder_doc_optional': 'RFC del titular (opcional)',
+        'settings.label.technician_doc_optional': 'RFC del técnico (opcional)',
+        'settings.label.account_number': 'CLABE / Número de cuenta',
+        'settings.placeholder.account_number': 'CLABE (18 dígitos)',
+        'cc.cobrador.cedula_nit': 'RFC personal',
+        'cc.cobrador.nit_empresa': 'RFC empresa',
+        'cc.label.nit_cc': 'RFC',
+        'cc.label.nit_titular': 'RFC titular',
+        'cc.placeholder.doc_titular': 'RFC del titular',
+        'brand.banco.linea': 'Datos para transferencia: {bank} · {tipo} · {numero}'
+      });
+      Object.assign(en, {
+        'settings.label.nit': 'RFC',
+        'formato.label.nit_cedula': 'RFC',
+        'formato.placeholder.nit_cedula': 'RFC',
+        'formato.firma.placeholder.doc': 'RFC',
+        'settings.label.holder_doc_optional': 'Holder RFC (optional)',
+        'settings.label.technician_doc_optional': 'Technician RFC (optional)',
+        'settings.label.account_number': 'CLABE / Account number',
+        'settings.placeholder.account_number': 'CLABE (18 digits)',
+        'cc.cobrador.cedula_nit': 'Personal RFC',
+        'cc.cobrador.nit_empresa': 'Company RFC',
+        'cc.label.nit_cc': 'RFC',
+        'cc.label.nit_titular': 'Holder RFC',
+        'cc.placeholder.doc_titular': 'Holder RFC',
+        'brand.banco.linea': 'Transfer details: {bank} · {tipo} · No. {numero}'
+      });
+    }
+    return lang === 'en' ? en : es;
+  }
+
+  function applyCountryLabels(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    var overrides = getCountryOverrides(currentLang);
+    scope.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n');
+      if (!key || overrides[key] == null) return;
+      el.textContent = interpolate(overrides[key]);
+    });
+    scope.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-placeholder');
+      if (!key || overrides[key] == null) return;
+      el.setAttribute('placeholder', overrides[key]);
     });
   }
 
@@ -922,6 +1000,7 @@
     applyAttributeSet('[data-i18n-title]', 'data-i18n-title', 'data-i18n-default-title', lang);
     applyAttributeSet('[data-i18n-aria-label]', 'data-i18n-aria-label', 'data-i18n-default-aria', lang);
     applyAttributeSet('[data-i18n-html]', 'data-i18n-html', 'data-i18n-default-html', lang);
+    applyCountryLabels();
     updateLangButtons(lang);
     refreshDocTypeLabel();
     refreshBrandTexts();
@@ -1087,6 +1166,9 @@
       applySpanishInRoot(root, pdfBackup.items);
     });
     applyPdfBrandSpanish(pdfBackup.items);
+    [viewRoot, header, qrPrint].forEach(function (root) {
+      applyCountryLabels(root);
+    });
     var viewKey = String(viewId || '').replace('view-', '');
     var docType = document.getElementById('doc-type-label');
     if (docType) {
@@ -1263,6 +1345,7 @@
     refreshBrandTexts: refreshBrandTexts,
     preparePdfSpanish: preparePdfSpanish,
     restorePdfSpanish: restorePdfSpanish,
+    applyCountryLabels: applyCountryLabels,
     KEY_COUNT: Object.keys(I18N_EN).length
   };
 

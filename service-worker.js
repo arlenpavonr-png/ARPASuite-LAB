@@ -1,7 +1,7 @@
 // ARPA Suite — Service Worker
 // CACHE_VERSION: fallback hardcodeado + archivo externo NO protegido.
 // Si falla importScripts/arpa-ia-cache.js, la PWA igual se instala.
-var CACHE_VERSION = 'v20260903-ia-fase5-tec-iso2';
+var CACHE_VERSION = 'v20260925-pdf-mexico';
 try {
   importScripts('./js/arpa-ia/arpa-ia-cache.js');
   if (typeof self.ARPA_CACHE_VERSION === 'string' && self.ARPA_CACHE_VERSION) {

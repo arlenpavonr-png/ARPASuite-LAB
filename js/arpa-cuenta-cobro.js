@@ -255,7 +255,7 @@
     const conIva = document.getElementById('cc-iva-check')?.checked;
     const conRet = document.getElementById('cc-ret-check')?.checked;
     const retPct = parseNum(document.getElementById('cc-ret-pct')?.value) || 0;
-    const iva = conIva ? subtotal * 0.19 : 0;
+    const iva = conIva ? subtotal * (Number(global.ArpaPricing?.getTaxRate?.()) || 0) : 0;
     const retencion = conRet ? subtotal * (retPct / 100) : 0;
     const total = subtotal + iva - retencion;
 
@@ -288,7 +288,7 @@
     const conIva = document.getElementById('cc-iva-check')?.checked;
     const conRet = document.getElementById('cc-ret-check')?.checked;
     const retPct = parseNum(document.getElementById('cc-ret-pct')?.value) || 0;
-    const iva = conIva ? subtotal * 0.19 : 0;
+    const iva = conIva ? subtotal * (Number(global.ArpaPricing?.getTaxRate?.()) || 0) : 0;
     const retencion = conRet ? subtotal * (retPct / 100) : 0;
     const total = subtotal + iva - retencion;
     const r = global.ArpaBrand?.getSettings?.() || getRawSettings();
@@ -304,7 +304,7 @@
         doc: (r.technicianDocument || '').trim(),
         empresa: (r.companyName || '').trim(),
         nit: (r.nit || '').trim(),
-        tel: (r.phone || '').trim(),
+        tel: global.ArpaPricing?.formatCompanyPhone?.(r.phone) || (r.phone || '').trim(),
         dir: (r.address || '').trim(),
         web: (r.website || '').trim()
       },
@@ -464,7 +464,9 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     let hy = 20;
-    if (d.cobrador.nit) { doc.text(`NIT: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
+    const taxId = global.ArpaPricing?.getTaxIdLabel?.() || 'NIT';
+    const isMx = (global.ArpaPricing?.getCountryCode?.() || 'CO') === 'MX';
+    if (d.cobrador.nit) { doc.text(`${taxId}: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
     if (d.cobrador.tel) { doc.text(`Tel: ${d.cobrador.tel}`, m + (logoData ? 26 : 0), hy); }
 
     doc.setFillColor(...GOLD);
@@ -516,16 +518,16 @@
     let yR = y + 6;
     yL = blockLines(leftX, yL, [
       ['Nombre', d.cobrador.nombre],
-      ['C.C. / NIT', d.cobrador.doc],
+      [isMx ? 'RFC' : 'C.C. / NIT', d.cobrador.doc],
       ['Empresa', d.cobrador.empresa],
-      ['NIT', d.cobrador.nit],
+      [taxId, d.cobrador.nit],
       ['Tel', d.cobrador.tel],
       ['Dir', d.cobrador.dir],
       ['Web', d.cobrador.web]
     ]);
     yR = blockLines(rightX, yR, [
       ['Nombre', d.cliente.nombre],
-      ['NIT / C.C.', d.cliente.doc],
+      [isMx ? 'RFC' : 'NIT / C.C.', d.cliente.doc],
       ['Dir', d.cliente.dir],
       ['Tel', d.cliente.tel]
     ]);
@@ -577,7 +579,7 @@
     doc.setFontSize(9);
     const totales = [
       ['Subtotal', formatoPesos(d.subtotal)],
-      ...(d.conIva ? [['IVA (19%)', formatoPesos(d.iva)]] : []),
+      ...(d.conIva ? [[(global.ArpaPricing?.getTaxLabelText?.()?.full || 'IVA 19%') + ':', formatoPesos(d.iva)]] : []),
       ...(d.conRet ? [[`Retención (${d.retPct}%)`, '- ' + formatoPesos(d.retencion)]] : [])
     ];
     totales.forEach(([label, val]) => {
@@ -604,7 +606,7 @@
       d.pago.accountType && `Tipo: ${d.pago.accountType}`,
       d.pago.accountNumber && `Cuenta N°: ${d.pago.accountNumber}`,
       d.pago.accountHolder && `Titular: ${d.pago.accountHolder}`,
-      d.pago.accountHolderDocument && `NIT/C.C.: ${d.pago.accountHolderDocument}`
+      d.pago.accountHolderDocument && `${isMx ? 'RFC' : 'NIT/C.C.'}: ${d.pago.accountHolderDocument}`
     ].filter(Boolean);
     const consigBoxH = 10 + consigLines.length * 4.5 + 4;
     if (y > ph - (consigBoxH + 15)) { doc.addPage(); y = m; }
@@ -614,7 +616,7 @@
     doc.setTextColor(21, 128, 61);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text('DATOS PARA CONSIGNACIÓN', m + 4, y + 6);
+    doc.text(isMx ? 'DATOS PARA TRANSFERENCIA' : 'DATOS PARA CONSIGNACIÓN', m + 4, y + 6);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     let py = y + 12;

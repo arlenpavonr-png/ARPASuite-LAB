@@ -420,11 +420,17 @@
     if (editingProductId) {
       const idx = products.findIndex((p) => p.id === editingProductId);
       if (idx >= 0) {
-        products[idx] = { ...products[idx], ...payload };
+        const prev = products[idx];
+        const priceChanged = Number(prev.pvp) !== Number(payload.pvp);
+        products[idx] = { ...prev, ...payload };
         delete products[idx].categoria;
+        if (priceChanged) {
+          products[idx].precioPrecargado = false;
+          delete products[idx].pvpCop;
+        }
       }
     } else {
-      products.unshift({ id: newId(), ...payload });
+      products.unshift({ id: newId(), ...payload, precioPrecargado: false });
     }
 
     saveProducts(products, oid);
@@ -765,6 +771,7 @@
                 <button type="button" class="btn-catalogo-import btn-catalogo-maestro-oficio" data-oficio="${escapeHtml(oficioId)}">☁️ Catálogo maestro</button>
                 <button type="button" class="btn-catalogo-import btn-catalogo-add-oficio" data-oficio="${escapeHtml(oficioId)}" data-i18n="cat.btn.agregar_producto">+ Agregar producto</button>
               </div>
+              <p class="catalogo-fx-notice" hidden data-i18n="cat.aviso.precios_convertidos">Precios de referencia convertidos desde Colombia. Revísalos antes de cotizar.</p>
               <span id="catalogo-count-${escapeHtml(oficioId)}" class="catalogo-count"></span>
             </div>
             <div id="catalogo-empty-${escapeHtml(oficioId)}" class="catalogo-empty" hidden data-i18n-html="cat.empty">
@@ -853,7 +860,8 @@
           unidad: String(p.unidad || 'unidad').trim() || 'unidad',
           marca: String(p.marca || '').trim(),
           categoriaId: ensureCat(p.categoria || 'General'),
-          oficioId: normalizeOficioId(oficioId)
+          oficioId: normalizeOficioId(oficioId),
+          precioPrecargado: false
         })).filter((p) => p.cod && p.nom);
 
         if (newCats.length) {
@@ -880,6 +888,73 @@
       });
   }
 
+  function collectSeedPvpByCode() {
+    const map = {};
+    const oficios = global.ArpaOficios;
+    const ids = oficios?.getOficiosList?.()?.map((o) => o.id) || [];
+    ids.forEach((oid) => {
+      (oficios.getSeedProductsForOficio?.(oid) || []).forEach((item) => {
+        const cod = String(item.cod || item.codigo || '').trim().toLowerCase();
+        const pvp = Number(item.pvp != null ? item.pvp : item.precio) || 0;
+        if (cod && pvp > 0) map[cod] = pvp;
+      });
+    });
+    const marcas = global.ArpaCatalogo?.getCatalogoMarcas?.() || {};
+    Object.values(marcas).forEach((categorias) => {
+      Object.values(categorias || {}).forEach((items) => {
+        (items || []).forEach((item) => {
+          const cod = String(item.cod || '').trim().toLowerCase();
+          const pvp = Number(item.pvp) || 0;
+          if (cod && pvp > 0) map[cod] = pvp;
+        });
+      });
+    });
+    (global.CATALOGO_BFT_NAS || []).forEach((item) => {
+      const cod = String(item.codigo || item.cod || '').trim().toLowerCase();
+      const pvp = Number(item.precio != null ? item.precio : item.pvp) || 0;
+      if (cod && pvp > 0) map[cod] = pvp;
+    });
+    (global.CATALOGO_PPA || []).forEach((item) => {
+      const cod = String(item.codigo || item.cod || '').trim().toLowerCase();
+      const pvp = Number(item.precio != null ? item.precio : item.pvp) || 0;
+      if (cod && pvp > 0) map[cod] = pvp;
+    });
+    return map;
+  }
+
+  function resyncPrecargadoPrices() {
+    const seedMap = collectSeedPvpByCode();
+    const pricing = global.ArpaPricing;
+    if (!pricing?.looksLikePrecargado) return;
+    getActiveOficios().forEach((oid) => {
+      const products = getProducts(oid);
+      let changed = false;
+      products.forEach((p) => {
+        const seedCop = seedMap[String(p.cod || '').trim().toLowerCase()];
+        const cop = pricing.originalCopPrice
+          ? pricing.originalCopPrice(p, seedCop)
+          : (Number.isFinite(Number(seedCop)) ? Number(seedCop) : Number(p.pvpCop));
+        if (!pricing.looksLikePrecargado(p, cop)) return;
+        if (cop == null || !Number.isFinite(Number(cop))) return;
+        const next = pricing.applyPrecargadoPvp(cop);
+        if (Number(p.pvp) !== next || Number(p.pvpCop) !== Number(cop) || p.precioPrecargado !== true) {
+          p.pvpCop = Number(cop);
+          p.precioPrecargado = true;
+          p.pvp = next;
+          changed = true;
+        }
+      });
+      if (changed) saveProducts(products, oid);
+    });
+  }
+
+  function renderConvertedPriceNotice() {
+    const show = !!global.ArpaPricing?.showsConvertedPriceNotice?.();
+    document.querySelectorAll('.catalogo-fx-notice').forEach((el) => {
+      el.hidden = !show;
+    });
+  }
+
   function render() {
     const active = getActiveOficios();
     global.ArpaOficios?.seedActiveOficios?.();
@@ -893,6 +968,7 @@
     });
 
     applyCatalogoTabVisibility(active);
+    renderConvertedPriceNotice();
   }
 
   function refreshView() {
@@ -1050,7 +1126,8 @@
         unidad: r.unidad,
         marca: r.marca,
         categoriaId: ensureCategoryByName(r.categoria, categories, oid),
-        oficioId: oid
+        oficioId: oid,
+        precioPrecargado: false
       }));
   }
 
@@ -1232,6 +1309,8 @@
     findByCod,
     render,
     refreshView,
+    resyncPrecargadoPrices,
+    renderConvertedPriceNotice,
     setFabVisible,
     initMiCatalogo
   };

@@ -726,7 +726,15 @@
       const seedPvp = id === OFICIO_AUTOMATISMOS
         ? 0
         : (Number(item.pvp != null ? item.pvp : item.precio) || 0);
-      products.push({
+      products.push(global.ArpaPricing?.markPrecargadoProduct?.({
+        id: newId(),
+        cod,
+        nom,
+        unidad: normalizeSeedUnidad(item.unidad),
+        marca: String(item.marca || '').trim(),
+        categoriaId,
+        oficioId: id
+      }, seedPvp) || {
         id: newId(),
         cod,
         nom,
