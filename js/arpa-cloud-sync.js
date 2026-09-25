@@ -48,6 +48,9 @@
   // ── Licencia ─────────────────────────────────────────────────────────────
 
   function getLicenseCode() {
+    if (global.ArpaLabDemo && typeof global.ArpaLabDemo.isActive === 'function' && global.ArpaLabDemo.isActive()) {
+      return '';
+    }
     try { return (localStorage.getItem(LICENSE_CODE_KEY) || '').trim().toUpperCase(); }
     catch (e) { return ''; }
   }

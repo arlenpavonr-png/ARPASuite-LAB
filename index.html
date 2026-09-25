@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ARPA Suite">
 <meta name="format-detection" content="telephone=no">
+<script>window.ARPA_IS_LAB = true;</script>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -2761,6 +2762,13 @@
   }
 
   var params = new URLSearchParams(window.location.search);
+  var host = window.location.hostname;
+  var isPrivateLan = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host);
+  var wantsLabDemo = params.get('labdemo') === '1';
+  try {
+    if (wantsLabDemo && isPrivateLan) sessionStorage.setItem('arpa_lab_demo', '1');
+    if (sessionStorage.getItem('arpa_lab_demo') === '1') wantsLabDemo = true;
+  } catch (e) {}
   if (params.get('start') === '1' || params.get('from') === 'landing') {
     markSalesEntry();
     if (window.history && window.history.replaceState) {
@@ -2773,9 +2781,8 @@
   }
 
   if (!hasCompanySettings() && !hasSalesEntry() && !hasActiveLicense()) {
-    var host = window.location.hostname;
     var isLabLocal = host === 'localhost' || host === '127.0.0.1';
-    if (!isLabLocal) {
+    if (!isLabLocal && !(wantsLabDemo && isPrivateLan)) {
       window.location.replace(LANDING_URL);
     }
   }
@@ -4581,6 +4588,7 @@ if ('serviceWorker' in navigator) {
 
 <!-- Captura WhatsApp trial (debe cargar antes del gate de licencia) -->
 <script src="./js/arpa-trial-capture.js"></script>
+<script src="./js/arpa-lab-demo.js"></script>
 
 <!-- Validación de licencia: trial auto 7 días + revalidación en cada apertura -->
 <script data-cfasync="false" type="text/javascript" charset="utf-8">
@@ -5059,6 +5067,9 @@ if ('serviceWorker' in navigator) {
   }
 
   function startLicenseFlow() {
+    if (window.ArpaLabDemo && window.ArpaLabDemo.activateIfAllowed()) {
+      return;
+    }
     var saved = getSavedCode();
     if (saved) {
       validateSavedCode(saved);
@@ -5068,6 +5079,9 @@ if ('serviceWorker' in navigator) {
   }
 
   function bootLicenseGate() {
+    if (window.ArpaLabDemo && window.ArpaLabDemo.activateIfAllowed()) {
+      return;
+    }
     if (window.ArpaTrialCapture) {
       window.ArpaTrialCapture.retryPendingRegistration?.();
       window.ArpaTrialCapture.ensureTrialStartSilent?.();
