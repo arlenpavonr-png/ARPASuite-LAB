@@ -583,6 +583,7 @@
     window.ArpaI18n?.applyCountryLabels?.();
     global.ArpaCotizacion?.syncTaxLabels?.();
     global.ArpaMiCatalogo?.renderConvertedPriceNotice?.();
+    global.ArpaCobros?.refreshPrecargadoValues?.('cot');
   }
 
   function applyCuentaCobroFromSettings(s, options) {
@@ -752,6 +753,13 @@
       const code = countrySelect.value;
       const currency = global.ArpaPricing?.COUNTRY_PROFILES?.[code]?.currency;
       if (currency && currencySelect) currencySelect.value = currency;
+      const current = getSettings();
+      saveSettings({ ...current, country: code, currency: currency || current.currency });
+      global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
+      global.ArpaMiCatalogo?.render?.();
+      global.ArpaCobros?.refreshPrecargadoValues?.('cot');
+      global.ArpaCotizacion?.syncTaxLabels?.();
+      applyToUI();
     });
   }
 

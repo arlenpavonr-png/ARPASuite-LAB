@@ -9,8 +9,75 @@
     return stores[id];
   }
 
-  function createLine(desc = '', value = 0) {
-    return { id: Date.now() + Math.random(), desc, value: Number(value) || 0 };
+  function defaultPriceKeys() {
+    return Object.keys(global.ArpaPricing?.DEFAULT_PRICE_LIST || {});
+  }
+
+  function isKnownConversion(cop, value) {
+    const convert = global.ArpaPricing?.convertCop;
+    const profiles = global.ArpaPricing?.COUNTRY_PROFILES;
+    if (typeof convert !== 'function' || !profiles) return Number(value) === Number(cop);
+    const val = Number(value);
+    const original = Number(cop);
+    if (val === original) return true;
+    return Object.keys(profiles).some((code) => val === convert(original, code));
+  }
+
+  function inferDefaultKey(line) {
+    const defaults = global.ArpaPricing?.DEFAULT_PRICE_LIST;
+    if (!defaults || !line) return '';
+    if (line.priceKey && defaults[line.priceKey]) return line.priceKey;
+    const desc = String(line.desc || '').trim();
+    for (let i = 0; i < defaultPriceKeys().length; i++) {
+      const key = defaultPriceKeys()[i];
+      const item = defaults[key];
+      const labelKey = item.labelKey;
+      const labels = [
+        global.ArpaI18n?.t?.(labelKey),
+        global.ArpaI18n?.translateIn?.(labelKey, 'es'),
+        global.ArpaI18n?.translateIn?.(labelKey, 'en')
+      ].filter(Boolean);
+      if (desc && labels.indexOf(desc) !== -1) return key;
+    }
+    return '';
+  }
+
+  function attachPrecargadoMeta(line) {
+    if (!line || line.userEdited) return line;
+    const key = inferDefaultKey(line);
+    if (!key) return line;
+    const cop = Number(global.ArpaPricing.DEFAULT_PRICE_LIST[key].value);
+    line.priceKey = key;
+    if (line.valueCop == null || !Number.isFinite(Number(line.valueCop))) {
+      line.valueCop = cop;
+    }
+    const val = Number(line.value);
+    if (Number.isFinite(val) && val > 0 && !isKnownConversion(line.valueCop, val)) {
+      line.userEdited = true;
+    }
+    return line;
+  }
+
+  function applyConvertedValue(line) {
+    attachPrecargadoMeta(line);
+    if (!line || line.userEdited) return line;
+    if (line.valueCop == null || typeof global.ArpaPricing?.convertCop !== 'function') return line;
+    line.value = global.ArpaPricing.convertCop(line.valueCop);
+    return line;
+  }
+
+  function createLine(desc, value, meta) {
+    const extra = meta || {};
+    const line = {
+      id: Date.now() + Math.random(),
+      desc: desc || '',
+      value: Number(value) || 0,
+      valueCop: extra.valueCop != null ? Number(extra.valueCop) : null,
+      userEdited: !!extra.userEdited,
+      priceKey: extra.priceKey || ''
+    };
+    applyConvertedValue(line);
+    return line;
   }
 
   function renderEditor(storeId) {
@@ -32,7 +99,7 @@
         </div>
         <div class="field cobro-valor-field">
           <label>${window.ArpaI18n.t('cobros.valor_cop', { moneda: window.ArpaPricing?.getDefaultCurrency?.() || 'COP' })}</label>
-          <input type="number" class="cobro-valor" min="0" step="1000" inputmode="numeric" value="${line.value || ''}" placeholder="0">
+          <input type="number" class="cobro-valor" min="0" step="1" inputmode="numeric" value="${line.value || ''}" placeholder="0">
         </div>
         <button type="button" class="btn-quitar-extra cobro-remove" data-index="${index}" aria-label="${escapeAttr(window.ArpaI18n.t('cobros.quitar'))}">✕</button>
       </div>
@@ -46,7 +113,15 @@
     });
     container.querySelectorAll('.cobro-valor').forEach((input, i) => {
       input.addEventListener('input', () => {
-        store.lines[i].value = Number(input.value) || 0;
+        const line = store.lines[i];
+        if (!line) return;
+        const next = Number(input.value) || 0;
+        line.value = next;
+        if (line.valueCop != null && typeof global.ArpaPricing?.convertCop === 'function') {
+          line.userEdited = next !== global.ArpaPricing.convertCop(line.valueCop);
+        } else {
+          line.userEdited = true;
+        }
         notifyChange(storeId);
       });
     });
@@ -104,28 +179,42 @@
 
   function seedFromPriceList(storeId) {
     const store = getStore(storeId);
-    if (store.seeded && store.lines.length) return;
+    if (store.seeded && store.lines.length) {
+      refreshPrecargadoValues(storeId);
+      return;
+    }
     const list = global.ArpaPricing?.getPriceList?.();
-    if (!list) return;
-    store.lines = Object.values(list).map((item) => createLine(item.label, item.value));
+    const defaults = global.ArpaPricing?.DEFAULT_PRICE_LIST;
+    if (!list || !defaults) return;
+    store.lines = Object.keys(defaults).map((key) => {
+      const item = list[key] || {};
+      return createLine(item.label || global.ArpaPricing?.getDefaultLabel?.(key) || key, item.value, {
+        priceKey: key,
+        valueCop: defaults[key].value,
+        userEdited: !!item.userEdited
+      });
+    });
     store.seeded = true;
     renderEditor(storeId);
   }
 
   function refreshPrecargadoValues(storeId) {
     const store = getStore(storeId);
-    const list = global.ArpaPricing?.getPriceList?.();
-    if (!list || !store.lines.length) return;
-    const items = Object.values(list);
-    if (store.lines.length !== items.length) {
-      renderEditor(storeId);
-      return;
-    }
-    store.lines.forEach((line, index) => {
-      const item = items[index];
-      if (!item || item.userEdited) return;
-      line.desc = item.label;
-      line.value = item.value;
+    if (!store.lines.length) return;
+    const list = global.ArpaPricing?.getPriceList?.() || {};
+    store.lines.forEach((line) => {
+      attachPrecargadoMeta(line);
+      const key = line.priceKey;
+      if (key && list[key]?.userEdited) {
+        line.userEdited = true;
+        line.value = Number(list[key].value) || line.value;
+        return;
+      }
+      if (line.userEdited) return;
+      applyConvertedValue(line);
+      if (key && list[key]?.label && !line.userEdited) {
+        line.desc = list[key].label;
+      }
     });
     renderEditor(storeId);
   }
@@ -152,10 +241,15 @@
   function setLines(storeId, rawLines, options) {
     const store = getStore(storeId);
     store.lines = (rawLines || []).map(function(l) {
-      return createLine(l.desc || l.nom || '', l.value != null ? l.value : (l.pvp || 0));
+      return createLine(l.desc || l.nom || '', l.value != null ? l.value : (l.pvp || 0), {
+        valueCop: l.valueCop,
+        userEdited: !!l.userEdited,
+        priceKey: l.priceKey || ''
+      });
     });
     store.seeded = !!(options && options.keepSeeded);
-    renderEditor(storeId);
+    if (store.lines.length) refreshPrecargadoValues(storeId);
+    else renderEditor(storeId);
   }
   function notifyChange(storeId) {
     if (storeId === 'cot') global.ArpaCotizacion?.renderTablaCot?.(false);

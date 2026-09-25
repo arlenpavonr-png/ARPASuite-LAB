@@ -215,10 +215,15 @@
       const label = global.ArpaI18n?.t?.(item.labelKey);
       return {
         desc: (label && !/pricing\.default\./i.test(label)) ? label : (COBRO_LABEL_FALLBACK[key] || key),
-        value: item.value
+        priceKey: key,
+        valueCop: item.value,
+        userEdited: false
       };
     });
     global.ArpaCobros.setLines('cot', lines, { keepSeeded: true });
+    if (typeof global.ArpaCobros.refreshPrecargadoValues === 'function') {
+      global.ArpaCobros.refreshPrecargadoValues('cot');
+    }
     if (global.ArpaCotizacion && typeof global.ArpaCotizacion.renderTablaCot === 'function') {
       global.ArpaCotizacion.renderTablaCot(false);
     }
