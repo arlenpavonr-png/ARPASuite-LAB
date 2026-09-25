@@ -585,6 +585,7 @@
     global.ArpaCotizacion?.syncTaxLabels?.();
     global.ArpaMiCatalogo?.renderConvertedPriceNotice?.();
     global.ArpaCobros?.refreshPrecargadoValues?.('cot');
+    window.ArpaI18n?.refreshDocTypeLabel?.();
   }
 
   function applyCuentaCobroFromSettings(s, options) {

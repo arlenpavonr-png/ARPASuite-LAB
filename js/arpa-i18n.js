@@ -78,10 +78,10 @@
     'header.settings.title': 'Company settings',
     'header.settings.aria': 'Company settings',
     'header.doc_type.formato': 'Work Order',
-    'header.doc_type.cotizacion': '💰 Quote',
-    'header.doc_type.catalogo': '📦 My Catalog',
-    'header.doc_type.cuenta_cobro': '🧾 Invoice',
-    'header.doc_type.historial': '📋 Service History',
+    'header.doc_type.cotizacion': 'Quote',
+    'header.doc_type.catalogo': 'My Catalog',
+    'header.doc_type.cuenta_cobro': 'Invoice',
+    'header.doc_type.historial': 'Service History',
     'header.number_label': 'No.',
     'header.btn_new_number': '+ NEW No.',
     'header.placeholder.formato_number': 'OT-001',
@@ -112,7 +112,7 @@
     'formato.label.direccion_instalacion': 'Installation address',
     'formato.placeholder.direccion': 'Street, avenue, neighborhood...',
     'formato.label.ciudad': 'City',
-    'formato.placeholder.ciudad': 'Medellín',
+    'formato.placeholder.ciudad': 'City',
     'formato.label.fecha': 'Date',
     'formato.section.tecnico': 'Responsible Technician',
     'formato.label.tecnico': 'Technician',
@@ -727,10 +727,12 @@
   function supplementSpanishKeys() {
     Object.assign(I18N_ES, {
       'header.doc_type.formato': 'Orden de Trabajo',
-      'header.doc_type.cotizacion': '💰 Cotización',
-      'header.doc_type.catalogo': '📦 Mi Catálogo',
-      'header.doc_type.cuenta_cobro': '🧾 Cuenta de Cobro',
-      'header.doc_type.historial': '📋 Historial de Servicios',
+      'header.doc_type.cotizacion': 'Cotización',
+      'header.doc_type.catalogo': 'Mi Catálogo',
+      'header.doc_type.cuenta_cobro': 'Cuenta de Cobro',
+      'header.doc_type.historial': 'Historial de Servicios',
+      'formato.placeholder.telefono': 'Número de contacto',
+      'formato.placeholder.ciudad': 'Ciudad',
       'header.validation_badge_ready': 'Arpa Suite · Listo',
       'formato.garantia.header': 'Garantía – {company}',
       'formato.garantia.exclusiones.body': '<strong>Exclusiones de garantía:</strong> La garantía no aplica sobre daños causados por descargas eléctricas, sobretensiones, rayos u otras causas externas. Tampoco aplica cuando el equipo ha sido intervenido por <strong>personal no autorizado por {company}</strong>.',
@@ -902,12 +904,32 @@
 
   supplementSpanishKeys();
 
+  function getCountryPlaceholders(country) {
+    var map = {
+      CO: { phone: '+57 300 000 0000', cityEs: 'Medellín', cityEn: 'Medellín' },
+      MX: { phone: '+52 55 0000 0000', cityEs: 'Ciudad de México', cityEn: 'Mexico City' },
+      CL: { phone: '+56 9 0000 0000', cityEs: 'Santiago', cityEn: 'Santiago' },
+      PE: { phone: '+51 1 000 0000', cityEs: 'Lima', cityEn: 'Lima' },
+      US: { phone: '+1 555 000 0000', cityEs: 'Miami', cityEn: 'Miami' }
+    };
+    return map[country] || map.CO;
+  }
+
   function getCountryOverrides(lang) {
     var country = (global.ArpaPricing && typeof global.ArpaPricing.getCountryCode === 'function')
       ? global.ArpaPricing.getCountryCode()
       : 'CO';
-    var es = { 'cot.table.pvp_unit': 'PRECIO UNIT.' };
-    var en = { 'cot.table.pvp_unit': 'UNIT PRICE' };
+    var ph = getCountryPlaceholders(country);
+    var es = {
+      'cot.table.pvp_unit': 'PRECIO UNIT.',
+      'formato.placeholder.telefono': ph.phone,
+      'formato.placeholder.ciudad': ph.cityEs
+    };
+    var en = {
+      'cot.table.pvp_unit': 'UNIT PRICE',
+      'formato.placeholder.telefono': ph.phone,
+      'formato.placeholder.ciudad': ph.cityEn
+    };
     if (country === 'MX') {
       Object.assign(es, {
         'settings.label.nit': 'RFC',
@@ -956,6 +978,7 @@
     if (!scope.querySelectorAll) return;
     var overrides = getCountryOverrides(currentLang);
     scope.querySelectorAll('[data-i18n]').forEach(function (el) {
+      if (el.id === 'doc-type-label') return;
       var key = el.getAttribute('data-i18n');
       if (!key) return;
       var text = overrides[key];
@@ -1033,6 +1056,7 @@
 
   function applyAttributeSet(selector, attr, defaultAttr, lang) {
     document.querySelectorAll(selector).forEach(function (el) {
+      if (el.id === 'doc-type-label') return;
       var key = el.getAttribute(attr);
       if (!key) return;
       var resolved = lookupText(key, lang);
@@ -1070,6 +1094,7 @@
     refreshDocTypeLabel();
     refreshBrandTexts();
     window.ArpaBrand?.applyToUI?.();
+    refreshDocTypeLabel();
     window.ArpaCobros?.refreshDefaultLabels?.('cot');
   }
 
@@ -1150,6 +1175,7 @@
   function applySpanishInRoot(root, items) {
     if (!root) return;
     root.querySelectorAll('[data-i18n]').forEach(function (el) {
+      if (el.id === 'doc-type-label') return;
       var def = el.getAttribute('data-i18n-default');
       if (def == null) return;
       pushBackup(items, el, 'textContent', el.textContent);
@@ -1240,7 +1266,7 @@
     var docType = document.getElementById('doc-type-label');
     if (docType) {
       pushBackup(pdfBackup.items, docType, 'textContent', docType.textContent);
-      docType.textContent = resolveText(DOC_TYPE_KEYS[viewKey] || DOC_TYPE_KEYS.formato, 'es');
+      docType.textContent = chipDocTypeText(resolveText(DOC_TYPE_KEYS[viewKey] || DOC_TYPE_KEYS.formato, 'es'));
     }
   }
 
@@ -1326,15 +1352,32 @@
     applyCotNotaLegal();
   }
 
-  function refreshDocTypeLabel() {
+  function chipDocTypeText(text) {
+    var cleaned = String(text || '').replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/, '').trim();
+    return cleaned || String(text || '');
+  }
+
+  function resolveCurrentView(preferredView) {
+    if (preferredView && DOC_TYPE_KEYS[preferredView]) return preferredView;
+    var visible = document.querySelector('.suite-view:not([hidden])');
+    if (visible && visible.id && visible.id.indexOf('view-') === 0) {
+      var fromDom = visible.id.slice(5);
+      if (DOC_TYPE_KEYS[fromDom]) return fromDom;
+    }
+    if (global.ArpaViews && typeof global.ArpaViews.getCurrentView === 'function') {
+      var fromApi = global.ArpaViews.getCurrentView();
+      if (fromApi && DOC_TYPE_KEYS[fromApi]) return fromApi;
+    }
+    return 'formato';
+  }
+
+  function refreshDocTypeLabel(preferredView) {
     var el = document.getElementById('doc-type-label');
     if (!el) return;
-    var view = 'formato';
-    if (global.ArpaViews && typeof global.ArpaViews.getCurrentView === 'function') {
-      view = global.ArpaViews.getCurrentView() || 'formato';
-    }
+    var view = resolveCurrentView(preferredView);
     var key = DOC_TYPE_KEYS[view] || DOC_TYPE_KEYS.formato;
-    el.textContent = t(key);
+    el.setAttribute('data-i18n', key);
+    el.textContent = chipDocTypeText(t(key));
   }
 
   function wrapFunction(name, afterFn) {

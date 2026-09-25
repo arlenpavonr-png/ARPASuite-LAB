@@ -25,11 +25,11 @@
   };
 
   const CURRENCIES = {
-    COP: { locale: 'es-CO', symbol: '$' },
-    USD: { locale: 'en-US', symbol: '$' },
-    MXN: { locale: 'es-MX', symbol: '$' },
-    PEN: { locale: 'es-PE', symbol: 'S/' },
-    CLP: { locale: 'es-CL', symbol: '$' }
+    COP: { locale: 'es-CO', symbol: '$', decimals: 0 },
+    USD: { locale: 'en-US', symbol: '$', decimals: 2 },
+    MXN: { locale: 'es-MX', symbol: '$', decimals: 2 },
+    PEN: { locale: 'es-PE', symbol: 'S/', decimals: 2 },
+    CLP: { locale: 'es-CL', symbol: '$', decimals: 0 }
   };
 
   const COUNTRY_PROFILES = {
@@ -273,10 +273,27 @@
       .replace(/>/g, '&gt;');
   }
 
+  function currencyDecimals(currencyCode) {
+    const code = (currencyCode && CURRENCIES[currencyCode]) ? currencyCode : getDefaultCurrency();
+    const cfg = CURRENCIES[code] || CURRENCIES.COP;
+    return cfg.decimals != null ? cfg.decimals : 0;
+  }
+
+  function roundMoney(n, currencyCode) {
+    const decimals = currencyDecimals(currencyCode);
+    const factor = Math.pow(10, decimals);
+    return Math.round((Number(n) || 0) * factor) / factor;
+  }
+
   function formatoPesos(n, currencyCode) {
     const code = (currencyCode && CURRENCIES[currencyCode]) ? currencyCode : getDefaultCurrency();
     const cfg = CURRENCIES[code] || CURRENCIES.COP;
-    return cfg.symbol + ' ' + (Number(n) || 0).toLocaleString(cfg.locale);
+    const decimals = currencyDecimals(code);
+    const value = roundMoney(n, code);
+    return cfg.symbol + ' ' + value.toLocaleString(cfg.locale, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
   }
 
   function digitsOnly(value) {
@@ -346,6 +363,8 @@
     getTaxIdLabel,
     showsConvertedPriceNotice,
     isKnownConvertedPrice,
+    currencyDecimals,
+    roundMoney,
     formatoPesos
   };
 })(window);

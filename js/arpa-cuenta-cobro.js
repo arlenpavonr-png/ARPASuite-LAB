@@ -149,7 +149,15 @@
   }
 
   function formatoPesos(n) {
-    return global.ArpaPricing?.formatoPesos(n) || ('$ ' + (Number(n) || 0).toLocaleString('es-CO'));
+    return global.ArpaPricing?.formatoPesos(n) || ('$ ' + (Number(n) || 0).toLocaleString('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }));
+  }
+
+  function roundMoney(n) {
+    if (typeof global.ArpaPricing?.roundMoney === 'function') return global.ArpaPricing.roundMoney(n);
+    return Math.round(Number(n) || 0);
   }
 
   function parseNum(v) {
@@ -255,9 +263,9 @@
     const conIva = document.getElementById('cc-iva-check')?.checked;
     const conRet = document.getElementById('cc-ret-check')?.checked;
     const retPct = parseNum(document.getElementById('cc-ret-pct')?.value) || 0;
-    const iva = conIva ? subtotal * (Number(global.ArpaPricing?.getTaxRate?.()) || 0) : 0;
-    const retencion = conRet ? subtotal * (retPct / 100) : 0;
-    const total = subtotal + iva - retencion;
+    const iva = conIva ? roundMoney(subtotal * (Number(global.ArpaPricing?.getTaxRate?.()) || 0)) : 0;
+    const retencion = conRet ? roundMoney(subtotal * (retPct / 100)) : 0;
+    const total = roundMoney(subtotal + iva - retencion);
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     set('cc-subtotal-val', formatoPesos(subtotal));
@@ -288,9 +296,9 @@
     const conIva = document.getElementById('cc-iva-check')?.checked;
     const conRet = document.getElementById('cc-ret-check')?.checked;
     const retPct = parseNum(document.getElementById('cc-ret-pct')?.value) || 0;
-    const iva = conIva ? subtotal * (Number(global.ArpaPricing?.getTaxRate?.()) || 0) : 0;
-    const retencion = conRet ? subtotal * (retPct / 100) : 0;
-    const total = subtotal + iva - retencion;
+    const iva = conIva ? roundMoney(subtotal * (Number(global.ArpaPricing?.getTaxRate?.()) || 0)) : 0;
+    const retencion = conRet ? roundMoney(subtotal * (retPct / 100)) : 0;
+    const total = roundMoney(subtotal + iva - retencion);
     const r = global.ArpaBrand?.getSettings?.() || getRawSettings();
     const clienteNombre = document.getElementById('cc-cliente-nombre')?.value.trim() || '';
 

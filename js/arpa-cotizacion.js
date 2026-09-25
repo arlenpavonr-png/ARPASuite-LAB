@@ -36,7 +36,15 @@
   }
 
   function formatoPesos(n) {
-    return global.ArpaPricing?.formatoPesos(n) || ('$ ' + (Number(n) || 0).toLocaleString('es-CO'));
+    return global.ArpaPricing?.formatoPesos(n) || ('$ ' + (Number(n) || 0).toLocaleString('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }));
+  }
+
+  function roundMoney(n) {
+    if (typeof global.ArpaPricing?.roundMoney === 'function') return global.ArpaPricing.roundMoney(n);
+    return Math.round(Number(n) || 0);
   }
 
   function getTaxRate() {
@@ -248,8 +256,8 @@
     const subtotalCobros = getCobrosLineas().reduce((s, f) => s + f.pvp * f.cant, 0);
     const subtotal = subtotalProductos + subtotalCobros;
     const conIva = document.getElementById('iva-check-cot')?.checked;
-    const iva = conIva ? subtotal * getTaxRate() : 0;
-    const total = subtotal + iva;
+    const iva = conIva ? roundMoney(subtotal * getTaxRate()) : 0;
+    const total = roundMoney(subtotal + iva);
     const subEl = document.getElementById('subtotal-val-cot');
     const ivaEl = document.getElementById('iva-val-cot');
     const totalEl = document.getElementById('total-val-cot');
@@ -343,8 +351,8 @@
     const subtotalCobros = getCobrosLineas().reduce((s, f) => s + f.pvp * f.cant, 0);
     const subtotal = subtotalProductos + subtotalCobros;
     const conIva = document.getElementById('iva-check-cot')?.checked;
-    const iva = conIva ? subtotal * getTaxRate() : 0;
-    const total = subtotal + iva;
+    const iva = conIva ? roundMoney(subtotal * getTaxRate()) : 0;
+    const total = roundMoney(subtotal + iva);
 
     return {
       numero: document.getElementById('numero-cot')?.value.trim() || '',
