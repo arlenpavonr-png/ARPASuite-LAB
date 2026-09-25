@@ -759,6 +759,7 @@
       saveSettings({ ...current, country: code, currency: currency || current.currency });
       global.ArpaPricing?.renderPriceListSettings?.();
       global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
+      global.ArpaCatalogo?.invalidateListaCache?.();
       global.ArpaMiCatalogo?.render?.();
       global.ArpaCobros?.refreshPrecargadoValues?.('cot');
       global.ArpaCotizacion?.syncTaxLabels?.();

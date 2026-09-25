@@ -427,6 +427,24 @@
     return null;
   }
 
+  function getSeedCop(cod) {
+    const canon = canonicalCodigo(cod);
+    if (PRECIOS_PVP[canon] != null) return Number(PRECIOS_PVP[canon]) || 0;
+    const nas = (global.CATALOGO_BFT_NAS || []).find((item) => canonicalCodigo(item.codigo || item.cod) === canon);
+    if (nas) return Number(nas.precio != null ? nas.precio : nas.pvp) || 0;
+    const ppa = (global.CATALOGO_PPA || []).find((item) => canonicalCodigo(item.codigo || item.cod) === canon);
+    if (ppa) return Number(ppa.precio != null ? ppa.precio : ppa.pvp) || 0;
+    return 0;
+  }
+
+  function displayProductPvp(p) {
+    const seed = getSeedCop(p && p.cod);
+    if (global.ArpaPricing && typeof global.ArpaPricing.resolveDisplayPvp === 'function') {
+      return global.ArpaPricing.resolveDisplayPvp(p, seed || undefined);
+    }
+    return Number(p && p.pvp) || 0;
+  }
+
   function productToFlatDisplay(p, oficioId) {
     const { marca, nom } = splitMarcaNom(p.nom, p.marca);
     return {
@@ -434,7 +452,9 @@
       nom: marca ? `${marca} – ${nom}` : nom,
       marca,
       categoria: resolveUserCategoryName(p, oficioId),
-      pvp: Number(p.pvp) || 0,
+      pvp: displayProductPvp(p),
+      pvpCop: p.pvpCop,
+      precioPrecargado: p.precioPrecargado,
       unidad: p.unidad || 'unidad',
       _userId: p.id
     };
@@ -536,6 +556,9 @@
   }
 
   function getPrecioVenta(cod, item) {
+    const seed = getSeedCop(cod);
+    if (seed > 0) return seed;
+    if (item?.pvpCop != null && Number(item.pvpCop) > 0) return Number(item.pvpCop);
     if (item?.pvp != null && item.pvp > 0) return item.pvp;
     return PRECIOS_PVP[cod] || 0;
   }
@@ -588,7 +611,15 @@
 
   function getListaProductosDefault() {
     if (!listaPlanaCache) listaPlanaCache = buildListaDefault();
-    return listaPlanaCache;
+    return listaPlanaCache.map((p) => {
+      const converted = global.ArpaPricing?.applyPrecargadoPvp?.(p.pvp);
+      return {
+        ...p,
+        pvp: converted != null ? converted : p.pvp,
+        pvpCop: p.pvp,
+        precioPrecargado: true
+      };
+    });
   }
 
   function findRawItem(cod) {
@@ -633,6 +664,15 @@
     hasUserCatalog,
     findByCod,
     getPrecioVenta,
+    getSeedCop,
+    getAllSeedCop() {
+      const map = {};
+      Object.keys(PRECIOS_PVP).forEach((cod) => {
+        const pvp = Number(PRECIOS_PVP[cod]) || 0;
+        if (pvp > 0) map[String(cod).trim().toLowerCase()] = pvp;
+      });
+      return map;
+    },
     getPrecioByCod,
     invalidateListaCache,
   };

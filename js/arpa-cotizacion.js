@@ -160,7 +160,12 @@
   }
 
   function resolveProductPvp(prod) {
-    if (prod && prod.pvp != null && prod.pvp !== '') return parsePvp(prod.pvp);
+    if (!prod) return 0;
+    const seed = global.ArpaCatalogo?.getSeedCop?.(prod.cod);
+    if (typeof global.ArpaPricing?.resolveDisplayPvp === 'function') {
+      return parsePvp(global.ArpaPricing.resolveDisplayPvp(prod, seed || undefined));
+    }
+    if (prod.pvp != null && prod.pvp !== '') return parsePvp(prod.pvp);
     return 0;
   }
 
@@ -188,9 +193,20 @@
     renderTablaCot();
   }
 
+  function convertStaleCopFilas() {
+    const pricing = global.ArpaPricing;
+    if (!pricing || pricing.getCountryCode?.() === 'CO') return;
+    filas.forEach((f) => {
+      const seed = Number(global.ArpaCatalogo?.getSeedCop?.(f.cod)) || 0;
+      if (!seed) return;
+      if (Number(f.pvp) === seed) f.pvp = pricing.applyPrecargadoPvp(seed);
+    });
+  }
+
   function renderTablaCot() {
     const tbody = document.getElementById('cot-tabla-body');
     if (!tbody) return;
+    convertStaleCopFilas();
 
     const cobros = getCobrosLineas();
     const lineas = filas.length + cobros.length;
@@ -323,19 +339,8 @@
     if (numField && !numField.value.trim()) await nuevoCotNumero();
   }
 
-  function lockCotRowsForPrint(viewRoot) {
-    if (!viewRoot) return [];
-    const backups = [];
-    viewRoot.querySelectorAll('#cot-tabla-body tr.cot-row').forEach((tr) => {
-      backups.push({
-        el: tr,
-        breakInside: tr.style.breakInside,
-        pageBreakInside: tr.style.pageBreakInside,
-      });
-      tr.style.breakInside = 'avoid-page';
-      tr.style.pageBreakInside = 'avoid';
-    });
-    return backups;
+  function lockCotRowsForPrint() {
+    return [];
   }
 
   function unlockCotRowsForPrint(backups) {

@@ -56,14 +56,20 @@
 
     let pvp = 0;
     if (catalogo && typeof catalogo.getPrecioVenta === 'function') {
-      pvp = Number(catalogo.getPrecioVenta(code, item));
+      pvp = Number(catalogo.getPrecioVenta(code));
+    } else if (item && item.pvpCop != null) {
+      pvp = Number(item.pvpCop);
     } else if (item && item.pvp != null) {
       pvp = Number(item.pvp);
     }
     const fromDefault = pvpIfPositive(pvp);
-    if (fromDefault != null) return fromDefault;
+    if (fromDefault != null) {
+      return global.ArpaPricing?.applyPrecargadoPvp?.(fromDefault) ?? fromDefault;
+    }
 
-    return lookupBftNasPvp(code);
+    const fromNas = lookupBftNasPvp(code);
+    if (fromNas != null) return global.ArpaPricing?.applyPrecargadoPvp?.(fromNas) ?? fromNas;
+    return null;
   }
 
   function normalizeProduct(item) {
@@ -73,6 +79,11 @@
     if (!Number.isFinite(pvp) || pvp <= 0) {
       const fromDefault = lookupDefaultPvp(codigo);
       if (fromDefault != null) pvp = fromDefault;
+    } else if (item && item.precioPrecargado !== false) {
+      const seed = global.ArpaCatalogo?.getSeedCop?.(codigo) || item.pvpCop;
+      if (global.ArpaPricing?.resolveDisplayPvp) {
+        pvp = Number(global.ArpaPricing.resolveDisplayPvp(item, seed || undefined)) || pvp;
+      }
     }
     return {
       codigo,

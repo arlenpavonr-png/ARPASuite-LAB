@@ -487,6 +487,7 @@
 
     global.ArpaMiCatalogo?.saveCategories?.(built.categories, OFICIO_AUTOMATISMOS);
     global.ArpaMiCatalogo?.saveProducts?.(built.products, OFICIO_AUTOMATISMOS);
+    global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
     global.ArpaCatalogo?.invalidateListaCache?.();
     global.ArpaCotizacion?.updateCatalogHint?.();
     global.ArpaMiCatalogo?.refreshView?.();
@@ -532,6 +533,7 @@
 
     global.ArpaMiCatalogo?.saveCategories?.(categories, OFICIO_AUTOMATISMOS);
     global.ArpaMiCatalogo?.saveProducts?.(products, OFICIO_AUTOMATISMOS);
+    global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
     global.ArpaCatalogo?.invalidateListaCache?.();
     return true;
   }

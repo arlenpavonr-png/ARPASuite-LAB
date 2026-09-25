@@ -1895,7 +1895,7 @@
   }
   @page {
     size: letter;
-    margin: 15mm;
+    margin: 12mm 12mm 14mm 12mm;
   }
   @media print {
     .tabla-productos {
@@ -1908,14 +1908,17 @@
     .tabla-productos tbody { display: table-row-group; }
     .tabla-productos tr,
     .tabla-productos tbody tr {
-      page-break-inside: avoid !important;
-      break-inside: avoid-page !important;
-      -webkit-column-break-inside: avoid !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
     .tabla-productos tbody td {
-      page-break-inside: avoid !important;
-      break-inside: avoid-page !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
       vertical-align: top;
+    }
+    .tabla-productos .td-precio,
+    .tabla-productos .td-total {
+      min-width: 0;
     }
     .tabla-productos .td-desc {
       white-space: normal;
@@ -1937,6 +1940,10 @@
     body.is-printing #view-cotizacion .tabla-productos tbody tr.row-cobro {
       display: table-row !important;
     }
+    body.is-printing #view-cotizacion .tabla-productos colgroup col:last-child {
+      width: 0 !important;
+      visibility: collapse;
+    }
     body.is-printing #view-cotizacion .tabla-productos .td-action,
     body.is-printing #view-cotizacion .tabla-productos thead th:last-child,
     body.is-printing #view-cotizacion .tabla-productos tbody td:last-child,
@@ -1944,7 +1951,13 @@
     body.is-printing #view-cuenta-cobro .tabla-productos thead th:last-child,
     body.is-printing #view-cuenta-cobro .tabla-productos tbody td:last-child {
       display: none !important;
+      width: 0 !important;
     }
+    body.is-printing #view-cotizacion .tabla-productos colgroup col:nth-child(1) { width: 14% !important; }
+    body.is-printing #view-cotizacion .tabla-productos colgroup col:nth-child(2) { width: 38% !important; }
+    body.is-printing #view-cotizacion .tabla-productos colgroup col:nth-child(3) { width: 8% !important; }
+    body.is-printing #view-cotizacion .tabla-productos colgroup col:nth-child(4) { width: 20% !important; }
+    body.is-printing #view-cotizacion .tabla-productos colgroup col:nth-child(5) { width: 20% !important; }
     body.is-printing-formato .page {
       overflow: visible !important;
     }
@@ -2107,7 +2120,7 @@
   /* ── PRINT ── */
   @media print {
     html, body { background-color: #ffffff !important; background-image: none !important; }
-    body { padding: 0; padding-bottom: 0; margin-bottom: 28mm; }
+    body { padding: 0; padding-bottom: 0; margin-bottom: 0; }
     body.is-printing #view-historial { display: none !important; }
     body.is-printing #view-catalogo { display: none !important; }
     body.is-printing:not(.is-printing-formato) #view-formato { display: none !important; }
@@ -2130,31 +2143,25 @@
     a[href]::after { content: none !important; }
     body.is-printing::before,
     body.is-printing-formato::before {
-      content: '';
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 10mm;
-      background: #ffffff;
-      z-index: 9998;
+      content: none !important;
+      display: none !important;
     }
-    .page { box-shadow: none; border-radius: 0; }
+    .page { box-shadow: none; border-radius: 0; overflow: visible !important; }
     .photo-box input[type=file] { display: none; }
     button { display: none !important; }
     .settings-overlay, .main-menu { display: none !important; }
     #trial-capture-gate,
     .trial-capture-gate,
     .trial-capture-gate--modal { display: none !important; visibility: hidden !important; }
+    /* Pie de página al final del documento (no fijo): un pie fijo tapaba filas de la tabla en el salto de página */
     .suite-footer {
       display: block !important;
-      position: fixed;
-      bottom: 10mm;
-      left: 0;
-      right: 0;
-      z-index: 9999;
+      position: static !important;
+      margin-top: 16px;
       background: #fff;
       border-top: 1px solid #e2e8f0;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
     .suite-footer-local {
       color: #334155;

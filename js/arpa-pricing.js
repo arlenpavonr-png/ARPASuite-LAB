@@ -169,11 +169,23 @@
   function looksLikePrecargado(product, seedCop) {
     if (!product || product.precioPrecargado === false) return false;
     if (product.precioPrecargado === true) return true;
-    const cop = product.pvpCop != null ? Number(product.pvpCop) : Number(seedCop);
-    if (!Number.isFinite(cop)) return false;
-    const current = Number(product.pvp);
-    if (current === cop) return true;
-    return Object.keys(COUNTRY_PROFILES).some((code) => current === convertCop(cop, code));
+    if (product.pvpCop != null && Number.isFinite(Number(product.pvpCop)) && Number(product.pvpCop) > 0) {
+      return true;
+    }
+    const cop = Number(seedCop);
+    if (Number.isFinite(cop) && cop > 0) return true;
+    return false;
+  }
+
+  function resolveDisplayPvp(product, seedCop) {
+    const p = product || {};
+    if (p.precioPrecargado === false) return Number(p.pvp) || 0;
+    const seed = Number(seedCop);
+    const cop = originalCopPrice(p, Number.isFinite(seed) ? seed : undefined);
+    if (cop != null && Number.isFinite(cop) && cop > 0 && looksLikePrecargado(p, cop)) {
+      return applyPrecargadoPvp(cop);
+    }
+    return Number(p.pvp) || 0;
   }
 
   function isKnownConvertedPrice(copAmount, value) {
@@ -358,6 +370,7 @@
     applyPrecargadoPvp,
     markPrecargadoProduct,
     looksLikePrecargado,
+    resolveDisplayPvp,
     roundCleanPrice,
     formatCompanyPhone,
     getTaxIdLabel,

@@ -267,12 +267,16 @@
     const nom = (p.nom || '').trim();
     const marca = (p.marca || '').trim();
     const categoria = getCategoryName(resolveProductCategoryId(p));
+    const seed = global.ArpaCatalogo?.getSeedCop?.(p.cod);
+    const pvp = global.ArpaPricing?.resolveDisplayPvp
+      ? global.ArpaPricing.resolveDisplayPvp(p, seed || undefined)
+      : parsePvp(p.pvp);
     return {
       cod: (p.cod || '').trim(),
       nom: marca ? `${marca} – ${nom}` : nom,
       marca,
       categoria,
-      pvp: parsePvp(p.pvp),
+      pvp: parsePvp(pvp),
       unidad: p.unidad || 'unidad',
       _userId: p.id
     };
@@ -899,6 +903,12 @@
         if (cod && pvp > 0) map[cod] = pvp;
       });
     });
+    const seedAll = global.ArpaCatalogo?.getAllSeedCop?.();
+    if (seedAll) {
+      Object.keys(seedAll).forEach((cod) => {
+        if (seedAll[cod] > 0) map[cod] = seedAll[cod];
+      });
+    }
     const marcas = global.ArpaCatalogo?.getCatalogoMarcas?.() || {};
     Object.values(marcas).forEach((categorias) => {
       Object.values(categorias || {}).forEach((items) => {
@@ -1289,6 +1299,7 @@
     });
     document.getElementById('btn-catalogo-import-add')?.addEventListener('click', () => applyImport('add'));
     document.getElementById('btn-catalogo-import-replace')?.addEventListener('click', () => applyImport('replace'));
+    resyncPrecargadoPrices();
     render();
   }
 
