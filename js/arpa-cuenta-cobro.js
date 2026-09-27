@@ -199,6 +199,8 @@
     const el = document.getElementById('cc-numero');
     if (el) el.value = value;
     initFechas();
+    // Guardar el número en el borrador para que al reabrir la app no se pida otro.
+    scheduleCcDraftSave(true);
   }
 
   async function ensureCcNumero() {
@@ -729,8 +731,9 @@
     const em = document.getElementById('cc-fecha-emision');
     const hadDraft = applyCcDraft();
     if (!hadDraft) {
+      // No se pide número al abrir la app: si no hay borrador, se asigna al
+      // entrar a Cuenta de Cobro (arpa-views.js) o con "+ NUEVO N°".
       initFechas();
-      ensureCcNumero();
     } else if (em?.value && ccBorrador.fechaManual) {
       // Fecha puesta a mano → se respeta siempre.
       em.dataset.manual = '1';
