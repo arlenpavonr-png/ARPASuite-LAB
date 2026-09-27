@@ -46,3 +46,62 @@ no hace falta volver a tocar Capa A.
 ### Retiro del dummy
 El módulo de prueba no es código permanente. Tras documentar este resultado se elimina
 en un commit separado (registry + panels + `nueva-ia-prueba.js`).
+
+## 2026-09-27 — PENDIENTE: Cotización cambia el número del borrador al abrir
+
+### Síntoma
+Al abrir la app con un borrador de Cotización guardado (ej. `COT-0003`), el número pasa
+a uno nuevo (ej. `COT-004`) y la fecha se pone en hoy, aunque el borrador se haya guardado hoy
+con una fecha puesta a mano.
+
+### Causa probable
+En `initCotizacion()` (`js/arpa-cotizacion.js`), `ensureCotNumero()` se llama **antes** de
+`applyCotDraft()`. En ese momento el campo número aún está vacío, así que pide un número nuevo
+en segundo plano; cuando llega, sobrescribe el número (y la fecha) que puso el borrador.
+
+### Estado
+Corregido en `agent/fecha-hoy`: `initCotizacion()` ya no pide número al abrir la app; el
+borrador conserva el suyo. Si no hay número, se asigna al entrar a Cotización o con
+"+ NUEVO N°", y se guarda de inmediato en el borrador.
+Nota: el "COT-0003" (4 cifras) fue un valor de prueba escrito a mano; la app usa 3 cifras.
+Sigue pendiente lo mismo en Cuenta de Cobro: al abrir sin borrador, `initCuentaCobro()` pide número.
+
+## 2026-09-27 — PENDIENTES detectados durante `agent/fecha-hoy`
+
+### CRÍTICO — La app LAB llama a producción y a Analytics al cargar
+Al abrir `index.html` en un servidor local (127.0.0.1), la app llama sola a:
+- Apps Script de **producción** (`LICENSE_API`): `accion=provision_trial&device_id=...` (`index.html`, `provisionTrialJsonp`).
+- Google Analytics / Google Tag Manager (`page_view`).
+
+El Fence **no lo detecta** (revisa cambios en archivos, no lo que la app hace al ejecutarse).
+Verificado con el usuario: esta vez el servidor no creó ninguna fila (device_id de prueba
+no aparece en "Hoja 1", "Dispositivos" ni "Trials").
+Solución futura (otra rama): si el host es `127.0.0.1` / `localhost`, no llamar a producción ni a Analytics.
+Mientras tanto: probar solo con esas direcciones bloqueadas en el navegador.
+
+### NEGOCIO — `provision_trial` no tiene límite
+Crea un trial de 7 días por cada `device_id` nuevo, sin límite. Una ventana de incógnito o
+borrar los datos del navegador genera un `device_id` nuevo, y con él un trial nuevo. Evaluar un límite.
+
+### VERIFICAR — Apps Script publicado vs repo
+Confirmar que el Apps Script publicado en producción sea igual a `arpa-licencias-apps-script.gs` del repo.
+
+### REVISAR — 4 errores de consola al cargar scripts
+Al cargar la app aparecen 4 veces "An unknown error occurred when fetching the script".
+Averiguar si son propios del LAB (servidor local) o si también ocurren en producción.
+Observación: en las pruebas con bloqueo aparece uno por carga, justo después de la llamada
+a `provision_trial`, así que probablemente son esa llamada fallando.
+
+### PENDIENTE ANTES DE PRODUCCIÓN — Test 15 roto + bump de caché
+El test `15 service worker actualizado` (`js/arpa-ia/tests/comercial-run.mjs`) lo rompió el
+commit `0acda6c` ("fix(pdf): cotizacion Mexico...", rama `fix/pdf-mexico`), que cambió el nombre
+de caché de `service-worker.js`. Resolverlo junto con el bump de caché antes de pasar a producción.
+
+### MEJORA FUTURA — Número de Cotización al guardar/generar PDF
+Hoy el número se asigna al entrar al módulo Cotización (`arpa-views.js`). Mejor asignarlo al
+guardar o generar el PDF, para no gastar números en cotizaciones que no se terminan.
+
+### PROCESO — LAB y producción son repos distintos
+LAB = `ARPASuite-LAB`; producción = `Formato-Arlenpav` (arpa.arpatechnologyglobal.com,
+publicado a mano con `pages.yml` / workflow_dispatch). Falta definir el proceso para pasar
+cambios del LAB a producción.
