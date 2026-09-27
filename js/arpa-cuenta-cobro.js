@@ -177,7 +177,25 @@
     return N.getMaxCounter(CC_NUM_KEY, document.getElementById('cc-numero')?.value);
   }
 
-  async function nuevoCcNumero() {
+  // Pedido de número en curso (nube o local); lo usa asegurarNumeroCc() para esperar.
+  let ccNumeroEnCurso = null;
+
+  function nuevoCcNumero() {
+    const pedido = pedirCcNumero();
+    ccNumeroEnCurso = pedido;
+    pedido.finally(() => { if (ccNumeroEnCurso === pedido) ccNumeroEnCurso = null; }).catch(() => {});
+    return pedido;
+  }
+
+  function asegurarNumeroCc() {
+    return global.ArpaNumeracion?.asegurarNumero?.({
+      fieldId: 'cc-numero',
+      enCurso: () => ccNumeroEnCurso,
+      documento: 'la cuenta de cobro'
+    }) ?? Promise.resolve(!!document.getElementById('cc-numero')?.value.trim());
+  }
+
+  async function pedirCcNumero() {
     if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return;
     const { value, sincronizado } = await global.ArpaNumeracion.nextNumberAsync('cc', document.getElementById('cc-numero')?.value);
     if (!sincronizado) console.warn('[ARPA] Número de cuenta de cobro generado offline, no sincronizado con la nube todavía.');
@@ -399,6 +417,7 @@
   }
 
   async function enviarWhatsApp() {
+    if (!(await asegurarNumeroCc())) return;
     const jsPDF = getJsPDF();
     if (!jsPDF) {
       scheduleCcDraftSave(true);
@@ -697,6 +716,7 @@
   }
 
   async function generarPDF() {
+    if (!(await asegurarNumeroCc())) return;
     const jsPDF = getJsPDF();
     if (!jsPDF) {
       scheduleCcDraftSave(true);

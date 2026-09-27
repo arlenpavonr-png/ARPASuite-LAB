@@ -358,7 +358,25 @@
     return N.getMaxCounter(N.KEYS.cot, document.getElementById('numero-cot')?.value);
   }
 
-  async function nuevoCotNumero() {
+  // Pedido de número en curso (nube o local); lo usa asegurarNumeroCot() para esperar.
+  let cotNumeroEnCurso = null;
+
+  function nuevoCotNumero() {
+    const pedido = pedirCotNumero();
+    cotNumeroEnCurso = pedido;
+    pedido.finally(() => { if (cotNumeroEnCurso === pedido) cotNumeroEnCurso = null; }).catch(() => {});
+    return pedido;
+  }
+
+  function asegurarNumeroCot() {
+    return global.ArpaNumeracion?.asegurarNumero?.({
+      fieldId: 'numero-cot',
+      enCurso: () => cotNumeroEnCurso,
+      documento: 'la cotización'
+    }) ?? Promise.resolve(!!document.getElementById('numero-cot')?.value.trim());
+  }
+
+  async function pedirCotNumero() {
     if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return;
     const numField = document.getElementById('numero-cot');
     const { value, sincronizado } = await global.ArpaNumeracion.nextNumberAsync('cot', numField?.value);
@@ -467,6 +485,7 @@
 
   function saveCotMetadata() {
     const numCot = (document.getElementById('numero-cot')?.value || '').trim();
+    if (!numCot) return; // Sin número no se guarda en Sheets ni en el Historial.
     const cliente = document.querySelector('#cot-nombre, #cot-cliente, input[name*=nombre]')?.value?.trim() || '';
     const telefono = document.querySelector('#cot-tel, #cot-telefono, input[name*=tel]')?.value?.trim() || '';
     const total = document.querySelector('#total-val-cot, #cot-total, .cot-total')?.textContent?.trim() || '';
@@ -641,7 +660,8 @@
     }
   }
 
-  function guardarCotPDF() {
+  async function guardarCotPDF() {
+    if (!(await asegurarNumeroCot())) return;
     saveCotMetadata();
 
     const ctx = beginCotPdfExport();
@@ -665,6 +685,7 @@
   }
 
   async function guardarCotPDFYWhatsApp() {
+    if (!(await asegurarNumeroCot())) return;
     saveCotMetadata();
 
     const telRaw = document.getElementById('cot-tel')?.value.trim() || '';

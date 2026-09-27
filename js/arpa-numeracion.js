@@ -126,6 +126,51 @@
     return false;
   }
 
+  function mostrarAvisoNumero(texto) {
+    const el = document.createElement('div');
+    el.setAttribute('role', 'status');
+    el.textContent = texto;
+    el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
+      'background:#0f2044;color:#fff;padding:10px 18px;border-radius:8px;' +
+      'font:600 14px system-ui,sans-serif;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.25);';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  /**
+   * Antes de generar PDF, compartir o guardar al Historial: el documento debe tener número.
+   * Si el número se está pidiendo (a la nube), muestra "Obteniendo número..." y espera
+   * hasta `limiteMs`. Devuelve true si hay número; si no, avisa al usuario y devuelve false.
+   * opts: { fieldId, enCurso: () => Promise|null, documento: 'la cotización', limiteMs }
+   */
+  async function asegurarNumero(opts) {
+    const campo = document.getElementById(opts.fieldId);
+    const tieneNumero = () => !!String(campo?.value || '').trim();
+    if (tieneNumero()) return true;
+
+    const enCurso = typeof opts.enCurso === 'function' ? opts.enCurso() : null;
+    if (enCurso) {
+      const limiteMs = opts.limiteMs || 10000;
+      const aviso = mostrarAvisoNumero('Obteniendo número...');
+      try {
+        await Promise.race([
+          Promise.resolve(enCurso).catch(() => {}),
+          new Promise((resolve) => setTimeout(resolve, limiteMs))
+        ]);
+      } finally {
+        aviso.remove();
+      }
+      if (tieneNumero()) return true;
+      alert('No se pudo obtener el número de ' + opts.documento + ' (sin respuesta en ' +
+        Math.round(limiteMs / 1000) + ' segundos). Revisa tu conexión e inténtalo de nuevo.');
+      return false;
+    }
+
+    alert('No se generó nada: ' + opts.documento + ' no tiene número.\n' +
+      'Toca «+ NUEVO N°» para asignarle uno y vuelve a intentarlo.');
+    return false;
+  }
+
   global.ArpaNumeracion = {
     KEYS,
     normalizeTechnicianCode,
@@ -140,6 +185,7 @@
     formatCcNumber,
     nextNumber,
     nextNumberAsync,
-    blockIfPymeMissingCode
+    blockIfPymeMissingCode,
+    asegurarNumero
   };
 })(typeof window !== 'undefined' ? window : globalThis);
