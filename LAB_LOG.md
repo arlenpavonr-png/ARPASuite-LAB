@@ -64,7 +64,10 @@ Corregido en `agent/fecha-hoy`: `initCotizacion()` ya no pide número al abrir l
 borrador conserva el suyo. Si no hay número, se asigna al entrar a Cotización o con
 "+ NUEVO N°", y se guarda de inmediato en el borrador.
 Nota: el "COT-0003" (4 cifras) fue un valor de prueba escrito a mano; la app usa 3 cifras.
-Sigue pendiente lo mismo en Cuenta de Cobro: al abrir sin borrador, `initCuentaCobro()` pide número.
+Lo mismo en Cuenta de Cobro (al abrir sin borrador, `initCuentaCobro()` pedía número; en prueba
+llegó a CC-006 tras 6 aperturas): corregido en `9d5d85e` con la misma lógica.
+Falta probar la numeración con licencia (camino que pide números a la nube): requiere un Apps
+Script de pruebas, nunca el de producción.
 
 ## 2026-09-27 — PENDIENTES detectados durante `agent/fecha-hoy`
 
