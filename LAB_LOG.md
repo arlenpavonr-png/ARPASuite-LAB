@@ -108,3 +108,8 @@ guardar o generar el PDF, para no gastar números en cotizaciones que no se term
 LAB = `ARPASuite-LAB`; producción = `Formato-Arlenpav` (arpa.arpatechnologyglobal.com,
 publicado a mano con `pages.yml` / workflow_dispatch). Falta definir el proceso para pasar
 cambios del LAB a producción.
+
+### PENDIENTE DECISIÓN — Duplicados sin internet
+Duplicados sin internet: pendiente decisión de Arlen.
+Sin conexión, la app usa su contador local + 1 y puede repetir un número que ya existe en la nube
+(otro celular con la misma licencia, respuesta perdida, app reinstalada). Opciones propuestas en la sesión del 2026-09-27.
