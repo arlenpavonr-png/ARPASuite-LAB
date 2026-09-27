@@ -25,6 +25,8 @@ const PROTECTED = new Set([
 
 const PROD_IDS = [
   'AKfycbzKBeyDVWVqPG1R47EZTVKmCpa3SOwxs8LXrW4ipvRtiyyRV4trJKg7D4i89_cUTcH2',
+  // Deployment de licencias que usa producción desde 2026-09-07 (Formato-Arlenpav 28a323f).
+  'AKfycbwzSL7-wLi9VeyNUzkiGTGgdWEPXz5DpY2qjLOZjKXGRl8I6nleSFManrWwozNnbsUlQA',
   'AKfycbyV0-C_XACD5suCh9gm1JkiKvrI3mket-z5GSFGFc6Y87HZaqFyCtVz7jmtQMayNEUeJg',
   '154LeJlcAPa3dlWxXHC2WA2_xFNL4oQ45I8630Kzcd3E',
   'formato-arlenpav',
