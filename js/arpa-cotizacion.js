@@ -379,18 +379,10 @@
       }
     }
     if (numField) numField.value = value;
-    const hoy = new Date();
-    const fecha = document.getElementById('cot-fecha');
-    const validez = document.getElementById('cot-validez');
-    if (fecha) fecha.value = hoy.toISOString().split('T')[0];
-    if (validez) {
-      const v = new Date(hoy);
-      v.setDate(v.getDate() + 15);
-      validez.value = v.toISOString().split('T')[0];
-    }
+    ponerFechasCotHoy();
     const cliente = document.getElementById('cot-nombre')?.value || '';
     const nc = cliente ? '-' + cliente.replace(/\s+/g, '-').substring(0, 20) : '';
-    document.title = `${value}${nc}-${hoy.toISOString().slice(0, 10)}`;
+    document.title = `${value}${nc}-${hoyIso()}`;
     // Guardar el número en el borrador para que al reabrir la app no se pida otro.
     scheduleCotDraftSave();
   }
@@ -479,7 +471,7 @@
     const telefono = document.querySelector('#cot-tel, #cot-telefono, input[name*=tel]')?.value?.trim() || '';
     const total = document.querySelector('#total-val-cot, #cot-total, .cot-total')?.textContent?.trim() || '';
     const fecha = document.getElementById('cot-fecha')?.value?.trim()
-      || new Date().toISOString().split('T')[0];
+      || hoyIso();
     guardarEnSheets(numCot, cliente, telefono, total, fecha);
 
     global.applyUserSettingsToUI?.();
@@ -747,6 +739,8 @@
       fecha:    document.getElementById('cot-fecha')?.value || '',
       validez:  document.getElementById('cot-validez')?.value || '',
       obs:      document.getElementById('cot-obs')?.value || '',
+      fechaManual: document.getElementById('cot-fecha')?.dataset.manual === '1',
+      guardadoEl: hoyIso(),
       conIva:   document.getElementById('iva-check-cot')?.checked || false,
       filas:    filas.map(function(f) {
         return { cod: f.cod, nom: f.nom, pvp: f.pvp, cant: f.cant };
@@ -819,19 +813,27 @@
     root.addEventListener('change', scheduleCotDraftSave);
   }
 
+  // Fecha de hoy en hora de Colombia (definida en index.html); respaldo por si no cargó.
+  function hoyIso(dias) {
+    if (typeof global.arpaHoyIso === 'function') return global.arpaHoyIso(dias);
+    return new Date(Date.now() + (dias || 0) * 86400000).toISOString().slice(0, 10);
+  }
+
+  function ponerFechasCotHoy() {
+    const fecha = document.getElementById('cot-fecha');
+    const validez = document.getElementById('cot-validez');
+    if (fecha) {
+      fecha.value = hoyIso();
+      fecha.dataset.manual = '';
+    }
+    if (validez) validez.value = hoyIso(15);
+  }
+
   function initCotizacion() {
     global.ArpaCobros?.init('cot');
     global.ArpaCobros?.seedFromPriceList('cot');
 
-    const hoy = new Date();
-    const fecha = document.getElementById('cot-fecha');
-    const validez = document.getElementById('cot-validez');
-    if (fecha && !fecha.value) fecha.value = hoy.toISOString().split('T')[0];
-    if (validez && !validez.value) {
-      const v = new Date(hoy);
-      v.setDate(v.getDate() + 15);
-      validez.value = v.toISOString().split('T')[0];
-    }
+    ponerFechasCotHoy();
     // No se pide número al abrir la app: el borrador trae el suyo y, si no hay,
     // se asigna al entrar a Cotización (arpa-views.js) o con "+ NUEVO N°".
 
@@ -853,7 +855,17 @@
     syncTaxLabels();
     updateCatalogHint();
     renderMarcasCot();
-    applyCotDraft();
+    let cotBorrador = {};
+    try { cotBorrador = JSON.parse(localStorage.getItem(COT_DRAFT_KEY) || '{}') || {}; } catch (e) {}
+    const fechaCot = document.getElementById('cot-fecha');
+    if (applyCotDraft()) {
+      // Fecha puesta a mano → se respeta siempre. Fecha automática → hoy si el borrador es de otro día.
+      if (fechaCot?.value && cotBorrador.fechaManual) fechaCot.dataset.manual = '1';
+      else if (!fechaCot?.value || cotBorrador.guardadoEl !== hoyIso()) ponerFechasCotHoy();
+    }
+    const marcarManual = () => { if (fechaCot) fechaCot.dataset.manual = '1'; };
+    fechaCot?.addEventListener('input', marcarManual);
+    fechaCot?.addEventListener('change', marcarManual);
     bindCotDraftListeners();
   }
 

@@ -4055,6 +4055,21 @@ function actualizarReferencias() {
   inputManual.style.display = "none";
 }
 
+// Fecha de hoy (YYYY-MM-DD) en hora de Colombia; `dias` suma días (p. ej. 15 para validez).
+// toISOString() usa UTC y después de las 7 p.m. en Colombia devolvía el día siguiente.
+function arpaHoyIso(dias) {
+  const d = new Date(Date.now() + (dias || 0) * 86400000);
+  try {
+    const p = {};
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' })
+      .formatToParts(d).forEach((x) => { p[x.type] = x.value; });
+    return p.year + '-' + p.month + '-' + p.day;
+  } catch (e) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+}
+window.arpaHoyIso = arpaHoyIso;
+
 function collectFormatoDraft() {
   const data = {};
   document.querySelectorAll('#view-formato [id]').forEach((el) => {
@@ -4069,6 +4084,8 @@ function collectFormatoDraft() {
   const fecha = document.getElementById('formato-fecha');
   if (numero) data['numero-formato'] = numero.value;
   if (fecha) data['formato-fecha'] = fecha.value;
+  data._fechaManual = fecha?.dataset.manual === '1';
+  data._guardadoEl = arpaHoyIso();
   data._formatoOficio = window.ArpaFormatoTipo?.getDocumentFormatoOficio?.() || 'automatismos';
   if (window.ArpaOT && typeof window.ArpaOT.enrichDraft === 'function') {
     window.ArpaOT.enrichDraft(data);
@@ -4094,7 +4111,10 @@ function clearFormatoDocumentFields(options) {
     if (numero) numero.value = '';
   }
   const fecha = document.getElementById('formato-fecha');
-  if (fecha) fecha.value = new Date().toISOString().slice(0, 10);
+  if (fecha) {
+    fecha.value = arpaHoyIso();
+    fecha.dataset.manual = '';
+  }
   ['foto-antes-preview', 'foto-despues-preview'].forEach((id) => {
     const preview = document.getElementById(id);
     if (preview) preview.innerHTML = '';
@@ -4437,13 +4457,17 @@ async function nuevoNumero() {
   const cliente = document.getElementById('formato-cliente-nombre')?.value || '';
   const tipo = document.querySelector('input[name="tipo"]:checked')?.value || 'instalacion';
   const prefijo = tipo === 'mantenimiento' ? 'Mant' : tipo === 'reparacion' ? 'Rep' : 'FI';
-  const fecha = new Date().toISOString().slice(0, 10);
+  const fecha = arpaHoyIso();
   const nombre = cliente ? '-' + cliente.replace(/\s+/g, '-').substring(0, 20) : '';
   document.title = `${prefijo}-${value}${nombre}-${fecha}`;
 }
 
 // Al cargar, mostrar el número actual (sin incrementar) o sugerir el siguiente
 window.addEventListener('DOMContentLoaded', () => {
+  let borrador = {};
+  try {
+    borrador = JSON.parse(localStorage.getItem(window.ArpaBrand.FORMATO_DRAFT_KEY) || '{}') || {};
+  } catch (e) {}
   try {
     initFormatoDraftPersistence();
   } catch (e) {
@@ -4452,8 +4476,17 @@ window.addEventListener('DOMContentLoaded', () => {
   const ultimo = getUltimoNumero();
   const campo = document.getElementById('numero-formato');
   const fechaFormato = document.getElementById('formato-fecha');
-  if (fechaFormato && !fechaFormato.value) {
-    fechaFormato.value = new Date().toISOString().slice(0, 10);
+  // Fecha puesta a mano → se respeta siempre. Fecha automática → hoy si el borrador es de otro día.
+  if (fechaFormato) {
+    if (fechaFormato.value && borrador._fechaManual) {
+      fechaFormato.dataset.manual = '1';
+    } else if (!fechaFormato.value || borrador._guardadoEl !== arpaHoyIso()) {
+      fechaFormato.value = arpaHoyIso();
+      fechaFormato.dataset.manual = '';
+    }
+    const marcarManual = () => { fechaFormato.dataset.manual = '1'; };
+    fechaFormato.addEventListener('input', marcarManual);
+    fechaFormato.addEventListener('change', marcarManual);
   }
   if (ultimo === 0) {
     campo.placeholder = '← Toca NUEVO N°';
@@ -4474,7 +4507,7 @@ function actualizarTitulo() {
   const cliente = document.querySelector('input[placeholder="Nombre completo o razón social"]').value;
   const tipo = document.querySelector('input[name="tipo"]:checked').value;
   const prefijo = tipo === 'mantenimiento' ? 'Mant' : tipo === 'reparacion' ? 'Rep' : 'FI';
-  const fecha = new Date().toISOString().slice(0,10);
+  const fecha = arpaHoyIso();
   const nombre = cliente ? '-' + cliente.replace(/\s+/g,'-').substring(0,20) : '';
   document.title = `${prefijo}-${noVal}${nombre}-${fecha}`;
 }

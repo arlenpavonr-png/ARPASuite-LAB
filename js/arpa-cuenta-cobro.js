@@ -27,6 +27,8 @@
       clienteDir: document.getElementById('cc-cliente-dir')?.value || '',
       clienteTel: document.getElementById('cc-cliente-tel')?.value || '',
       obs: document.getElementById('cc-obs')?.value || '',
+      fechaManual: document.getElementById('cc-fecha-emision')?.dataset.manual === '1',
+      guardadoEl: hoyIso(),
       conIva: !!document.getElementById('cc-iva-check')?.checked,
       conRet: !!document.getElementById('cc-ret-check')?.checked,
       retPct: document.getElementById('cc-ret-pct')?.value || '11',
@@ -196,6 +198,7 @@
     }
     const el = document.getElementById('cc-numero');
     if (el) el.value = value;
+    initFechas();
   }
 
   async function ensureCcNumero() {
@@ -361,16 +364,20 @@
     clearCcDraft();
   }
 
+  // Fecha de hoy en hora de Colombia (definida en index.html); respaldo por si no cargó.
+  function hoyIso(dias) {
+    if (typeof global.arpaHoyIso === 'function') return global.arpaHoyIso(dias);
+    return new Date(Date.now() + (dias || 0) * 86400000).toISOString().slice(0, 10);
+  }
+
   function initFechas() {
-    const hoy = new Date();
     const em = document.getElementById('cc-fecha-emision');
     const ven = document.getElementById('cc-fecha-vencimiento');
-    if (em) em.value = hoy.toISOString().split('T')[0];
-    if (ven) {
-      const v = new Date(hoy);
-      v.setDate(v.getDate() + 15);
-      ven.value = v.toISOString().split('T')[0];
+    if (em) {
+      em.value = hoyIso();
+      em.dataset.manual = '';
     }
+    if (ven) ven.value = hoyIso(15);
   }
 
   function syncFirmaCliente() {
@@ -717,11 +724,23 @@
     global.ArpaSignature?.initCanvas?.('canvas-cc-cobrador');
     global.ArpaSignature?.initCanvas?.('canvas-cc-cliente');
 
+    let ccBorrador = {};
+    try { ccBorrador = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch (e) {}
+    const em = document.getElementById('cc-fecha-emision');
     const hadDraft = applyCcDraft();
     if (!hadDraft) {
       initFechas();
       ensureCcNumero();
+    } else if (em?.value && ccBorrador.fechaManual) {
+      // Fecha puesta a mano → se respeta siempre.
+      em.dataset.manual = '1';
+    } else if (!em?.value || ccBorrador.guardadoEl !== hoyIso()) {
+      // Fecha automática → hoy si el borrador es de otro día.
+      initFechas();
     }
+    const marcarManual = () => { if (em) em.dataset.manual = '1'; };
+    em?.addEventListener('input', marcarManual);
+    em?.addEventListener('change', marcarManual);
     global.ArpaBrand?.applyCuentaCobroFromSettings?.(undefined, {
       fillPago: hadDraft ? 'if-empty' : 'always'
     });
