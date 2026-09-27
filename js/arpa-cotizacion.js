@@ -391,6 +391,8 @@
     const cliente = document.getElementById('cot-nombre')?.value || '';
     const nc = cliente ? '-' + cliente.replace(/\s+/g, '-').substring(0, 20) : '';
     document.title = `${value}${nc}-${hoy.toISOString().slice(0, 10)}`;
+    // Guardar el número en el borrador para que al reabrir la app no se pida otro.
+    scheduleCotDraftSave();
   }
 
   async function ensureCotNumero() {
@@ -830,10 +832,8 @@
       v.setDate(v.getDate() + 15);
       validez.value = v.toISOString().split('T')[0];
     }
-    const numField = document.getElementById('numero-cot');
-    if (numField && !numField.value.trim()) {
-      ensureCotNumero();
-    }
+    // No se pide número al abrir la app: el borrador trae el suyo y, si no hay,
+    // se asigna al entrar a Cotización (arpa-views.js) o con "+ NUEVO N°".
 
     document.getElementById('buscador-cot')?.addEventListener('input', buscarProductoCot);
     document.getElementById('buscador-cot')?.addEventListener('focus', () => {
