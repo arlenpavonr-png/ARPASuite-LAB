@@ -1,6 +1,6 @@
 // ARPA Suite — Service Worker
 // Cambia CACHE_VERSION con cada deploy para que los usuarios reciban la versión nueva.
-const CACHE_VERSION = 'v20260826a';
+const CACHE_VERSION = 'v20261004a';
 const CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
 
 const LOCAL_ASSETS = [

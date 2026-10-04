@@ -30,7 +30,7 @@
 
  * COLUMNAS Sheet (fila 1): CODIGO | PLAN | CLIENTE | EMAIL | VENCIMIENTO | ACTIVO | DEVICE_ID
  *
- * Prefijos: ARPA-FREE- | ARPA-PRO- | ARPA-PYME- | ARPA-WL- | ARPA-FOUNDER-7X9K2M4QZ1 (fundador, permanente)
+ * Prefijos: ARPA-FREE- | ARPA-PRO- | ARPA-PYME- | ARPA-WL- | ARPA-FOUNDER-… (fundador, permanente; ver Script Property FOUNDER_CODE)
 
  *
 
@@ -85,8 +85,6 @@ const CONFIG = {
 
   },
 
-  /** Licencia fundador — nunca expira, exenta de bloqueos. */
-  FOUNDER_CODE: 'ARPA-FOUNDER-7X9K2M4QZ1',
 
   EMPRESAS_SHEET_NAME: 'Empresas',
 
@@ -380,7 +378,7 @@ function buildValidationResult_(row, cols, codigo) {
 
           pma_vencido: true,
 
-          founder: codigo === CONFIG.FOUNDER_CODE,
+          founder: isFounderCode_(codigo),
 
           white_label: String(codigo || '').indexOf('ARPA-WL-') === 0,
 
@@ -408,7 +406,7 @@ function buildValidationResult_(row, cols, codigo) {
 
     vencimiento: permanent ? '' : vencStr,
 
-    founder: codigo === CONFIG.FOUNDER_CODE,
+    founder: isFounderCode_(codigo),
 
     white_label: String(codigo || '').indexOf('ARPA-WL-') === 0,
 
@@ -422,8 +420,19 @@ function isPermanentLicense_(codigo) {
 
   const c = String(codigo || '').trim().toUpperCase();
 
-  return c === CONFIG.FOUNDER_CODE;
+  return isFounderCode_(c);
 
+}
+
+/** Licencia fundador — nunca expira, exenta de bloqueos.
+ *  El código vive en Script Properties (FOUNDER_CODE), nunca en el código fuente. */
+function getFounderCode_() {
+  return String(PropertiesService.getScriptProperties().getProperty('FOUNDER_CODE') || '').trim().toUpperCase();
+}
+
+function isFounderCode_(codigo) {
+  const founder = getFounderCode_();
+  return !!founder && String(codigo || '').trim().toUpperCase() === founder;
 }
 
 
@@ -431,7 +440,11 @@ function isPermanentLicense_(codigo) {
 /** Ejecutar una vez en Apps Script para registrar el código founder en el Sheet. */
 function seedFounderLicense() {
 
-  const codigo = CONFIG.FOUNDER_CODE;
+  const codigo = getFounderCode_();
+  if (!codigo) {
+    Logger.log('Falta la Script Property FOUNDER_CODE.');
+    return;
+  }
 
   const sheet = getLicenseSheet_();
 

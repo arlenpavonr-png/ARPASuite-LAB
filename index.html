@@ -4345,6 +4345,7 @@ if ('serviceWorker' in navigator) {
   var LICENSE_STORAGE_KEY = 'arpa_suite_license_code';
   var LICENSE_VENC_KEY = 'arpa_suite_license_vencimiento';
   var LICENSE_PLAN_KEY = 'arpa_suite_license_plan';
+  var LICENSE_FOUNDER_KEY = 'arpa_suite_license_founder';
   var SALES_ENTRY_KEY = 'arpa_suite_sales_entry';
   var DEVICE_STORAGE_KEY = 'arpa_suite_device_id';
   var JSONP_SCRIPT_ID = 'suite-license-jsonp';
@@ -4590,6 +4591,8 @@ if ('serviceWorker' in navigator) {
       if (data.codigo) localStorage.setItem(LICENSE_STORAGE_KEY, String(data.codigo).trim().toUpperCase());
       if (data.vencimiento) localStorage.setItem(LICENSE_VENC_KEY, data.vencimiento);
       if (data.plan) localStorage.setItem(LICENSE_PLAN_KEY, data.plan);
+      if (data.founder === true) localStorage.setItem(LICENSE_FOUNDER_KEY, '1');
+      else localStorage.removeItem(LICENSE_FOUNDER_KEY);
       localStorage.setItem(SALES_ENTRY_KEY, 'true');
     } catch (e) {}
   }
@@ -4599,6 +4602,7 @@ if ('serviceWorker' in navigator) {
       localStorage.removeItem(LICENSE_STORAGE_KEY);
       localStorage.removeItem(LICENSE_VENC_KEY);
       localStorage.removeItem(LICENSE_PLAN_KEY);
+      localStorage.removeItem(LICENSE_FOUNDER_KEY);
     } catch (e) {}
   }
 
