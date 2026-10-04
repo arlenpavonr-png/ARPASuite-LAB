@@ -1,5 +1,7 @@
 # ARPA Suite
 
+> **Entorno de pruebas de ARPA Suite. No usar en producción.**
+
 PWA de marca blanca para formatos de servicio, cotizaciones y reportes en campo.
 
 ## Entrada
