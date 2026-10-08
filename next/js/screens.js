@@ -35,7 +35,7 @@ export function screenHome(d) {
   const recent = (d.recent || []).slice(0, 3);
   return `${top('ARPASuite NEXT')}
   <main class="sheet">
-    <p class="kicker">${esc(d.companyName || 'Laboratorio LAB')}</p>
+    <p class="kicker">${esc(d.companyName || 'ARPA Suite')}</p>
     <p class="lead">Inicie el servicio. La app organiza hallazgos, trabajo y recomendaciones.</p>
     ${open ? `<a class="btn btn-warn btn-block" href="#/servicio/${esc(open.id)}/captura">Continuar ${esc(open.number)}</a>` : ''}
     <a class="btn btn-primary btn-xl btn-block" href="#/servicio/nuevo">Iniciar servicio</a>

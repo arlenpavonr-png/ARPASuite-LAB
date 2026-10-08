@@ -1,7 +1,7 @@
 {
   "name": "ARPASuite NEXT",
   "short_name": "ARPA NEXT",
-  "description": "Servicio de campo para técnicos de automatización. Laboratorio LAB.",
+  "description": "Servicio de campo para técnicos de ARPA Suite.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",

@@ -193,7 +193,7 @@ export async function importLegacyHistorial(store, records) {
       brand: eq.brand,
       model: eq.model,
       serial: eq.serial,
-      notes: 'Importado del historial clásico (LAB)',
+      notes: 'Importado del historial de ARPA Suite',
     });
     await store.put('equipment', created);
     existingEq.push(created);

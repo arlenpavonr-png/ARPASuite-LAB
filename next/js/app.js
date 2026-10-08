@@ -936,10 +936,10 @@ export async function boot() {
   if (!hasNextUpdate()) return;
   store = await openStore();
   company = readCompanySettings();
-  if (!company.name) company.name = 'ARPASuite LAB';
+  if (!company.name) company.name = 'ARPA Suite';
   bindVoice();
   await importLegacyData(store);
-  await seedDemoIfNeeded();
+  if (window.ArpaActualizaciones?.check('next').reason === 'lab_demo') await seedDemoIfNeeded();
   bindClicks(root, actions());
   window.addEventListener('hashchange', async () => {
     ui.search = '';
