@@ -445,14 +445,14 @@
     ];
   }
 
-  /** Catálogo seed Taller de Motos — ítems genéricos, sin precios comerciales. */
+  /** Catálogo base Taller de Motos — precios de referencia (COP); cada cliente los ajusta. */
   function seedCatalog_taller_motos() {
     return [
-      { cod: 'MOT-001', nom: 'Revisión general (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true },
-      { cod: 'MOT-002', nom: 'Mantenimiento preventivo (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true },
-      { cod: 'MOT-003', nom: 'Cambio de aceite (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true },
-      { cod: 'MOT-004', nom: 'Diagnóstico de falla (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true },
-      { cod: 'MOT-005', nom: 'Mano de obra (seed)', categoria: 'Servicios', pvp: 0, unidad: 'servicio', seed: true }
+      { cod: 'MOT-001', nom: 'Revisión general', categoria: 'Servicios', pvp: 60000, unidad: 'servicio', seed: true },
+      { cod: 'MOT-002', nom: 'Mantenimiento preventivo', categoria: 'Servicios', pvp: 120000, unidad: 'servicio', seed: true },
+      { cod: 'MOT-003', nom: 'Cambio de aceite (mano de obra)', categoria: 'Servicios', pvp: 25000, unidad: 'servicio', seed: true },
+      { cod: 'MOT-004', nom: 'Diagnóstico de falla', categoria: 'Servicios', pvp: 40000, unidad: 'servicio', seed: true },
+      { cod: 'MOT-005', nom: 'Mano de obra (por hora)', categoria: 'Servicios', pvp: 40000, unidad: 'hora', seed: true }
     ];
   }
 
