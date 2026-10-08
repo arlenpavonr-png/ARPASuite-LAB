@@ -299,6 +299,9 @@
     'cot.table.empty': 'Add products, services, or additional items',
     'cot.section.resumen': 'Quote Summary',
     'cot.iva.toggle': 'Include VAT 19%',
+    'tax.label.iva': 'IVA',
+    'tax.label.igv': 'IGV',
+    'tax.label.sales_tax': 'Sales tax',
     'cot.total.subtotal': 'Subtotal',
     'cot.total.iva': 'VAT (19%)',
     'cot.total.grand': 'TOTAL',
@@ -373,6 +376,7 @@
     'cc.label.tipo_cuenta': 'Account type',
     'cc.cuenta.ahorros': 'Savings',
     'cc.cuenta.corriente': 'Checking',
+    'cc.cuenta.clabe': 'CLABE',
     'cc.label.numero_cuenta': 'Account number',
     'cc.label.titular': 'Account holder',
     'cc.placeholder.titular': 'Account holder name',
@@ -426,6 +430,10 @@
     'prod_modal.label.unidad': 'Unit',
     'prod_modal.unidad.unidad': 'Unit',
     'prod_modal.unidad.metro': 'Meter',
+    'prod_modal.unidad.m2': 'Square meter',
+    'prod_modal.unidad.kg': 'Kilogram',
+    'prod_modal.unidad.galon': 'Gallon',
+    'prod_modal.unidad.libra': 'Pound',
     'prod_modal.unidad.hora': 'Hour',
     'prod_modal.unidad.servicio': 'Service',
     'prod_modal.label.marca_optional': 'Brand (optional)',
@@ -448,6 +456,16 @@
     'settings.label.website_optional': 'Website (optional)',
     'settings.placeholder.website': 'https://your-company.com',
     'settings.section.bank': 'Bank Details',
+    'settings.section.license': 'License',
+    'settings.license.plan': 'Plan',
+    'settings.license.code': 'Code (last 6)',
+    'settings.license.expiry': 'Expires',
+    'settings.license.no_expiry': 'No expiration',
+    'settings.license.change': 'Change license',
+    'settings.license.confirm_change': 'Change the license code? Company data, catalog, history and numbering will be kept.',
+    'license_gate.subtitle_enter_code': 'Enter your license code',
+    'trial.banner.days_left': 'Free trial: {days} days left',
+    'alert.numeracion.sin_licencia': 'No active license. Check Settings → License.',
     'settings.label.bank': 'Bank',
     'settings.placeholder.bank': 'Bank name',
     'settings.label.account_type': 'Account type',
@@ -461,6 +479,9 @@
     'settings.label.technician_code': 'Technician initials or code',
     'settings.placeholder.technician_code': 'PJ',
     'settings.technician_code.hint': 'PYME plan: required. Prefixes your documents (e.g. PJ-001). Other plans: optional.',
+    'settings.label.warranty_terms': 'Warranty terms',
+    'settings.label.client_requirements': 'Client requirements',
+    'settings.hint.legal_docs': 'If left empty, the standard text is used (it follows the app language). Your own text is used as-is on Quote and Service Form.',
     'settings.label.logo': 'Your company logo',
     'settings.logo.hint': 'Upload your logo (PNG, JPG or WebP). If none is uploaded, the official ARPA Suite logo will be used.',
     'settings.section.price_list': 'Price List',
@@ -560,6 +581,8 @@
     'brand.company_contact.placeholder': 'Set up your company in <strong>⚙️ Settings</strong> to personalize this document.',
     'brand.screen_footer.placeholder': 'Set up your company details in ⚙️ Settings',
     'settings.section.currency': 'Currency',
+    'settings.label.country': 'Country',
+    'settings.label.country_hint': 'Automatically sets currency and tax for your documents',
     'settings.label.currency': 'Currency for your documents',
     'currency.cop': '🇨🇴 COP — Colombian peso',
     'currency.usd': '🇺🇸 USD — US dollar',
@@ -570,7 +593,8 @@
     'currency.name.usd': 'US dollars',
     'currency.name.mxn': 'Mexican pesos',
     'currency.name.pen': 'Peruvian soles',
-    'currency.name.clp': 'Chilean pesos'
+    'currency.name.clp': 'Chilean pesos',
+    'cat.aviso.precios_convertidos': 'Reference prices converted from Colombia. Review them before quoting.'
   };
 
   var DOC_TYPE_KEYS = {
@@ -601,16 +625,25 @@
   }
 
   function t(key, vars) {
-    var dict = currentLang === 'en' ? I18N_EN : I18N_ES;
-    var text = dict[key];
+    var overrides = getCountryOverrides(currentLang);
+    var text = overrides && overrides[key];
+    if (text == null) {
+      var dict = currentLang === 'en' ? I18N_EN : I18N_ES;
+      text = dict[key];
+    }
     if (text == null && currentLang === 'en') text = I18N_EN[key];
     if (text == null) text = key;
     return interpolate(text, vars);
   }
 
   function translateIn(key, lang) {
-    var dict = lang === 'en' ? I18N_EN : I18N_ES;
-    var text = dict[key];
+    var useLang = lang === 'en' ? 'en' : 'es';
+    var overrides = getCountryOverrides(useLang);
+    var text = overrides && overrides[key];
+    if (text == null) {
+      var dict = useLang === 'en' ? I18N_EN : I18N_ES;
+      text = dict[key];
+    }
     if (text == null) text = key;
     return text;
   }
@@ -623,7 +656,22 @@
 
   function supplementSpanishKeys() {
     Object.assign(I18N_ES, {
+      'cc.cuenta.clabe': 'CLABE',
+      'cat.aviso.precios_convertidos': 'Precios de referencia convertidos desde Colombia. Revísalos antes de cotizar.',
       'header.doc_type.cotizacion': '💰 Cotización',
+      'settings.section.license': 'Licencia',
+      'settings.license.plan': 'Plan',
+      'settings.license.code': 'Código (últimos 6)',
+      'settings.license.expiry': 'Vencimiento',
+      'settings.license.no_expiry': 'Sin vencimiento',
+      'settings.license.change': 'Cambiar licencia',
+      'settings.license.confirm_change': '¿Cambiar el código de licencia? La empresa, el catálogo, el historial y la numeración se conservan.',
+      'settings.label.warranty_terms': 'Términos de garantía',
+      'settings.label.client_requirements': 'Requisitos para el cliente',
+      'settings.hint.legal_docs': 'Si lo deja vacío, se usa el texto estándar (cambia con el idioma). Si escribe el suyo, se usa tal cual en Cotización y Formato.',
+      'license_gate.subtitle_enter_code': 'Ingrese su código de licencia',
+      'trial.banner.days_left': 'Prueba gratis: quedan {days} días',
+      'alert.numeracion.sin_licencia': 'Sin licencia activa. Revise Configuración → Licencia.',
       'header.doc_type.catalogo': '📦 Mi Catálogo',
       'header.doc_type.cuenta_cobro': '🧾 Cuenta de Cobro',
       'header.doc_type.historial': '📋 Historial de Servicios',
@@ -734,6 +782,8 @@
       'brand.company_contact.placeholder': 'Configure su empresa en <strong>⚙️ Ajustes</strong> para personalizar este documento.',
       'brand.screen_footer.placeholder': 'Configure los datos de su empresa en ⚙️ Ajustes',
       'settings.section.currency': 'Moneda',
+      'settings.label.country': 'País',
+      'settings.label.country_hint': 'Define automáticamente moneda e impuesto de tus documentos',
       'settings.label.currency': 'Moneda de tus documentos',
       'currency.cop': '🇨🇴 COP — Peso colombiano',
       'currency.usd': '🇺🇸 USD — Dólar estadounidense',
@@ -744,7 +794,10 @@
       'currency.name.usd': 'dólares estadounidenses',
       'currency.name.mxn': 'pesos mexicanos',
       'currency.name.pen': 'soles peruanos',
-      'currency.name.clp': 'pesos chilenos'
+      'currency.name.clp': 'pesos chilenos',
+      'tax.label.iva': 'IVA',
+      'tax.label.igv': 'IGV',
+      'tax.label.sales_tax': 'Impuesto sobre ventas'
     });
   }
 
@@ -843,10 +896,12 @@
     applyAttributeSet('[data-i18n-title]', 'data-i18n-title', 'data-i18n-default-title', lang);
     applyAttributeSet('[data-i18n-aria-label]', 'data-i18n-aria-label', 'data-i18n-default-aria', lang);
     applyAttributeSet('[data-i18n-html]', 'data-i18n-html', 'data-i18n-default-html', lang);
+    applyCountryLabels();
     updateLangButtons(lang);
     refreshDocTypeLabel();
     refreshBrandTexts();
     window.ArpaBrand?.applyToUI?.();
+    refreshDocTypeLabel();
     window.ArpaCobros?.refreshDefaultLabels?.('cot');
   }
 
@@ -873,12 +928,13 @@
   }
 
   function getCompanyName() {
-    var el = document.getElementById('brand-verification-company');
-    if (el && el.textContent.trim()) return el.textContent.trim();
     if (global.ArpaBrand && typeof global.ArpaBrand.getSettings === 'function') {
       var s = global.ArpaBrand.getSettings();
-      if (s && s.companyName) return s.companyName.trim();
+      if (s && s.companyName && s.companyName.trim()) return s.companyName.trim();
     }
+    var el = document.getElementById('brand-verification-company');
+    var fromDom = el && el.textContent.trim();
+    if (fromDom && !/^su empresa$/i.test(fromDom)) return fromDom;
     return 'Su Empresa';
   }
 
@@ -898,6 +954,8 @@
     if (brandDefaultsCaptured) return;
     var header = document.getElementById('brand-warranty-header');
     if (header) brandDefaults['brand-warranty-header'] = header.innerHTML;
+    var cotHeader = document.getElementById('cot-warranty-header');
+    if (cotHeader) brandDefaults['cot-warranty-header'] = cotHeader.innerHTML;
     var exclusion = document.getElementById('brand-warranty-exclusion');
     if (exclusion) brandDefaults['brand-warranty-exclusion'] = exclusion.innerHTML;
     var companyEl = document.getElementById('brand-verification-company');
@@ -965,6 +1023,11 @@
       pushBackup(items, warrantyHeader, 'innerHTML', warrantyHeader.innerHTML);
       warrantyHeader.innerHTML = '<span class="shield">🛡️</span> ' + interpolate(resolveText('formato.garantia.header', 'es'), { company: company });
     }
+    var cotWarrantyHeader = document.getElementById('cot-warranty-header');
+    if (cotWarrantyHeader) {
+      pushBackup(items, cotWarrantyHeader, 'innerHTML', cotWarrantyHeader.innerHTML);
+      cotWarrantyHeader.innerHTML = '<span class="shield">🛡️</span> ' + resolveText('formato.garantia.header_static', 'es');
+    }
     var warrantyExclusion = document.getElementById('brand-warranty-exclusion');
     if (warrantyExclusion) {
       pushBackup(items, warrantyExclusion, 'innerHTML', warrantyExclusion.innerHTML);
@@ -1008,11 +1071,14 @@
       applySpanishInRoot(root, pdfBackup.items);
     });
     applyPdfBrandSpanish(pdfBackup.items);
+    [viewRoot, header, qrPrint].forEach(function (root) {
+      applyCountryLabels(root);
+    });
     var viewKey = String(viewId || '').replace('view-', '');
     var docType = document.getElementById('doc-type-label');
     if (docType) {
       pushBackup(pdfBackup.items, docType, 'textContent', docType.textContent);
-      docType.textContent = resolveText(DOC_TYPE_KEYS[viewKey] || DOC_TYPE_KEYS.formato, 'es');
+      docType.textContent = chipDocTypeText(resolveText(DOC_TYPE_KEYS[viewKey] || DOC_TYPE_KEYS.formato, 'es'));
     }
   }
 
@@ -1047,6 +1113,10 @@
       if (header && brandDefaults['brand-warranty-header'] != null) {
         header.innerHTML = brandDefaults['brand-warranty-header'];
       }
+      var cotHeader = document.getElementById('cot-warranty-header');
+      if (cotHeader && brandDefaults['cot-warranty-header'] != null) {
+        cotHeader.innerHTML = brandDefaults['cot-warranty-header'];
+      }
       var exclusion = document.getElementById('brand-warranty-exclusion');
       if (exclusion && brandDefaults['brand-warranty-exclusion'] != null) {
         exclusion.innerHTML = brandDefaults['brand-warranty-exclusion'];
@@ -1068,12 +1138,19 @@
         cotLabel.textContent = brandDefaults['cot-elaborado-label'];
       }
       applyCotNotaLegal();
+      if (global.ArpaBrand && typeof global.ArpaBrand.applyLegalCopyToDocuments === 'function') {
+        global.ArpaBrand.applyLegalCopyToDocuments();
+      }
       return;
     }
 
     var warrantyHeader = document.getElementById('brand-warranty-header');
     if (warrantyHeader) {
       warrantyHeader.innerHTML = '<span class="shield">🛡️</span> ' + t('formato.garantia.header', { company: company });
+    }
+    var cotWarrantyHeader = document.getElementById('cot-warranty-header');
+    if (cotWarrantyHeader) {
+      cotWarrantyHeader.innerHTML = '<span class="shield">🛡️</span> ' + t('formato.garantia.header_static');
     }
     var warrantyExclusion = document.getElementById('brand-warranty-exclusion');
     if (warrantyExclusion) {
@@ -1096,17 +1173,125 @@
         : t('cot.firma.elaborado');
     }
     applyCotNotaLegal();
+    if (global.ArpaBrand && typeof global.ArpaBrand.applyLegalCopyToDocuments === 'function') {
+      global.ArpaBrand.applyLegalCopyToDocuments();
+    }
   }
 
-  function refreshDocTypeLabel() {
+  function chipDocTypeText(text) {
+    var cleaned = String(text || '').replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/, '').trim();
+    return cleaned || String(text || '');
+  }
+
+  function resolveCurrentView(preferredView) {
+    if (preferredView && DOC_TYPE_KEYS[preferredView]) return preferredView;
+    var visible = document.querySelector('.suite-view:not([hidden])');
+    if (visible && visible.id && visible.id.indexOf('view-') === 0) {
+      var fromDom = visible.id.slice(5);
+      if (DOC_TYPE_KEYS[fromDom]) return fromDom;
+    }
+    if (global.ArpaViews && typeof global.ArpaViews.getCurrentView === 'function') {
+      var fromApi = global.ArpaViews.getCurrentView();
+      if (fromApi && DOC_TYPE_KEYS[fromApi]) return fromApi;
+    }
+    return 'formato';
+  }
+
+  function getCountryPlaceholders(country) {
+    var map = {
+      CO: { phone: '+57 300 000 0000', cityEs: 'Medellín', cityEn: 'Medellín' },
+      MX: { phone: '+52 55 0000 0000', cityEs: 'Ciudad de México', cityEn: 'Mexico City' },
+      CL: { phone: '+56 9 0000 0000', cityEs: 'Santiago', cityEn: 'Santiago' },
+      PE: { phone: '+51 1 000 0000', cityEs: 'Lima', cityEn: 'Lima' },
+      US: { phone: '+1 555 000 0000', cityEs: 'Miami', cityEn: 'Miami' }
+    };
+    return map[country] || map.CO;
+  }
+
+  function getCountryOverrides(lang) {
+    var country = (global.ArpaPricing && typeof global.ArpaPricing.getCountryCode === 'function')
+      ? global.ArpaPricing.getCountryCode()
+      : 'CO';
+    var ph = getCountryPlaceholders(country);
+    var es = {
+      'cot.table.pvp_unit': 'PRECIO UNIT.',
+      'formato.placeholder.telefono': ph.phone,
+      'formato.placeholder.ciudad': ph.cityEs
+    };
+    var en = {
+      'cot.table.pvp_unit': 'UNIT PRICE',
+      'formato.placeholder.telefono': ph.phone,
+      'formato.placeholder.ciudad': ph.cityEn
+    };
+    if (country === 'MX') {
+      Object.assign(es, {
+        'settings.label.nit': 'RFC',
+        'formato.label.nit_cedula': 'RFC',
+        'formato.placeholder.nit_cedula': 'RFC',
+        'formato.firma.placeholder.doc': 'RFC',
+        'settings.label.holder_doc_optional': 'RFC del titular (opcional)',
+        'settings.label.technician_doc_optional': 'RFC del técnico (opcional)',
+        'settings.label.account_number': 'CLABE / Número de cuenta',
+        'settings.placeholder.account_number': 'CLABE (18 dígitos)',
+        'cc.cobrador.cedula_nit': 'RFC personal',
+        'cc.cobrador.nit_empresa': 'RFC empresa',
+        'cc.label.nit_cc': 'RFC',
+        'cc.label.nit_titular': 'RFC titular',
+        'cc.placeholder.doc_titular': 'RFC del titular',
+        'cc.cuenta.clabe': 'CLABE',
+        'tax.label.iva': 'IVA',
+        'cot.nota_legal': '<strong>Nota:</strong> Cotización válida por <strong>15 días calendario</strong>. Precios en {moneda_nombre} ({moneda_codigo}).',
+        'brand.banco.linea': 'Datos para transferencia: {bank} · {tipo} · {numero}'
+      });
+      Object.assign(en, {
+        'settings.label.nit': 'RFC',
+        'formato.label.nit_cedula': 'RFC',
+        'formato.placeholder.nit_cedula': 'RFC',
+        'formato.firma.placeholder.doc': 'RFC',
+        'settings.label.holder_doc_optional': 'Holder RFC (optional)',
+        'settings.label.technician_doc_optional': 'Technician RFC (optional)',
+        'settings.label.account_number': 'CLABE / Account number',
+        'settings.placeholder.account_number': 'CLABE (18 digits)',
+        'cc.cobrador.cedula_nit': 'Personal RFC',
+        'cc.cobrador.nit_empresa': 'Company RFC',
+        'cc.label.nit_cc': 'RFC',
+        'cc.label.nit_titular': 'Holder RFC',
+        'cc.placeholder.doc_titular': 'Holder RFC',
+        'cc.cuenta.clabe': 'CLABE',
+        'tax.label.iva': 'VAT',
+        'cot.nota_legal': '<strong>Note:</strong> Quote valid for <strong>15 calendar days</strong>. Prices in {moneda_nombre} ({moneda_codigo}).',
+        'brand.banco.linea': 'Transfer details: {bank} · {tipo} · No. {numero}'
+      });
+    }
+    return lang === 'en' ? en : es;
+  }
+
+  function applyCountryLabels(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    var overrides = getCountryOverrides(currentLang);
+    scope.querySelectorAll('[data-i18n]').forEach(function (el) {
+      if (el.id === 'doc-type-label') return;
+      var key = el.getAttribute('data-i18n');
+      if (!key) return;
+      var text = overrides[key];
+      if (text == null) return;
+      el.textContent = interpolate(text);
+    });
+    scope.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-placeholder');
+      if (!key || overrides[key] == null) return;
+      el.setAttribute('placeholder', overrides[key]);
+    });
+  }
+
+  function refreshDocTypeLabel(preferredView) {
     var el = document.getElementById('doc-type-label');
     if (!el) return;
-    var view = 'formato';
-    if (global.ArpaViews && typeof global.ArpaViews.getCurrentView === 'function') {
-      view = global.ArpaViews.getCurrentView() || 'formato';
-    }
+    var view = resolveCurrentView(preferredView);
     var key = DOC_TYPE_KEYS[view] || DOC_TYPE_KEYS.formato;
-    el.textContent = t(key);
+    el.setAttribute('data-i18n', key);
+    el.textContent = chipDocTypeText(t(key));
   }
 
   function wrapFunction(name, afterFn) {
@@ -1184,6 +1369,7 @@
     refreshBrandTexts: refreshBrandTexts,
     preparePdfSpanish: preparePdfSpanish,
     restorePdfSpanish: restorePdfSpanish,
+    applyCountryLabels: applyCountryLabels,
     KEY_COUNT: Object.keys(I18N_EN).length
   };
 

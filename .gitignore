@@ -37,3 +37,7 @@ yarn-error.log*
 dist/
 build/
 out/
+test-results/
+playwright-report/
+pdf-test-out/
+pdf-test-out-mobile/

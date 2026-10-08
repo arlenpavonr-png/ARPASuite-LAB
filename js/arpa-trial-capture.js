@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbzKBeyDVWVqPG1R47EZTVKmCpa3SOwxs8LXrW4ipvRtiyyRV4trJKg7D4i89_cUTcH2/exec';
+  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbwzSL7-wLi9VeyNUzkiGTGgdWEPXz5DpY2qjLOZjKXGRl8I6nleSFManrWwozNnbsUlQA/exec';
   const LICENSE_CODE_KEY = 'arpa_suite_license_code';
   const ACTIVE_OFICIOS_KEY = 'arpa_active_oficios';
   const TRIAL_START_KEY = 'arpa_trial_fecha_inicio';
@@ -162,7 +162,6 @@
     }
     const code = getSavedLicenseCode().toUpperCase();
     if (!code) return false;
-    if (code === 'ARPA-FOUNDER-001') return false;
     if (code.indexOf('ARPA-WL-') === 0) return false;
     if (code.indexOf('ARPA-PYME-') === 0) return false;
     if (code.indexOf('ARPA-PRO-') === 0) return false;

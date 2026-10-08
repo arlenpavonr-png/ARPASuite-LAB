@@ -33,8 +33,44 @@
       return [];
     }
   }
+  function isQuotaError(e) {
+    return !!(e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014));
+  }
+  function stripFotosFromSnapshot(record) {
+    if (!record || !record.fullSnapshot || typeof record.fullSnapshot !== 'object') return record;
+    const next = Object.assign({}, record, {
+      fullSnapshot: Object.assign({}, record.fullSnapshot)
+    });
+    delete next.fullSnapshot.fotosAntes;
+    delete next.fullSnapshot.fotosDespues;
+    return next;
+  }
   function saveRecords(records) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records.slice(0, MAX_RECORDS)));
+    var list = records.slice(0, MAX_RECORDS);
+    while (list.length) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        return true;
+      } catch (e) {
+        if (!isQuotaError(e)) {
+          console.warn('[arpa-historial] saveRecords', e);
+          return false;
+        }
+        if (list.length > 1) {
+          list.pop();
+          continue;
+        }
+        list[0] = stripFotosFromSnapshot(list[0]);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+          return true;
+        } catch (e2) {
+          console.warn('[arpa-historial] saveRecords quota', e2);
+          return false;
+        }
+      }
+    }
+    return false;
   }
   function newRecordId() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -135,13 +171,14 @@
     if (!record) return 'formato';
     if (record.modulo === 'cuenta-cobro') return 'cuenta-cobro';
     if (record.modulo === 'cotizacion')   return 'cotizacion';
+    if (record.modulo === 'formato')      return 'formato';
     var num = (record.numero || record.numeroServicio || '')
                 .toString().toUpperCase();
     var doc = (record.documento || '').toLowerCase().trim();
     var tipo = (record.tipo || '').toLowerCase().trim();
     if (num.startsWith('CC-') || doc === 'cuenta de cobro'
         || tipo === 'cuenta de cobro') return 'cuenta-cobro';
-    if (num.startsWith('AP-') || num.startsWith('COT-')
+    if (num.startsWith('COT-')
         || doc === 'cotización' || doc === 'cotizacion'
         || tipo === 'cotización' || tipo === 'cotizacion')
       return 'cotizacion';
@@ -307,7 +344,10 @@
     const snap = readFormSnapshot();
     var fullSnapshot = null;
     try { fullSnapshot = global.collectFormatoDraft?.() || null; } catch(e) {}
-    saveCliente({ nombre: snap.cliente, ciudad: snap.ciudad });
+    var nit = document.getElementById('formato-cliente-nit')?.value || '';
+    var tel = document.getElementById('formato-cliente-tel')?.value || '';
+    var dir = document.getElementById('formato-cliente-direccion')?.value || '';
+    saveCliente({ nombre: snap.cliente, ciudad: snap.ciudad, nit: nit, tel: tel, dir: dir });
     return addRecord({
       id: newRecordId(),
       modulo: 'formato',

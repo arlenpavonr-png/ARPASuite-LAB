@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARPA Suite — Cotizaciones y formatos profesionales en minutos</title>
 <meta name="description" content="Con ARPA Suite la cotización sale en 2 minutos desde la obra, el techo o donde estés. Documentos profesionales para técnicos de cualquier oficio.">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1a2a4a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -458,7 +460,7 @@
 <nav class="navbar">
   <div class="container">
     <span class="navbar-brand">ARPA Suite</span>
-    <a class="btn btn-gold btn-sm" href="https://arlenpavonr-png.github.io/Formato-Arlenpav/">Probar gratis →</a>
+    <a class="btn btn-gold btn-sm" href="https://arpa.arpatechnologyglobal.com/?start=1">Probar gratis →</a>
   </div>
 </nav>
 
@@ -468,7 +470,7 @@
     <h1>Ahorita se la envío...</h1>
     <div class="hero-sub">Y ahí perdiste el cliente.</div>
     <p class="hero-text">Con ARPA Suite la cotización sale en 2 minutos — desde la obra, desde el techo, desde donde estés.</p>
-    <a class="btn btn-gold btn-lg" href="https://arlenpavonr-png.github.io/Formato-Arlenpav/">Probar gratis →</a>
+    <a class="btn btn-gold btn-lg" href="https://arpa.arpatechnologyglobal.com/?start=1">Probar gratis →</a>
     <p class="micro">Sin tarjeta de crédito. Sin instalación.</p>
   </div>
 </header>
@@ -513,7 +515,7 @@
       </div>
     </div>
     <div class="center-btn">
-      <a class="btn btn-gold btn-lg" href="https://arlenpavonr-png.github.io/Formato-Arlenpav/">Probar gratis →</a>
+      <a class="btn btn-gold btn-lg" href="https://arpa.arpatechnologyglobal.com/?start=1">Probar gratis →</a>
     </div>
   </div>
 </section>
@@ -629,6 +631,15 @@
 <section style="background:var(--navy);">
   <div class="container fade-in">
     <h2 class="section-title on-navy">¿Quieres ver cómo le llega el documento a tu cliente?</h2>
+    <div id="arpa-install-block" data-arpa-install-root data-arpa-install-display="block" style="display:none; text-align:center; margin: 0 auto 28px; max-width: 520px; padding: 24px 20px; background: rgba(201,168,76,0.12); border: 2px solid var(--gold); border-radius: 12px;">
+      <p style="font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:700; color:#c9a84c; margin:0 0 16px;">Instálala en tu celular en 10 segundos</p>
+      <button type="button" data-arpa-install-btn class="btn btn-lg" style="background:#1a2a4a; color:#c9a84c; border:2px solid #c9a84c;">Instalar App</button>
+      <div data-arpa-install-ios style="display:none; color:#ffffff; font-size:15px; line-height:1.5; font-weight:500;">
+        <div style="font-size:28px; margin-bottom:8px;" aria-hidden="true">📤</div>
+        En iPhone: toca el botón Compartir (el cuadrado con flecha hacia arriba) y luego "Agregar a pantalla de inicio"
+      </div>
+      <span data-arpa-install-ios-other style="display:none; font-weight:500; max-width:520px; color:#ffffff;">🧭 Para instalar la app, abre este link en Safari</span>
+    </div>
     <p class="section-sub" style="color:var(--gold);font-weight:600;">Te enviamos un ejemplo real por WhatsApp. Gratis.</p>
     <div style="text-align:center;">
       <a class="btn btn-gold btn-lg" href="https://wa.me/573016092542?text=Hola%2C%20quiero%20ver%20un%20ejemplo%20de%20ARPA%20Suite" target="_blank" rel="noopener">Envíame el ejemplo →</a>
@@ -641,7 +652,7 @@
   <div class="container fade-in">
     <h2>Tu próximo cliente merece un documento profesional.</h2>
     <p>Empieza gratis hoy. Sin tarjeta. Sin instalación.</p>
-    <a class="btn btn-navy btn-lg" href="https://arlenpavonr-png.github.io/Formato-Arlenpav/">Probar ARPA Suite gratis →</a>
+    <a class="btn btn-navy btn-lg" href="https://arpa.arpatechnologyglobal.com/?start=1">Probar ARPA Suite gratis →</a>
   </div>
 </section>
 
@@ -652,7 +663,7 @@
 </footer>
 
 <!-- BOTÓN FLOTANTE MÓVIL -->
-<a class="float-cta" href="https://arlenpavonr-png.github.io/Formato-Arlenpav/">Probar gratis →</a>
+<a class="float-cta" href="https://arpa.arpatechnologyglobal.com/?start=1">Probar gratis →</a>
 
 <script>
   // ── Fade-in al hacer scroll ──
@@ -675,6 +686,19 @@
 
   // ── (Sección WhatsApp ahora es link directo, sin JS necesario) ──
 
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./service-worker.js').catch(function () {});
+    });
+  }
+</script>
+<script src="js/arpa-install-prompt.js"></script>
+<script>
+window.addEventListener('beforeinstallprompt', function () {
+  if (window.ArpaInstall && typeof window.ArpaInstall.mostrarBoton === 'function') {
+    window.ArpaInstall.mostrarBoton();
+  }
+});
 </script>
 
 </body>

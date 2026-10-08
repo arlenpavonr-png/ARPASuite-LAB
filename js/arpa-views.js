@@ -13,7 +13,7 @@
     const pdfCot = document.getElementById('pdf-actions-cot');
 
     if (window.ArpaI18n?.refreshDocTypeLabel) {
-      window.ArpaI18n.refreshDocTypeLabel();
+      window.ArpaI18n.refreshDocTypeLabel(view);
     } else {
       const labels = {
         formato: 'Formato de Servicio',
@@ -47,6 +47,7 @@
       global.ArpaCotizacion?.renderTablaCot?.();
       global.ArpaCotizacion?.ensureCotNumero?.();
       global.ArpaCotizacion?.updateCatalogHint?.();
+      global.ArpaCotizacion?.syncTaxLabels?.();
     }
     if (view === 'cuenta-cobro') {
       global.applyUserSettingsToUI?.();

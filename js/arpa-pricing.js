@@ -1,5 +1,5 @@
 /**
- * Módulo: Lista de precios (localStorage)
+ * Módulo: Lista de precios, país, moneda y conversión de precargados.
  */
 (function (global) {
   const PRICE_LIST_KEY = 'arpa_suite_price_list';
@@ -11,71 +11,40 @@
     reparacion: { labelKey: 'pricing.default.reparacion', value: 150000 },
     manoObra: { labelKey: 'pricing.default.mano_obra', value: 65000 }
   };
+
+  const FX_COP_PER_UNIT = {
+    COP: 1,
+    MXN: 220,
+    CLP: 4.2,
+    PEN: 1080,
+    USD: 4000
+  };
+
+  const CURRENCIES = {
+    COP: { locale: 'es-CO', symbol: '$', decimals: 0 },
+    USD: { locale: 'en-US', symbol: '$', decimals: 2 },
+    MXN: { locale: 'es-MX', symbol: '$', decimals: 2 },
+    PEN: { locale: 'es-PE', symbol: 'S/', decimals: 2 },
+    CLP: { locale: 'es-CL', symbol: '$', decimals: 0 }
+  };
+
+  const COUNTRY_PROFILES = {
+    CO: { currency: 'COP', taxLabelKey: 'tax.label.iva', taxRate: 0.19, phonePrefix: '57' },
+    MX: { currency: 'MXN', taxLabelKey: 'tax.label.iva', taxRate: 0.16, phonePrefix: '52' },
+    CL: { currency: 'CLP', taxLabelKey: 'tax.label.iva', taxRate: 0.19, phonePrefix: '56' },
+    PE: { currency: 'PEN', taxLabelKey: 'tax.label.igv', taxRate: 0.18, phonePrefix: '51' },
+    US: { currency: 'USD', taxLabelKey: 'tax.label.sales_tax', taxRate: 0, phonePrefix: '1' }
+  };
+
+  const PHONE_PREFIXES = Object.keys(COUNTRY_PROFILES)
+    .map((code) => COUNTRY_PROFILES[code].phonePrefix)
+    .sort((a, b) => b.length - a.length);
+
   function getDefaultLabel(key) {
     const item = DEFAULT_PRICE_LIST[key];
     return (window.ArpaI18n?.t?.(item.labelKey)) || item.labelKey;
   }
 
-  function getPriceList() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(PRICE_LIST_KEY) || '{}');
-      const merged = {};
-      Object.keys(DEFAULT_PRICE_LIST).forEach((key) => {
-        merged[key] = {
-          label: saved[key]?.label || getDefaultLabel(key),
-          value: Number(saved[key]?.value ?? DEFAULT_PRICE_LIST[key].value) || 0
-        };
-      });
-      return merged;
-    } catch (e) {
-      return { ...DEFAULT_PRICE_LIST };
-    }
-  }
-
-  function savePriceList(list) {
-    localStorage.setItem(PRICE_LIST_KEY, JSON.stringify(list));
-  }
-
-  function readPriceListFromSettingsForm() {
-    const list = {};
-    document.querySelectorAll('[data-price-key]').forEach((input) => {
-      const key = input.dataset.priceKey;
-      const labelInput = document.querySelector(`[data-price-label="${key}"]`);
-      list[key] = {
-        label: labelInput?.value.trim() || getDefaultLabel(key) || key,
-        value: Number(String(input.value).replace(/\D/g, '')) || 0
-      };
-    });
-    return list;
-  }
-
-  function renderPriceListSettings() {
-    const container = document.getElementById('settings-price-list');
-    if (!container) return;
-    const list = getPriceList();
-    container.innerHTML = Object.entries(list).map(([key, item]) => `
-      <div class="price-list-row">
-        <input type="text" class="price-label-input" data-price-label="${key}" value="${escapeHtml(item.label)}" placeholder="Nombre del servicio">
-        <input type="number" class="price-value-input" data-price-key="${key}" min="0" step="1000" value="${item.value}" inputmode="numeric" placeholder="0">
-      </div>
-    `).join('');
-  }
-
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
-
-  const CURRENCIES = {
-    COP: { locale: 'es-CO', symbol: '$' },
-    USD: { locale: 'en-US', symbol: '$' },
-    MXN: { locale: 'es-MX', symbol: '$' },
-    PEN: { locale: 'es-PE', symbol: 'S/' },
-    CLP: { locale: 'es-CL', symbol: '$' }
-  };
   function detectDefaultCurrencyFromLocale() {
     try {
       const lang = (navigator.language || navigator.userLanguage || '').toLowerCase();
@@ -88,26 +57,343 @@
       return 'COP';
     }
   }
+
+  function detectDefaultCountryFromLocale() {
+    try {
+      const lang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+      if (lang.includes('mx')) return 'MX';
+      if (lang.includes('pe')) return 'PE';
+      if (lang.includes('cl')) return 'CL';
+      if (lang.includes('us') || lang === 'en') return 'US';
+      return 'CO';
+    } catch (e) {
+      return 'CO';
+    }
+  }
+
+  function getCountryCode() {
+    const saved = window.ArpaBrand?.getSettings?.()?.country;
+    if (saved && COUNTRY_PROFILES[saved]) return saved;
+    return detectDefaultCountryFromLocale();
+  }
+
+  function getCountryProfile(countryCode) {
+    const code = (countryCode && COUNTRY_PROFILES[countryCode]) ? countryCode : getCountryCode();
+    return { code, ...COUNTRY_PROFILES[code] };
+  }
+
+  function getTaxRate(countryCode) {
+    return getCountryProfile(countryCode).taxRate;
+  }
+
+  function getTaxLabelText(countryCode) {
+    const profile = getCountryProfile(countryCode);
+    const pct = Math.round(profile.taxRate * 100);
+    let labelWord = window.ArpaI18n?.t?.(profile.taxLabelKey) || '';
+    if (!labelWord || /tax\.label\./i.test(labelWord)) {
+      labelWord = window.ArpaI18n?.getLang?.() === 'en'
+        ? (profile.taxLabelKey === 'tax.label.igv' ? 'IGV' : profile.taxLabelKey === 'tax.label.sales_tax' ? 'Sales tax' : 'VAT')
+        : (profile.taxLabelKey === 'tax.label.igv' ? 'IGV' : profile.taxLabelKey === 'tax.label.sales_tax' ? 'Impuesto sobre ventas' : 'IVA');
+    }
+    const prefix = window.ArpaI18n?.getLang?.() === 'en' ? 'Include ' : 'Incluir ';
+    return { labelWord, pct, full: labelWord + ' ' + pct + '%', toggle: prefix + labelWord + ' ' + pct + '%' };
+  }
+
   function getDefaultCurrency() {
-    const saved = window.ArpaBrand?.getSettings?.()?.currency;
+    const settings = window.ArpaBrand?.getSettings?.() || {};
+    if (settings.country && COUNTRY_PROFILES[settings.country]) {
+      return COUNTRY_PROFILES[settings.country].currency;
+    }
+    const saved = settings.currency;
     if (saved && CURRENCIES[saved]) return saved;
     return detectDefaultCurrencyFromLocale();
   }
+
+  function roundCleanPrice(n, currencyCode) {
+    const value = Number(n) || 0;
+    if (value <= 0) return 0;
+    const code = currencyCode || getDefaultCurrency();
+    if (code === 'USD') {
+      if (value < 10) return Math.round(value);
+      if (value < 100) return Math.round(value / 5) * 5;
+      return Math.round(value / 10) * 10;
+    }
+    if (code === 'CLP') {
+      if (value < 1000) return Math.round(value / 10) * 10;
+      return Math.round(value / 100) * 100;
+    }
+    if (code === 'MXN' || code === 'PEN') {
+      if (value < 50) return Math.round(value);
+      if (value < 5000) return Math.round(value / 10) * 10;
+      return Math.round(value / 50) * 50;
+    }
+    return Math.round(value);
+  }
+
+  function convertCop(copAmount, countryCode) {
+    const profile = getCountryProfile(countryCode);
+    const currency = profile.currency;
+    const cop = Number(copAmount) || 0;
+    if (currency === 'COP') return cop;
+    if (cop === 0) return 0;
+    const perUnit = FX_COP_PER_UNIT[currency] || 1;
+    return roundCleanPrice(cop / perUnit, currency);
+  }
+
+  function originalCopPrice(product, seedCop) {
+    const seed = Number(seedCop);
+    const stored = product?.pvpCop;
+    if (Number.isFinite(seed)) return seed;
+    if (stored != null && Number.isFinite(Number(stored))) return Number(stored);
+    return null;
+  }
+
+  function applyPrecargadoPvp(copAmount, countryCode) {
+    return convertCop(copAmount, countryCode);
+  }
+
+  function markPrecargadoProduct(product, copAmount, countryCode) {
+    const pvpCop = Number(copAmount) || 0;
+    return Object.assign({}, product, {
+      pvpCop,
+      precioPrecargado: true,
+      pvp: applyPrecargadoPvp(pvpCop, countryCode)
+    });
+  }
+
+  // Conservador vs LAB: un seed COP no basta. Evita reconvertir precios
+  // restaurados de la nube que ya están en MXN y no traen pvpCop.
+  function looksLikePrecargado(product, seedCop) {
+    if (!product || product.precioPrecargado === false) return false;
+    if (product.precioPrecargado === true) return true;
+    if (product.pvpCop != null && Number.isFinite(Number(product.pvpCop)) && Number(product.pvpCop) > 0) {
+      return true;
+    }
+    const cop = Number(seedCop);
+    if (!Number.isFinite(cop) || cop <= 0) return false;
+    const current = Number(product.pvp);
+    if (current === cop) return true;
+    return Object.keys(COUNTRY_PROFILES).some((code) => current === convertCop(cop, code));
+  }
+
+  function resolveDisplayPvp(product, seedCop) {
+    const p = product || {};
+    if (p.precioPrecargado === false) return Number(p.pvp) || 0;
+    const seed = Number(seedCop);
+    const cop = originalCopPrice(p, Number.isFinite(seed) ? seed : undefined);
+    if (cop != null && Number.isFinite(cop) && cop > 0 && looksLikePrecargado(p, cop)) {
+      return applyPrecargadoPvp(cop);
+    }
+    return Number(p.pvp) || 0;
+  }
+
+  function isKnownConvertedPrice(copAmount, value) {
+    const cop = Number(copAmount);
+    const val = Number(value);
+    if (!Number.isFinite(cop) || !Number.isFinite(val)) return false;
+    if (val === cop) return true;
+    return Object.keys(COUNTRY_PROFILES).some((code) => val === convertCop(cop, code));
+  }
+
+  function getPriceList() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PRICE_LIST_KEY) || '{}');
+      const merged = {};
+      Object.keys(DEFAULT_PRICE_LIST).forEach((key) => {
+        const defaultCop = DEFAULT_PRICE_LIST[key].value;
+        const converted = convertCop(defaultCop);
+        const savedVal = Number(saved[key]?.value);
+        const matchesKnown = saved[key] && isKnownConvertedPrice(defaultCop, savedVal);
+        const userEdited = matchesKnown
+          ? false
+          : !!(saved[key]?.userEdited || (saved[key] && Number.isFinite(savedVal)));
+        merged[key] = {
+          label: saved[key]?.label || getDefaultLabel(key),
+          value: userEdited ? (savedVal || 0) : converted,
+          userEdited,
+          valueCop: defaultCop
+        };
+      });
+      return merged;
+    } catch (e) {
+      const fallback = {};
+      Object.keys(DEFAULT_PRICE_LIST).forEach((key) => {
+        fallback[key] = {
+          label: getDefaultLabel(key),
+          value: convertCop(DEFAULT_PRICE_LIST[key].value),
+          userEdited: false,
+          valueCop: DEFAULT_PRICE_LIST[key].value
+        };
+      });
+      return fallback;
+    }
+  }
+
+  function savePriceList(list) {
+    const sanitized = {};
+    Object.keys(DEFAULT_PRICE_LIST).forEach((key) => {
+      const item = (list && list[key]) || {};
+      const defaultCop = DEFAULT_PRICE_LIST[key].value;
+      const value = Number(item.value);
+      const matchesKnown = isKnownConvertedPrice(defaultCop, value);
+      sanitized[key] = {
+        label: item.label || getDefaultLabel(key),
+        value: matchesKnown ? defaultCop : (Number.isFinite(value) ? value : defaultCop),
+        valueCop: defaultCop,
+        userEdited: matchesKnown ? false : !!item.userEdited
+      };
+    });
+    localStorage.setItem(PRICE_LIST_KEY, JSON.stringify(sanitized));
+  }
+
+  function readPriceListFromSettingsForm() {
+    const list = {};
+    document.querySelectorAll('[data-price-key]').forEach((input) => {
+      const key = input.dataset.priceKey;
+      const labelInput = document.querySelector(`[data-price-label="${key}"]`);
+      const defaultCop = DEFAULT_PRICE_LIST[key]?.value || 0;
+      const value = Number(String(input.value).replace(/\D/g, '')) || 0;
+      const matchesKnown = isKnownConvertedPrice(defaultCop, value);
+      list[key] = {
+        label: labelInput?.value.trim() || getDefaultLabel(key) || key,
+        value: matchesKnown ? defaultCop : value,
+        valueCop: defaultCop,
+        userEdited: !matchesKnown
+      };
+    });
+    return list;
+  }
+
+  function renderPriceListSettings() {
+    const container = document.getElementById('settings-price-list');
+    if (!container) return;
+    const list = getPriceList();
+    container.innerHTML = Object.entries(list).map(([key, item]) => `
+      <div class="price-list-row">
+        <input type="text" class="price-label-input" data-price-label="${key}" value="${escapeHtml(item.label)}" placeholder="Nombre del servicio">
+        <input type="number" class="price-value-input" data-price-key="${key}" min="0" step="1" value="${item.value}" inputmode="numeric" placeholder="0">
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function currencyDecimals(currencyCode) {
+    const code = (currencyCode && CURRENCIES[currencyCode]) ? currencyCode : getDefaultCurrency();
+    const cfg = CURRENCIES[code] || CURRENCIES.COP;
+    return cfg.decimals != null ? cfg.decimals : 0;
+  }
+
+  function roundMoney(n, currencyCode) {
+    const decimals = currencyDecimals(currencyCode);
+    const factor = Math.pow(10, decimals);
+    return Math.round((Number(n) || 0) * factor) / factor;
+  }
+
   function formatoPesos(n, currencyCode) {
     const code = (currencyCode && CURRENCIES[currencyCode]) ? currencyCode : getDefaultCurrency();
     const cfg = CURRENCIES[code] || CURRENCIES.COP;
-    return cfg.symbol + ' ' + (Number(n) || 0).toLocaleString(cfg.locale);
+    const decimals = currencyDecimals(code);
+    const value = roundMoney(n, code);
+    return cfg.symbol + ' ' + value.toLocaleString(cfg.locale, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
   }
+
+  function digitsOnly(value) {
+    return String(value || '').replace(/\D/g, '');
+  }
+
+  function formatCompanyPhone(raw, countryCode) {
+    const profile = getCountryProfile(countryCode);
+    const prefix = profile.phonePrefix || '57';
+    let digits = digitsOnly(raw);
+    if (!digits) return '';
+
+    for (let i = 0; i < PHONE_PREFIXES.length; i++) {
+      const p = PHONE_PREFIXES[i];
+      if (digits === p) continue;
+      if (!digits.startsWith(p) || digits.length <= p.length + 6) continue;
+      if (p === prefix) break;
+      const rest = digits.slice(p.length);
+      if (rest.length >= 10) {
+        digits = rest;
+      }
+      break;
+    }
+
+    if (!digits.startsWith(prefix)) {
+      digits = prefix + digits;
+    }
+    return '+' + prefix + ' ' + digits.slice(prefix.length);
+  }
+
+  function getTaxIdLabel(countryCode) {
+    return getCountryCodeFrom(countryCode) === 'MX' ? 'RFC' : 'NIT';
+  }
+
+  function getCountryCodeFrom(countryCode) {
+    return (countryCode && COUNTRY_PROFILES[countryCode]) ? countryCode : getCountryCode();
+  }
+
+  function showsConvertedPriceNotice() {
+    return getCountryCode() !== 'CO';
+  }
+
+  /** Cantidad de una línea: acepta decimales con punto o coma (7,5 m²). Inválida o <= 0 → 1. */
+  function parseCantidad(value) {
+    const n = Number(String(value == null ? '' : value).trim().replace(',', '.'));
+    if (!Number.isFinite(n) || n <= 0) return 1;
+    return Math.round(n * 100) / 100;
+  }
+
+  /** Cantidad para documentos con el separador del país (Colombia 7,5; México 7.5); enteros sin decimales. */
+  function formatoCantidad(value, currencyCode) {
+    const n = parseCantidad(value);
+    const code = (currencyCode && CURRENCIES[currencyCode]) ? currencyCode : getDefaultCurrency();
+    const cfg = CURRENCIES[code] || CURRENCIES.COP;
+    return n.toLocaleString(cfg.locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
   global.ArpaPricing = {
+    parseCantidad,
+    formatoCantidad,
     PRICE_LIST_KEY,
     DEFAULT_PRICE_LIST,
+    FX_COP_PER_UNIT,
     CURRENCIES,
+    COUNTRY_PROFILES,
     getPriceList,
     savePriceList,
     readPriceListFromSettingsForm,
     renderPriceListSettings,
     detectDefaultCurrencyFromLocale,
+    detectDefaultCountryFromLocale,
+    getCountryCode,
+    getCountryProfile,
+    getTaxRate,
+    getTaxLabelText,
     getDefaultCurrency,
+    convertCop,
+    originalCopPrice,
+    applyPrecargadoPvp,
+    markPrecargadoProduct,
+    looksLikePrecargado,
+    resolveDisplayPvp,
+    roundCleanPrice,
+    formatCompanyPhone,
+    getTaxIdLabel,
+    showsConvertedPriceNotice,
+    isKnownConvertedPrice,
+    currencyDecimals,
+    roundMoney,
     formatoPesos
   };
 })(window);

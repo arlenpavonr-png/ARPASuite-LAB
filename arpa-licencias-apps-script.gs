@@ -30,7 +30,7 @@
 
  * COLUMNAS Sheet (fila 1): CODIGO | PLAN | CLIENTE | EMAIL | VENCIMIENTO | ACTIVO | DEVICE_ID
  *
- * Prefijos: ARPA-FREE- | ARPA-PRO- | ARPA-PYME- | ARPA-WL- | ARPA-FOUNDER-7X9K2M4QZ1 (fundador, permanente)
+ * Prefijos: ARPA-FREE- | ARPA-PRO- | ARPA-PYME- | ARPA-WL- | código fundador: en Script Properties → FOUNDER_CODE (NUNCA en el código)
 
  *
 
@@ -86,7 +86,7 @@ const CONFIG = {
   },
 
   /** Licencia fundador — nunca expira, exenta de bloqueos. */
-  FOUNDER_CODE: 'ARPA-FOUNDER-7X9K2M4QZ1',
+  // FOUNDER_CODE se lee de Script Properties (ver getFounderCode_). No escribirlo aquí.
 
   EMPRESAS_SHEET_NAME: 'Empresas',
 
@@ -380,7 +380,7 @@ function buildValidationResult_(row, cols, codigo) {
 
           pma_vencido: true,
 
-          founder: codigo === CONFIG.FOUNDER_CODE,
+          founder: codigo === getFounderCode_(),
 
           white_label: String(codigo || '').indexOf('ARPA-WL-') === 0,
 
@@ -408,7 +408,7 @@ function buildValidationResult_(row, cols, codigo) {
 
     vencimiento: permanent ? '' : vencStr,
 
-    founder: codigo === CONFIG.FOUNDER_CODE,
+    founder: codigo === getFounderCode_(),
 
     white_label: String(codigo || '').indexOf('ARPA-WL-') === 0,
 
@@ -418,11 +418,18 @@ function buildValidationResult_(row, cols, codigo) {
 
 
 
+/** Código fundador guardado en Project Settings → Script Properties → FOUNDER_CODE. */
+function getFounderCode_() {
+  const v = PropertiesService.getScriptProperties().getProperty('FOUNDER_CODE');
+  const c = String(v || '').trim().toUpperCase();
+  return c || '__SIN_FOUNDER_CONFIGURADO__';
+}
+
 function isPermanentLicense_(codigo) {
 
   const c = String(codigo || '').trim().toUpperCase();
 
-  return c === CONFIG.FOUNDER_CODE;
+  return c === getFounderCode_();
 
 }
 
@@ -431,7 +438,7 @@ function isPermanentLicense_(codigo) {
 /** Ejecutar una vez en Apps Script para registrar el código founder en el Sheet. */
 function seedFounderLicense() {
 
-  const codigo = CONFIG.FOUNDER_CODE;
+  const codigo = getFounderCode_();
 
   const sheet = getLicenseSheet_();
 

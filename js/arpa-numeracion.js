@@ -84,7 +84,27 @@
     cc: formatCcNumber
   };
 
+  function hasActiveLicenseCode() {
+    try {
+      return !!String(localStorage.getItem('arpa_suite_license_code') || '').trim();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function blockIfNoLicense() {
+    if (hasActiveLicenseCode()) return true;
+    const msg = (window.ArpaI18n && window.ArpaI18n.t)
+      ? window.ArpaI18n.t('alert.numeracion.sin_licencia')
+      : 'Sin licencia activa. Revise Configuración → Licencia.';
+    alert(msg);
+    return false;
+  }
+
   function nextNumber(docType, fieldValue) {
+    if (!hasActiveLicenseCode()) {
+      return { sequence: 0, value: '', blocked: true };
+    }
     const storageKey = KEYS[docType] || KEYS.formato;
     const next = getMaxCounter(storageKey, fieldValue) + 1;
     setCounter(storageKey, next);
@@ -92,7 +112,29 @@
     return { sequence: next, value: format(next) };
   }
 
-  async function nextNumberAsync(docType, fieldValue) {
+  /**
+   * Pedidos de número en curso, uno por tipo de documento.
+   * Si llega un segundo pedido mientras la nube aún no responde el primero
+   * (abrir la app + tocar el módulo, o doble toque en "+ NUEVO N°"),
+   * se devuelve el MISMO pedido en vez de reservar otro número.
+   * Antes eso consumía dos números y se saltaba uno (COT-004 → COT-005).
+   */
+  const pendingRequests = {};
+
+  function nextNumberAsync(docType, fieldValue) {
+    const key = KEYS[docType] ? docType : 'formato';
+    if (pendingRequests[key]) return pendingRequests[key];
+    const request = requestNextNumber(key, fieldValue);
+    pendingRequests[key] = request;
+    const clear = () => { if (pendingRequests[key] === request) delete pendingRequests[key]; };
+    request.then(clear, clear);
+    return request;
+  }
+
+  async function requestNextNumber(docType, fieldValue) {
+    if (!hasActiveLicenseCode()) {
+      return { sequence: 0, value: '', sincronizado: false, blocked: true };
+    }
     const storageKey = KEYS[docType] || KEYS.formato;
     const localBase = getMaxCounter(storageKey, fieldValue);
     const format = FORMATTERS[docType] || formatFormNumber;
@@ -109,6 +151,37 @@
     }
     setCounter(storageKey, numero);
     return { sequence: numero, value: format(numero), sincronizado };
+  }
+
+  /**
+   * Número reservado que todavía no se ha usado en un documento guardado.
+   * Antes, abrir la app con el formulario vacío pedía un número nuevo cada vez
+   * (abrir y cerrar 3 veces gastaba 171, 172 y 173). Ahora se reutiliza el
+   * reservado hasta que el documento se guarde en el Historial.
+   */
+  const RESERVED_PREFIX = 'arpa_numero_reservado_';
+
+  function getReserved(docType) {
+    try {
+      return String(localStorage.getItem(RESERVED_PREFIX + docType) || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function setReserved(docType, value) {
+    try {
+      if (value) localStorage.setItem(RESERVED_PREFIX + docType, String(value));
+    } catch (e) { /* ignore */ }
+  }
+
+  /** Libera el reservado solo si es el número que se acaba de usar (si se reabrió un documento viejo, se conserva). */
+  function clearReserved(docType, usedValue) {
+    try {
+      const used = String(usedValue || '').trim();
+      if (used && getReserved(docType) !== used) return;
+      localStorage.removeItem(RESERVED_PREFIX + docType);
+    } catch (e) { /* ignore */ }
   }
 
   function blockIfPymeMissingCode() {
@@ -139,6 +212,11 @@
     formatCcNumber,
     nextNumber,
     nextNumberAsync,
-    blockIfPymeMissingCode
+    hasActiveLicenseCode,
+    blockIfNoLicense,
+    blockIfPymeMissingCode,
+    getReserved,
+    setReserved,
+    clearReserved
   };
 })(typeof window !== 'undefined' ? window : globalThis);

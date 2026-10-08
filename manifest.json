@@ -3,7 +3,7 @@
   "name": "ARPA Suite",
   "short_name": "ARPA Suite",
   "description": "Plataforma de gestión de campo para técnicos de servicio: automatización, electricidad, gas, plomería, refrigeración, CCTV, solar y más",
-  "start_url": "https://arpa.arpatechnologyglobal.com/",
+  "start_url": "https://arpa.arpatechnologyglobal.com/?start=1",
   "scope": "https://arpa.arpatechnologyglobal.com/",
   "display": "standalone",
   "orientation": "portrait",

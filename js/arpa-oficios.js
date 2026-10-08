@@ -203,12 +203,21 @@
       mts: 'metro',
       metros: 'metro',
       m: 'metro',
+      'm²': 'm2',
+      mt2: 'm2',
+      kilo: 'kg',
+      kilos: 'kg',
+      kgs: 'kg',
+      galon: 'galón',
+      galones: 'galón',
+      lb: 'libra',
+      libras: 'libra',
       hr: 'hora',
       horas: 'hora',
       servicios: 'servicio'
     };
     if (aliases[v]) return aliases[v];
-    if (['unidad', 'metro', 'hora', 'servicio'].includes(v)) return v;
+    if (['unidad', 'metro', 'm2', 'kg', 'galón', 'libra', 'hora', 'servicio'].includes(v)) return v;
     return v || 'unidad';
   }
 
@@ -335,9 +344,9 @@
       { cod: 'MET-014', nom: 'Bisagra reforzada 4" (par)', categoria: 'Accesorios', pvp: 18000, unidad: 'un' },
       { cod: 'MET-015', nom: 'Riel puerta corrediza (metro)', categoria: 'Accesorios', pvp: 35000, unidad: 'metro' },
       { cod: 'MET-016', nom: 'Rueda puerta corrediza (unidad)', categoria: 'Accesorios', pvp: 25000, unidad: 'un' },
-      { cod: 'MET-017', nom: 'Fabricación puerta metálica (m²)', categoria: 'Servicios', pvp: 180000, unidad: 'servicio' },
-      { cod: 'MET-018', nom: 'Fabricación reja ventana (m²)', categoria: 'Servicios', pvp: 120000, unidad: 'servicio' },
-      { cod: 'MET-019', nom: 'Fabricación techo corredizo (m²)', categoria: 'Servicios', pvp: 250000, unidad: 'servicio' },
+      { cod: 'MET-017', nom: 'Fabricación puerta metálica (m²)', categoria: 'Servicios', pvp: 180000, unidad: 'm2' },
+      { cod: 'MET-018', nom: 'Fabricación reja ventana (m²)', categoria: 'Servicios', pvp: 120000, unidad: 'm2' },
+      { cod: 'MET-019', nom: 'Fabricación techo corredizo (m²)', categoria: 'Servicios', pvp: 250000, unidad: 'm2' },
       { cod: 'MET-020', nom: 'Instalación estructura metálica', categoria: 'Servicios', pvp: 200000, unidad: 'servicio' }
     ];
   }
@@ -697,7 +706,15 @@
       const seedPvp = id === OFICIO_AUTOMATISMOS
         ? 0
         : (Number(item.pvp != null ? item.pvp : item.precio) || 0);
-      products.push({
+      products.push(global.ArpaPricing?.markPrecargadoProduct?.({
+        id: newId(),
+        cod,
+        nom,
+        unidad: normalizeSeedUnidad(item.unidad),
+        marca: String(item.marca || '').trim(),
+        categoriaId,
+        oficioId: id
+      }, seedPvp) || {
         id: newId(),
         cod,
         nom,
@@ -758,8 +775,26 @@
     global.ArpaCotizacion?.updateCatalogHint?.();
   }
 
+  const AUTOMATISMOS_SEED_VERSION = '2026-09-listas-distribuidor-2';
+  const AUTOMATISMOS_SEED_VERSION_KEY = 'arpa_seed_version_automatismos';
+
   function seedOficioIfNeeded(oficioId) {
-    return importSeedCatalog(oficioId, { force: false });
+    const id = normalizeOficioId(oficioId);
+    if (id === OFICIO_AUTOMATISMOS && getSeededOficios().includes(id)) {
+      let current = '';
+      try { current = localStorage.getItem(AUTOMATISMOS_SEED_VERSION_KEY) || ''; } catch (e) { /* ignore */ }
+      if (current !== AUTOMATISMOS_SEED_VERSION) {
+        const result = importSeedCatalog(id, { force: true });
+        try { localStorage.setItem(AUTOMATISMOS_SEED_VERSION_KEY, AUTOMATISMOS_SEED_VERSION); } catch (e) { /* ignore */ }
+        if (result.added > 0) global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
+        return result;
+      }
+    }
+    const result = importSeedCatalog(id, { force: false });
+    if (id === OFICIO_AUTOMATISMOS && !result.skipped) {
+      try { localStorage.setItem(AUTOMATISMOS_SEED_VERSION_KEY, AUTOMATISMOS_SEED_VERSION); } catch (e) { /* ignore */ }
+    }
+    return result;
   }
 
   function getSeedProductCount(oficioId) {
