@@ -24,7 +24,7 @@
     { id: 'refrigeracion', label: 'Refrigeración y Aire Acondicionado' },
     { id: 'cctv', label: 'Cámaras y CCTV / Seguridad Electrónica' },
     { id: 'plomeria', label: 'Plomería y Fontanería' },
-    { id: 'metalmecanica', label: 'Metalmecánica y Soldadura' },
+    { id: 'metalmecanica', label: 'Cerrajería y Metalmecánica' },
     { id: 'plagas', label: 'Control de Plagas / Fumigación' },
     { id: 'linea_blanca', label: 'Línea Blanca / Electrodomésticos' },
     { id: 'solar', label: 'Energía Solar' }
@@ -147,7 +147,8 @@
   function populateOficioSelect(select) {
     if (!select) return;
     select.innerHTML = '<option value="">' + t('trial_capture.oficio_placeholder', 'Seleccione su oficio principal…') + '</option>' +
-      OFICIO_OPTIONS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('');
+      // Nombre del oficio según idioma y país (p. ej. Cerrajería en Colombia, Herrería en otros países)
+      OFICIO_OPTIONS.map((o) => `<option value="${o.id}">${t('oficio.' + o.id, o.label)}</option>`).join('');
     const preferred = getPreferredOficioId();
     if (preferred) {
       select.value = preferred;
