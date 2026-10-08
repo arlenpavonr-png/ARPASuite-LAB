@@ -156,6 +156,10 @@ const mapped = mapClassicHistorial([
 assert(mapped.equipment.length === 1 && mapped.equipment[0].type === 'corrediza', 'equipo inferido del formato');
 assert(mapped.services.length === 1 && mapped.services[0].number === 'AP-0042', 'solo formatos viran a servicio');
 assert(mapped.services[0].technician === 'Carlos Pérez', 'importa técnico del formato');
+const unnamed = mapClassicHistorial([
+  { id: 'h9', modulo: 'formato', cliente: 'Nombre completo o razón social', numero: 'AP-023', fullSnapshot: {} },
+]);
+assert(unnamed.services[0]?.clientName === 'Cliente sin nombre', 'texto de ejemplo de la casilla no se vuelve cliente');
 const classicStore = createMemoryStore();
 const imported = await importLegacyHistorial(classicStore, [
   {

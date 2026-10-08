@@ -29,6 +29,20 @@ function progress(step, total) {
     <p class="progress-label">Paso ${step} de ${total}</p>`;
 }
 
+function backupBlock(b) {
+  if (!b) return '';
+  const when = b.last ? fmtDate(b.last) : 'nunca';
+  const msg = b.pending
+    ? `${b.pending} servicio${b.pending === 1 ? '' : 's'} sin copia. Última copia: ${when}.`
+    : `Última copia: ${when}.`;
+  return `<section class="block backup${b.due ? ' is-due' : ''}">
+    <h2>Copia de seguridad</h2>
+    <p class="hint">${esc(msg)} Guárdela en Drive o envíesela por WhatsApp: si pierde el celular, la recupera desde ahí.</p>
+    <button type="button" class="btn ${b.due ? 'btn-warn' : 'btn-secondary'} btn-block" data-act="backup-save">Guardar copia ahora</button>
+    <label class="btn btn-secondary btn-block">Restaurar una copia<input type="file" accept=".txt,.json,text/plain,application/json" data-restore hidden></label>
+  </section>`;
+}
+
 export function screenHome(d) {
   const open = d.openService;
   const follow = (d.followups || []).slice(0, 3);
@@ -45,6 +59,7 @@ export function screenHome(d) {
     ${recent.length ? `<section class="block"><h2>Últimos servicios</h2>${recent.map((s) =>
       `<a class="row-card" href="#/servicio/${esc(s.id)}/listo"><strong>${esc(s.number)}</strong><span>${esc(s.clientName || '')} · ${esc(serviceTypeLabel(s.type))}</span></a>`
     ).join('')}</section>` : ''}
+    ${backupBlock(d.backup)}
     <p class="hint">Los documentos PDF clásicos siguen en la suite anterior.</p>
   </main>
   ${nav('home')}`;
@@ -297,6 +312,7 @@ export function screenClosed(d) {
     <a class="btn btn-primary btn-block" href="#/servicio/${esc(s.id)}/firma">Firmar e informar</a>
     <a class="btn btn-secondary btn-block" href="#/servicio/${esc(s.id)}/informe">Ver informe</a>
     <a class="btn btn-secondary btn-block" href="#/seguimiento">Ver seguimientos</a>
+    <button type="button" class="btn btn-secondary btn-block" data-act="backup-save">Guardar copia de seguridad</button>
     <a class="btn btn-secondary btn-block" href="#/">Ir al inicio</a>
   </main>
   ${nav('home')}`;

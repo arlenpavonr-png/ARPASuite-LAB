@@ -16,6 +16,10 @@ import { buildReportModel, buildQuoteModel, renderReportHtml, openReportWindow }
 import { pdfFileFromModel } from './pdf.js';
 import { bindClicks, val } from './ui.js';
 import * as S from './screens.js';
+import {
+  buildBackup, backupToFile, parseBackup, restoreBackup, markBackupDone, lastBackupAt,
+  backupStatus, requestPersistentStorage,
+} from './backup.js';
 
 let store;
 let company = { name: '', technician: '' };
@@ -308,7 +312,9 @@ async function render() {
       openService,
       followups: openFu,
       recent,
+      backup: backupStatus(services, lastBackupAt()),
     });
+    wireRestore();
     return;
   }
 
@@ -514,6 +520,55 @@ async function render() {
     root.innerHTML = S.screenQuote({ service: { ...job, quote, notes }, followPlans, jobId: job.id });
     wireQuote();
   }
+}
+
+async function saveBackup() {
+  toast('Preparando copia…');
+  let file;
+  try {
+    file = backupToFile(await buildBackup(store));
+  } catch (err) {
+    console.warn('[arpa-next] copia', err);
+    toast('No se pudo preparar la copia');
+    return;
+  }
+  const result = await shareOrDownload({
+    file,
+    title: file.name,
+    text: 'Copia de seguridad de ARPA NEXT. Guárdela en Drive o en un chat.',
+  });
+  if (result === 'aborted') return;
+  markBackupDone();
+  toast(result === 'shared' ? 'Copia enviada' : 'Copia guardada en Descargas');
+  if (ui.screen === 'home') render();
+}
+
+function wireRestore() {
+  const input = root.querySelector('input[type="file"][data-restore]');
+  input?.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    let backup;
+    try {
+      backup = parseBackup(await file.text());
+    } catch (err) {
+      toast(err.message || 'No se pudo leer la copia');
+      return;
+    }
+    const n = (backup.data?.services || []).length;
+    const when = String(backup.exportedAt || '').slice(0, 10);
+    if (!window.confirm(`¿Restaurar la copia del ${when} (${n} servicios)? Lo que ya tiene en este celular se conserva.`)) return;
+    try {
+      const r = await restoreBackup(store, backup);
+      markBackupDone();
+      toast(`Copia restaurada: ${r.added} nuevos, ${r.updated} actualizados`);
+    } catch (err) {
+      console.warn('[arpa-next] restaurar', err);
+      toast('No se pudo restaurar la copia');
+    }
+    render();
+  });
 }
 
 function wireInputs() {
@@ -853,6 +908,7 @@ function actions() {
       const patch = who === 'tech' ? { technician: { dataUrl: '' } } : { client: { dataUrl: '' } };
       await saveJob({ signatures: mergeSignatures(job.signatures, patch) });
     },
+    'backup-save': () => saveBackup(),
     'share-report': () => shareCurrentDocument('report'),
     'share-quote': () => shareCurrentDocument('quote'),
     'wa-report': () => shareCurrentDocument('report', { whatsapp: true }),
@@ -935,6 +991,7 @@ export async function boot() {
   root.innerHTML = S.screenBoot('Preparando ARPASuite NEXT…');
   if (!hasNextUpdate()) return;
   store = await openStore();
+  requestPersistentStorage();
   company = readCompanySettings();
   if (!company.name) company.name = 'ARPA Suite';
   bindVoice();

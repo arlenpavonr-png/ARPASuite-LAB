@@ -10,6 +10,7 @@ import { imageDataHasInk, isSignedDataUrl, mergeSignatures } from '../js/signatu
 import { sanitizeFilenamePart, documentFilename, htmlDocumentToFile, shareMessage, buildWaMeUrl, whatsAppMessage } from '../js/share.js';
 import { renderReportPdf, renderQuotePdf, isPdfMagic } from '../js/pdf.js';
 import { createRequire } from 'module';
+import { buildBackup, backupToFile, backupFilename, parseBackup, restoreBackup, backupStatus } from '../js/backup.js';
 
 const EXAMPLE = 'Encontré desgaste avanzado del piñón, ajusté la cremallera, lubriqué el sistema y recomiendo cambiar el piñón.';
 
@@ -191,6 +192,74 @@ const quotePdf = renderQuotePdf(buildQuoteModel({
 const quoteBytes = new Uint8Array(await quotePdf.blob.arrayBuffer());
 assert(isPdfMagic(quoteBytes), 'cotización es PDF real (%PDF)');
 assert(quoteBytes.length > 400, 'PDF de cotización no está vacío');
+
+section('Copia de seguridad');
+{
+  const src = createMemoryStore();
+  const bc = createClient({ name: 'Cliente Copia', phone: '3000000000' });
+  await src.put('clients', bc);
+  const be = createEquipment({ clientId: bc.id, type: 'corrediza', brand: 'BFT' });
+  await src.put('equipment', be);
+  const bs = createService({
+    number: 'SV-2026-0007', clientId: bc.id, equipmentId: be.id, status: 'closed',
+    closedAt: '2026-10-08T15:00:00.000Z',
+    findings: [{ id: 'f1', text: 'Desgaste de piñón' }],
+    photos: [{ id: 'ph1', kind: 'antes', dataUrl: 'data:image/jpeg;base64,/9j/AAAA' }],
+    signatures: { client: { name: 'Pedro', doc: '', dataUrl: 'data:image/png;base64,iVBORw0KGgo=' }, technician: { name: 'Arlen', dataUrl: '' } },
+  });
+  await src.put('services', bs);
+  await src.nextServiceNumber();
+  const backup = await buildBackup(src, new Date('2026-10-08T16:00:00Z'));
+  assert(backup.format === 'arpa-next-copia' && backup.version === 1, 'copia con formato y versión');
+  assert(backup.data.services[0].photos[0].dataUrl.startsWith('data:image'), 'copia incluye fotos');
+  assert(backup.data.services[0].signatures.client.dataUrl.startsWith('data:image'), 'copia incluye firmas');
+  assert(/^ARPA-NEXT-copia-2026-10-08\.txt$/.test(backupFilename(new Date(2026, 9, 8))), 'nombre de archivo de copia (.txt para poder compartir)');
+  const file = backupToFile(backup);
+  const parsed = parseBackup(await file.text());
+  assert(parsed.data.clients.length === 1, 'archivo de copia se vuelve a leer');
+
+  let err = '';
+  try { parseBackup('{"hola":1}'); } catch (e) { err = e.message; }
+  assert(/no es una copia/.test(err), 'archivo ajeno se rechaza con mensaje claro');
+  err = '';
+  try { parseBackup('no es json'); } catch (e) { err = e.message; }
+  assert(/no es una copia/.test(err), 'texto inválido se rechaza');
+
+  const dst = createMemoryStore();
+  const r1 = await restoreBackup(dst, parsed);
+  assert(r1.added === 3, 'restaurar en celular nuevo trae cliente, equipo y servicio');
+  const restored = await dst.get('services', bs.id);
+  assert(restored?.photos?.length === 1 && restored.findings[0].text === 'Desgaste de piñón', 'servicio restaurado completo');
+  const seqNext = await dst.nextServiceNumber();
+  assert(seqNext === 'SV-' + new Date().getFullYear() + '-0002', 'numeración sigue después de la copia (' + seqNext + ')');
+
+  await dst.put('clients', { ...(await dst.get('clients', bc.id)), phone: '3111111111' });
+  const r2 = await restoreBackup(dst, parsed);
+  assert(r2.added === 0 && (await dst.get('clients', bc.id)).phone === '3111111111', 'restaurar no pisa cambios más nuevos');
+  const r3 = await restoreBackup(dst, parsed);
+  assert(r3.added === 0, 'restaurar dos veces no duplica');
+
+  // Celular nuevo: NEXT ya importó el mismo cliente desde la suite, con otro id.
+  const fresh = createMemoryStore();
+  const imported = createClient({ name: 'cliente copia ', city: 'Medellín' });
+  await fresh.put('clients', imported);
+  const r4 = await restoreBackup(fresh, parsed);
+  const freshClients = await fresh.getAll('clients');
+  assert(freshClients.length === 1, 'restaurar no duplica el cliente importado de la suite');
+  assert(freshClients[0].phone === '3000000000' && freshClients[0].city === 'Medellín', 'cliente unido conserva y completa sus datos');
+  const freshSv = (await fresh.getAll('services'))[0];
+  const freshEq = (await fresh.getAll('equipment'))[0];
+  assert(freshSv.clientId === imported.id && freshEq.clientId === imported.id && freshSv.equipmentId === freshEq.id, 'servicio y equipo quedan ligados al cliente existente');
+  assert(r4.added === 2, 'trae equipo y servicio (' + JSON.stringify(r4) + ')');
+
+  const now = new Date('2026-10-20T12:00:00Z');
+  const closedList = [{ status: 'closed', updatedAt: '2026-10-10T10:00:00Z' }];
+  assert(backupStatus([], '', now).due === false, 'sin servicios no pide copia');
+  assert(backupStatus(closedList, '', now).due === true, 'nunca hizo copia: la pide');
+  assert(backupStatus(closedList, '2026-10-11T00:00:00Z', now).pending === 0, 'servicio ya copiado no queda pendiente');
+  assert(backupStatus(closedList, '2026-10-09T00:00:00Z', now).due === true, 'copia vieja con servicio nuevo: la pide');
+  assert(backupStatus([{ status: 'closed', source: 'classic', updatedAt: '2026-10-10' }], '', now).due === false, 'servicios importados de la suite no cuentan');
+}
 
 console.log('\n' + passed + ' ok, ' + failed + ' fallos');
 if (failed) process.exit(1);

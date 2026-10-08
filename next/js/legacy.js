@@ -1,5 +1,13 @@
 import { createClient, createEquipment, createService, normalizeName } from './store.js';
 
+// La suite guarda el texto de ejemplo de la casilla cuando el nombre queda vacío.
+const PLACEHOLDER_NAMES = /^(nombre completo o raz[oó]n social|full name or company name)$/i;
+
+export function realClientName(name) {
+  const n = String(name || '').trim();
+  return PLACEHOLDER_NAMES.test(n) ? '' : n;
+}
+
 function readJson(key) {
   try {
     const data = JSON.parse(localStorage.getItem(key) || '[]');
@@ -13,7 +21,7 @@ export function readLegacyClients() {
   const fromDb = readJson('arpa_suite_clientes');
   if (fromDb.length) {
     return fromDb.map((c) => ({
-      name: c.nombre || c.name || '',
+      name: realClientName(c.nombre || c.name),
       phone: c.tel || c.phone || '',
       city: c.ciudad || c.city || '',
       nit: c.nit || '',
@@ -24,7 +32,7 @@ export function readLegacyClients() {
   const hist = readJson('arpa_suite_servicio_historial');
   const map = new Map();
   for (const r of hist) {
-    const name = String(r.cliente || '').trim();
+    const name = realClientName(r.cliente);
     if (!name) continue;
     const key = name.toLowerCase();
     if (map.has(key)) continue;
@@ -95,8 +103,8 @@ export function mapClassicHistorial(records) {
 
   for (const rec of list) {
     if ((rec.modulo || 'formato') !== 'formato') continue;
-    const clientName = String(rec.cliente || '').trim();
-    if (!clientName) continue;
+    if (!String(rec.cliente || '').trim()) continue;
+    const clientName = realClientName(rec.cliente) || 'Cliente sin nombre';
     const snap = rec.fullSnapshot || {};
     const eqFields = equipmentFromClassicSnapshot(snap);
     const eqKey = [normalizeName(clientName), eqFields.type, normalizeName(eqFields.brand), normalizeName(eqFields.model)].join('|');
@@ -226,7 +234,17 @@ export async function importLegacyHistorial(store, records) {
   return { equipmentImported, servicesImported };
 }
 
+/** Corrige clientes que entraron con el texto de ejemplo como nombre (importaciones anteriores). */
+async function renamePlaceholderClients(store) {
+  for (const c of await store.getAll('clients')) {
+    if (c.name && !realClientName(c.name)) {
+      await store.put('clients', { ...c, name: 'Cliente sin nombre', nameNorm: normalizeName('Cliente sin nombre') });
+    }
+  }
+}
+
 export async function importLegacyData(store) {
+  await renamePlaceholderClients(store);
   const clients = await importLegacyClients(store);
   const hist = await importLegacyHistorial(store);
   return { clients, ...hist };
