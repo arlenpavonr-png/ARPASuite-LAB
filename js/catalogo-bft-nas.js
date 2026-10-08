@@ -974,6 +974,14 @@
   }
 
   function restoreActiveBrandCatalog() {
+    // Solo sirve de respaldo si el catálogo del técnico quedó vacío. NUNCA reemplaza un catálogo
+    // con productos: antes lo pisaba en cada apertura y se perdían ediciones y productos nuevos.
+    let current = [];
+    try {
+      current = global.ArpaMiCatalogo?.getProducts?.(OFICIO_AUTOMATISMOS)
+        || JSON.parse(localStorage.getItem('arpa_catalog_' + OFICIO_AUTOMATISMOS) || '[]');
+    } catch (e) { current = []; }
+    if (Array.isArray(current) && current.length) return false;
     let brandId = '';
     try { brandId = localStorage.getItem(ACTIVE_BRAND_KEY) || ''; } catch (e) { /* ignore */ }
     const brand = BRAND_STORAGE[brandId];

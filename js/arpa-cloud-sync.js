@@ -14,7 +14,7 @@
 (function (global) {
   'use strict';
 
-  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbzKBeyDVWVqPG1R47EZTVKmCpa3SOwxs8LXrW4ipvRtiyyRV4trJKg7D4i89_cUTcH2/exec';
+  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbwzSL7-wLi9VeyNUzkiGTGgdWEPXz5DpY2qjLOZjKXGRl8I6nleSFManrWwozNnbsUlQA/exec';
   const LICENSE_CODE_KEY      = 'arpa_suite_license_code';
   const CATALOG_PRODUCTS_KEY  = 'arpa_catalogo_usuario';
   const CATALOG_CATEGORIES_KEY= 'arpa_categorias_usuario';
@@ -71,24 +71,16 @@
 
   // ── Catálogo local ────────────────────────────────────────────────────────
 
-  function getAllCategories() {
-    try {
-      const data = JSON.parse(localStorage.getItem(CATALOG_CATEGORIES_KEY) || '[]');
-      return Array.isArray(data) ? data : [];
-    } catch (e) { return []; }
+  function collectLocalCatalogProducts() {
+    const collected = global.ArpaMiCatalogo?.collectProductsForCloud?.();
+    return Array.isArray(collected) ? collected : [];
   }
 
-  function getAllProducts() {
-    try {
-      const data = JSON.parse(localStorage.getItem(CATALOG_PRODUCTS_KEY) || '[]');
-      return Array.isArray(data) ? data : [];
-    } catch (e) { return []; }
-  }
-
-  function getCategoryName(categoriaId) {
-    if (!categoriaId) return 'General';
-    const cat = getAllCategories().find((c) => c.id === categoriaId);
-    return cat?.name || 'General';
+  function isLocalCatalogEmpty() {
+    if (typeof global.ArpaMiCatalogo?.isLocalCatalogEmpty === 'function') {
+      return global.ArpaMiCatalogo.isLocalCatalogEmpty();
+    }
+    return collectLocalCatalogProducts().length === 0;
   }
 
   // ── Push catálogo → nube ──────────────────────────────────────────────────
@@ -96,22 +88,16 @@
   let catalogSyncTimer = null;
   let suppressCatalogSync = false;
 
-  function productToCloud(p) {
-    return {
-      id: p.id,
-      cod: p.cod,
-      nom: p.nom,
-      pvp: p.pvp,
-      unidad: p.unidad || '',
-      marca: p.marca || '',
-      categoria: getCategoryName(p.categoriaId)
-    };
-  }
-
   function pushCatalogo() {
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve();
-    const productos = getAllProducts().map(productToCloud);
+    const productos = collectLocalCatalogProducts();
+    if (productos.length) {
+      global.ArpaMiCatalogo?.markEverHadProducts?.();
+    }
+    if (!productos.length && !global.ArpaMiCatalogo?.hasEverHadProducts?.()) {
+      return Promise.resolve();
+    }
     return postJson({ accion: 'savecatalogo', licencia, productos }).catch((err) => {
       console.warn('[arpa-cloud-sync] savecatalogo', err);
     });
@@ -130,8 +116,28 @@
 
   let suppressHistorialSync = false;
 
+  function stripBase64(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) {
+      return obj.map((item) =>
+        (typeof item === 'string' && item.startsWith('data:')) ? null : stripBase64(item)
+      );
+    }
+    const result = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === 'string' && v.startsWith('data:')) {
+        result[k] = null;
+      } else if (v && typeof v === 'object') {
+        result[k] = stripBase64(v);
+      } else {
+        result[k] = v;
+      }
+    }
+    return result;
+  }
+
   function recordToCloudEntry(record) {
-    return {
+    const entry = {
       id: record.id,
       tipo: record.documento || record.tipo || '',
       subtipo: record.subtipo || '',
@@ -142,6 +148,12 @@
       monto: record.total != null ? record.total : '',
       concepto: record.concepto || ''
     };
+    if (record.fullSnapshot) {
+      try {
+        entry.fullSnapshot = JSON.stringify(stripBase64(record.fullSnapshot));
+      } catch (e) {}
+    }
+    return entry;
   }
 
   function pushHistorialEntry(record) {
@@ -204,6 +216,13 @@
     if (monto !== '' && monto != null && !Number.isNaN(Number(monto))) {
       record.total = Number(monto);
     }
+    if (entry.fullSnapshot) {
+      try {
+        record.fullSnapshot = typeof entry.fullSnapshot === 'string'
+          ? JSON.parse(entry.fullSnapshot)
+          : entry.fullSnapshot;
+      } catch (e) {}
+    }
     return record;
   }
 
@@ -217,8 +236,7 @@
    */
   function needsCatalogRestore() {
     if (!hasActiveLicense()) return false;
-    if (getAllProducts().length === 0) return true;  // vacío → siempre restaurar
-    return shouldSyncNow();                          // con datos → solo si toca
+    return isLocalCatalogEmpty();
   }
 
   function needsHistorialRestore() {
@@ -236,42 +254,47 @@
 
   function applyCatalogFromCloud(productos) {
     if (!Array.isArray(productos) || !productos.length) return false;
+    if (!isLocalCatalogEmpty()) return false;
+
+    const oficioId = global.ArpaMiCatalogo?.getActiveOficioId?.()
+      || global.ArpaOficios?.normalizeOficioId?.(null)
+      || 'automatismos';
 
     const categories = [];
     const catKeyToId = new Map();
 
-    function ensureCategory(name, oficioId) {
+    function ensureCategory(name) {
       const label = String(name || 'General').trim() || 'General';
-      const oid = global.ArpaOficios?.normalizeOficioId?.(oficioId) || 'automatismos';
-      const key = oid + '::' + label.toLowerCase();
+      const key = oficioId + '::' + label.toLowerCase();
       if (catKeyToId.has(key)) return catKeyToId.get(key);
-      const cat = { id: newId(), name: label, oficioId: oid };
+      const cat = { id: newId(), name: label, oficioId };
       categories.push(cat);
       catKeyToId.set(key, cat.id);
       return cat.id;
     }
 
-    const products = productos.map((p) => {
-      const oficioId = 'automatismos';
-      const categoriaId = ensureCategory(p.categoria, oficioId);
-      return {
-        id: p.id || newId(),
-        cod: String(p.cod || '').trim(),
-        nom: String(p.nom || '').trim(),
-        pvp: Number(p.pvp) || 0,
-        unidad: String(p.unidad || 'unidad').trim() || 'unidad',
-        marca: String(p.marca || '').trim(),
-        categoriaId,
-        oficioId
-      };
-    }).filter((p) => p.cod && p.nom);
+    const products = productos.map((p) => ({
+      id: p.id || newId(),
+      cod: String(p.cod || '').trim(),
+      nom: String(p.nom || '').trim(),
+      pvp: Number(p.pvp) || 0,
+      unidad: String(p.unidad || 'unidad').trim() || 'unidad',
+      marca: String(p.marca || '').trim(),
+      categoriaId: ensureCategory(p.categoria),
+      oficioId
+    }));
 
     if (!products.length) return false;
 
     suppressCatalogSync = true;
     try {
-      localStorage.setItem(CATALOG_CATEGORIES_KEY, JSON.stringify(categories));
-      localStorage.setItem(CATALOG_PRODUCTS_KEY, JSON.stringify(products));
+      if (typeof global.ArpaMiCatalogo?.writeCategoriesRaw === 'function') {
+        global.ArpaMiCatalogo.writeCategoriesRaw(oficioId, categories);
+        global.ArpaMiCatalogo.writeProductsRaw(oficioId, products);
+      } else {
+        localStorage.setItem(CATALOG_CATEGORIES_KEY, JSON.stringify(categories));
+        localStorage.setItem(CATALOG_PRODUCTS_KEY, JSON.stringify(products));
+      }
       global.ArpaCatalogo?.invalidateListaCache?.();
       global.ArpaCotizacion?.updateCatalogHint?.();
       global.ArpaMiCatalogo?.refreshView?.();
@@ -453,4 +476,8 @@
     // Numeración
     obtenerSiguienteNumeroCloud
   };
-})(window);
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { stripBase64 };
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

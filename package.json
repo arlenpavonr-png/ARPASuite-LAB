@@ -1,0 +1,12 @@
+{
+  "name": "arpasuite-lab",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/arpa-brand.test.js tests/arpa-cloud-sync.test.js tests/pdf-print-css.test.js tests/arpa-numeracion.test.js tests/cantidades-unidades.test.js",
+    "test:pdf": "node tests/pdf-print-footer.mjs"
+  },
+  "devDependencies": {
+    "pdfjs-dist": "^4.8.69",
+    "playwright": "^1.48.2"
+  }
+}

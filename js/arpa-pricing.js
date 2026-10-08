@@ -78,7 +78,7 @@
   function getCountryCode() {
     const saved = window.ArpaBrand?.getSettings?.()?.country;
     if (saved && COUNTRY_PROFILES[saved]) return saved;
-    return 'CO';
+    return detectDefaultCountryFromLocale();
   }
 
   function getCountryProfile(countryCode) {
@@ -128,7 +128,6 @@
     }
     if (code === 'MXN' || code === 'PEN') {
       if (value < 50) return Math.round(value);
-      if (value < 500) return Math.round(value / 10) * 10;
       if (value < 5000) return Math.round(value / 10) * 10;
       return Math.round(value / 50) * 50;
     }
@@ -166,6 +165,8 @@
     });
   }
 
+  // Conservador vs LAB: un seed COP no basta. Evita reconvertir precios
+  // restaurados de la nube que ya están en MXN y no traen pvpCop.
   function looksLikePrecargado(product, seedCop) {
     if (!product || product.precioPrecargado === false) return false;
     if (product.precioPrecargado === true) return true;
@@ -173,8 +174,10 @@
       return true;
     }
     const cop = Number(seedCop);
-    if (Number.isFinite(cop) && cop > 0) return true;
-    return false;
+    if (!Number.isFinite(cop) || cop <= 0) return false;
+    const current = Number(product.pvp);
+    if (current === cop) return true;
+    return Object.keys(COUNTRY_PROFILES).some((code) => current === convertCop(cop, code));
   }
 
   function resolveDisplayPvp(product, seedCop) {
@@ -348,7 +351,24 @@
     return getCountryCode() !== 'CO';
   }
 
+  /** Cantidad de una línea: acepta decimales con punto o coma (7,5 m²). Inválida o <= 0 → 1. */
+  function parseCantidad(value) {
+    const n = Number(String(value == null ? '' : value).trim().replace(',', '.'));
+    if (!Number.isFinite(n) || n <= 0) return 1;
+    return Math.round(n * 100) / 100;
+  }
+
+  /** Cantidad para documentos con el separador del país (Colombia 7,5; México 7.5); enteros sin decimales. */
+  function formatoCantidad(value, currencyCode) {
+    const n = parseCantidad(value);
+    const code = (currencyCode && CURRENCIES[currencyCode]) ? currencyCode : getDefaultCurrency();
+    const cfg = CURRENCIES[code] || CURRENCIES.COP;
+    return n.toLocaleString(cfg.locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
   global.ArpaPricing = {
+    parseCantidad,
+    formatoCantidad,
     PRICE_LIST_KEY,
     DEFAULT_PRICE_LIST,
     FX_COP_PER_UNIT,

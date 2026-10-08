@@ -47,6 +47,7 @@
       global.ArpaCotizacion?.renderTablaCot?.();
       global.ArpaCotizacion?.ensureCotNumero?.();
       global.ArpaCotizacion?.updateCatalogHint?.();
+      global.ArpaCotizacion?.syncTaxLabels?.();
     }
     if (view === 'cuenta-cobro') {
       global.applyUserSettingsToUI?.();

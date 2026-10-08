@@ -1,5 +1,39 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-08 — LAB actualizado con producción (`agent/sync-produccion`)
+
+### Por qué
+El LAB se creó el 26-ago como copia suelta (sin historia común) y producción recibió 66
+arreglos después (licencia, numeración reservada, PDF de WhatsApp, fecha local, México,
+decimales/m²). Lo que se mejoraba en el LAB ya no se podía pasar directo a producción.
+
+### Cómo (repetible)
+- La copia inicial del LAB (`d5efdc3` "BASE") es idéntica a producción `acbfffc` (50/50 archivos).
+- Remoto de solo lectura `produccion` → Formato-Arlenpav (push deshabilitado).
+- Commit "snapshot" = árbol de `produccion/main` con padre `d5efdc3`, y merge de tres vías
+  sobre `agent/fecha-hoy`. Próxima vez: snapshot nuevo con padre = snapshot anterior.
+
+### Criterio de resolución
+- Lógica de la app (cotización, cuenta de cobro, marca, i18n, impresión, fechas, numeración):
+  **producción**. Arreglos que el LAB había hecho por su lado se descartaron a favor de los de producción.
+- Se conservan las funciones propias del LAB: Orden de Trabajo (`arpa-ot.js`, materiales, `OT-001`),
+  slots y módulos `js/arpa-ia/`, modo demo (`ArpaLabDemo`), entrada a `next/`, Taller de motos,
+  `pages.yml` del demo Next Gen, versión de caché por `arpa-ia-cache.js`.
+- `i18n`: archivo de producción + `supplementLabKeys()` que solo rellena claves que falten.
+- No se trajeron: `CNAME` (dominio de producción), `landing-nueva.html`,
+  `arpa-licencias-apps-script.gs`, `package-lock.json`; `package.json` renombrado `arpasuite-lab`.
+- Arreglado: `service-worker.js` no precacheaba `js/arpa-ia/arpa-ia-bootstrap.js` (lo detectó la prueba de producción).
+
+### Pruebas
+- Pruebas de producción (`tests/*.test.js`) sobre el LAB: 46/46.
+- Suites del LAB: 8/8.
+- Fence antes del commit: solo archivos protegidos de la app (index.html, service-worker.js,
+  manifest.json, arpa-brand/cloud-sync/cotizacion/trial-capture) — esperado: vienen de producción.
+
+### Sigue pendiente
+- El LAB sigue llamando a producción al abrirse (ver 2026-09-27). Ahora es aún más importante resolverlo.
+- Reaplicar sobre esta rama: checklist de mantenimiento y Taller de motos con precios.
+
 ## 2026-09-06 — Experimento controlado Fase B (módulo IA dummy)
 
 ### Objetivo

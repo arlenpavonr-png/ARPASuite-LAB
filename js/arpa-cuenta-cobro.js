@@ -27,15 +27,13 @@
       clienteDir: document.getElementById('cc-cliente-dir')?.value || '',
       clienteTel: document.getElementById('cc-cliente-tel')?.value || '',
       obs: document.getElementById('cc-obs')?.value || '',
-      fechaManual: document.getElementById('cc-fecha-emision')?.dataset.manual === '1',
-      guardadoEl: hoyIso(),
       conIva: !!document.getElementById('cc-iva-check')?.checked,
       conRet: !!document.getElementById('cc-ret-check')?.checked,
       retPct: document.getElementById('cc-ret-pct')?.value || '11',
       pago: getPaymentData(),
       servicios: servicios.map((s) => ({
         desc: s.desc || '',
-        cant: parseInt(s.cant, 10) || 1,
+        cant: parseCant(s.cant),
         unit: parseNum(s.unit)
       })),
       firmaCobrador: global.ArpaSignature?.getDataUrl?.('canvas-cc-cobrador') || '',
@@ -78,7 +76,7 @@
       if (Array.isArray(d.servicios) && d.servicios.length) {
         servicios = d.servicios.map((s) => ({
           desc: s.desc || '',
-          cant: parseInt(s.cant, 10) || 1,
+          cant: parseCant(s.cant),
           unit: parseNum(s.unit)
         }));
       }
@@ -151,15 +149,20 @@
   }
 
   function formatoPesos(n) {
-    return global.ArpaPricing?.formatoPesos(n) || ('$ ' + (Number(n) || 0).toLocaleString('es-CO', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }));
+    return global.ArpaPricing?.formatoPesos(n) || ('$ ' + (Number(n) || 0).toLocaleString('es-CO'));
   }
 
   function roundMoney(n) {
     if (typeof global.ArpaPricing?.roundMoney === 'function') return global.ArpaPricing.roundMoney(n);
-    return Math.round(Number(n) || 0);
+    return Number(n) || 0;
+  }
+
+
+  // Cantidades con decimales (7,5 m²); antes parseInt truncaba a 7.
+  function parseCant(value) {
+    if (global.ArpaPricing?.parseCantidad) return global.ArpaPricing.parseCantidad(value);
+    const n = Number(String(value == null ? '' : value).trim().replace(',', '.'));
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 1;
   }
 
   function parseNum(v) {
@@ -177,53 +180,44 @@
     return N.getMaxCounter(CC_NUM_KEY, document.getElementById('cc-numero')?.value);
   }
 
-  // Pedido de número en curso (nube o local); lo usa asegurarNumeroCc() para esperar.
-  let ccNumeroEnCurso = null;
-
-  function nuevoCcNumero() {
-    const pedido = pedirCcNumero();
-    ccNumeroEnCurso = pedido;
-    pedido.finally(() => { if (ccNumeroEnCurso === pedido) ccNumeroEnCurso = null; }).catch(() => {});
-    return pedido;
-  }
-
-  function asegurarNumeroCc() {
-    return global.ArpaNumeracion?.asegurarNumero?.({
-      fieldId: 'cc-numero',
-      enCurso: () => ccNumeroEnCurso,
-      documento: 'la cuenta de cobro'
-    }) ?? Promise.resolve(!!document.getElementById('cc-numero')?.value.trim());
-  }
-
-  async function pedirCcNumero() {
+  async function nuevoCcNumero() {
+    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return;
     if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return;
-    const { value, sincronizado } = await global.ArpaNumeracion.nextNumberAsync('cc', document.getElementById('cc-numero')?.value);
+    const result = await global.ArpaNumeracion.nextNumberAsync('cc', document.getElementById('cc-numero')?.value);
+    if (!result || result.blocked) return;
+    const { value, sincronizado } = result;
     if (!sincronizado) console.warn('[ARPA] Número de cuenta de cobro generado offline, no sincronizado con la nube todavía.');
     const badge = document.getElementById('sync-status-cc');
+    // LAB: en modo demo el aviso lo pinta ArpaLabDemo (no muestra licencia real).
     if (badge && !global.ArpaLabDemo?.paintLocalBadge?.(badge)) {
       badge.style.display = 'inline-block';
-      const licActiva = (localStorage.getItem('arpa_suite_license_code') || '').trim();
-      badge.title = licActiva ? ('Licencia activa: ' + licActiva) : 'Sin licencia';
-      if (sincronizado && licActiva) {
+      const licActiva = (localStorage.getItem('arpa_suite_license_code') || '(vacio)').trim();
+      badge.title = 'Licencia activa: ' + licActiva;
+      if (sincronizado) {
         badge.textContent = '☁️ ' + licActiva.slice(-6);
         badge.style.background = 'rgba(76,175,128,0.15)';
         badge.style.color = '#2e7d4f';
       } else {
-        badge.textContent = licActiva ? ('⚠️ ' + licActiva.slice(-6) + ' (local)') : '⚠️ local';
+        badge.textContent = '⚠️ ' + licActiva.slice(-6) + ' (local)';
         badge.style.background = 'rgba(224,82,82,0.15)';
         badge.style.color = '#c0392b';
       }
     }
     const el = document.getElementById('cc-numero');
     if (el) el.value = value;
-    initFechas();
-    // Guardar el número en el borrador para que al reabrir la app no se pida otro.
-    scheduleCcDraftSave(true);
+    global.ArpaNumeracion?.setReserved?.('cc', value);
   }
 
   async function ensureCcNumero() {
+    if (!global.ArpaNumeracion?.hasActiveLicenseCode?.()) return;
     const el = document.getElementById('cc-numero');
-    if (el && !el.value.trim()) await nuevoCcNumero();
+    if (!el || el.value.trim()) return;
+    const reservado = global.ArpaNumeracion?.getReserved?.('cc');
+    if (reservado) {
+      el.value = reservado;
+      return;
+    }
+    await nuevoCcNumero();
   }
 
   function renderCobrador() {
@@ -237,7 +231,7 @@
     tbody.innerHTML = servicios.map((row, idx) => `
       <tr class="cc-row" data-idx="${idx}">
         <td class="td-desc"><input type="text" class="cc-svc-desc" value="${escAttr(row.desc)}" placeholder="Descripción del servicio"></td>
-        <td class="td-cant"><input type="number" class="cc-svc-cant" min="1" value="${row.cant}" inputmode="numeric"></td>
+        <td class="td-cant"><input type="number" class="cc-svc-cant" min="0.01" step="0.01" value="${row.cant}" inputmode="decimal"></td>
         <td class="td-precio"><input type="number" class="cc-svc-unit" min="0" step="1000" value="${row.unit || ''}" inputmode="numeric" placeholder="0"></td>
         <td class="td-total cc-svc-total">${formatoPesos(row.cant * row.unit)}</td>
         <td class="td-action">${servicios.length > 1 ? `<button type="button" class="btn-quitar cc-svc-remove" data-idx="${idx}">✕</button>` : ''}</td>
@@ -269,7 +263,7 @@
     const row = servicios[idx];
     if (!row) return;
     row.desc = tr.querySelector('.cc-svc-desc')?.value || '';
-    row.cant = parseInt(tr.querySelector('.cc-svc-cant')?.value, 10) || 1;
+    row.cant = parseCant(tr.querySelector('.cc-svc-cant')?.value);
     row.unit = parseNum(tr.querySelector('.cc-svc-unit')?.value);
     const totalCell = tr.querySelector('.cc-svc-total');
     if (totalCell) totalCell.textContent = formatoPesos(row.cant * row.unit);
@@ -278,15 +272,38 @@
   }
 
   function getSubtotal() {
-    return servicios.reduce((s, r) => s + (parseInt(r.cant, 10) || 1) * parseNum(r.unit), 0);
+    return servicios.reduce((s, r) => s + parseCant(r.cant) * parseNum(r.unit), 0);
+  }
+
+  function getTaxRate() {
+    const rate = Number(global.ArpaPricing?.getTaxRate?.());
+    return Number.isFinite(rate) ? rate : 0;
+  }
+
+  function getTaxLabelInfo() {
+    return global.ArpaPricing?.getTaxLabelText?.() || { labelWord: 'IVA', pct: 0, full: 'IVA (0%)' };
+  }
+
+  function applyTaxLabels() {
+    const tax = getTaxLabelInfo();
+    const lang = global.ArpaI18n?.getLang?.() || 'es';
+    const toggleText = lang === 'en'
+      ? ('Include ' + tax.labelWord + ' ' + tax.pct + '%')
+      : ('Incluir ' + tax.labelWord + ' ' + tax.pct + '%');
+    const ivaCheck = document.getElementById('cc-iva-check');
+    const toggleSpan = ivaCheck?.parentElement?.querySelector('span');
+    if (toggleSpan) toggleSpan.textContent = toggleText;
+    const ivaLabel = document.querySelector('#cc-iva-row .total-label');
+    if (ivaLabel) ivaLabel.textContent = tax.full;
   }
 
   function recalcularTotales() {
+    applyTaxLabels();
     const subtotal = getSubtotal();
     const conIva = document.getElementById('cc-iva-check')?.checked;
     const conRet = document.getElementById('cc-ret-check')?.checked;
     const retPct = parseNum(document.getElementById('cc-ret-pct')?.value) || 0;
-    const iva = conIva ? roundMoney(subtotal * (Number(global.ArpaPricing?.getTaxRate?.()) || 0)) : 0;
+    const iva = conIva ? roundMoney(subtotal * getTaxRate()) : 0;
     const retencion = conRet ? roundMoney(subtotal * (retPct / 100)) : 0;
     const total = roundMoney(subtotal + iva - retencion);
 
@@ -319,7 +336,7 @@
     const conIva = document.getElementById('cc-iva-check')?.checked;
     const conRet = document.getElementById('cc-ret-check')?.checked;
     const retPct = parseNum(document.getElementById('cc-ret-pct')?.value) || 0;
-    const iva = conIva ? roundMoney(subtotal * (Number(global.ArpaPricing?.getTaxRate?.()) || 0)) : 0;
+    const iva = conIva ? roundMoney(subtotal * getTaxRate()) : 0;
     const retencion = conRet ? roundMoney(subtotal * (retPct / 100)) : 0;
     const total = roundMoney(subtotal + iva - retencion);
     const r = global.ArpaBrand?.getSettings?.() || getRawSettings();
@@ -347,9 +364,9 @@
       },
       servicios: servicios.map((s) => ({
         desc: s.desc,
-        cant: parseInt(s.cant, 10) || 1,
+        cant: parseCant(s.cant),
         unit: parseNum(s.unit),
-        total: (parseInt(s.cant, 10) || 1) * parseNum(s.unit)
+        total: (parseCant(s.cant)) * parseNum(s.unit)
       })),
       subtotal,
       iva,
@@ -384,20 +401,16 @@
     clearCcDraft();
   }
 
-  // Fecha de hoy en hora de Colombia (definida en index.html); respaldo por si no cargó.
-  function hoyIso(dias) {
-    if (typeof global.arpaHoyIso === 'function') return global.arpaHoyIso(dias);
-    return new Date(Date.now() + (dias || 0) * 86400000).toISOString().slice(0, 10);
-  }
-
   function initFechas() {
+    const hoy = new Date();
     const em = document.getElementById('cc-fecha-emision');
     const ven = document.getElementById('cc-fecha-vencimiento');
-    if (em) {
-      em.value = hoyIso();
-      em.dataset.manual = '';
+    const toLocal = global.fechaLocalISO;
+    if (em) em.value = toLocal(hoy);
+    if (ven) {
+      const v = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 15);
+      ven.value = toLocal(v);
     }
-    if (ven) ven.value = hoyIso(15);
   }
 
   function syncFirmaCliente() {
@@ -417,7 +430,6 @@
   }
 
   async function enviarWhatsApp() {
-    if (!(await asegurarNumeroCc())) return;
     const jsPDF = getJsPDF();
     if (!jsPDF) {
       scheduleCcDraftSave(true);
@@ -438,6 +450,7 @@
           text: msg
         });
         global.ArpaHistorial?.captureFromCuentaCobro?.(d);
+        global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
         clearCcDraft();
         return;
       }
@@ -452,6 +465,7 @@
       msg + ' (Adjunte el PDF desde su dispositivo.)'
     );
     global.ArpaHistorial?.captureFromCuentaCobro?.(d);
+    global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
   }
 
   function loadImageDataUrl(src) {
@@ -500,9 +514,7 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     let hy = 20;
-    const taxId = global.ArpaPricing?.getTaxIdLabel?.() || 'NIT';
-    const isMx = (global.ArpaPricing?.getCountryCode?.() || 'CO') === 'MX';
-    if (d.cobrador.nit) { doc.text(`${taxId}: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
+    if (d.cobrador.nit) { doc.text(`NIT: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
     if (d.cobrador.tel) { doc.text(`Tel: ${d.cobrador.tel}`, m + (logoData ? 26 : 0), hy); }
 
     doc.setFillColor(...GOLD);
@@ -554,16 +566,16 @@
     let yR = y + 6;
     yL = blockLines(leftX, yL, [
       ['Nombre', d.cobrador.nombre],
-      [isMx ? 'RFC' : 'C.C. / NIT', d.cobrador.doc],
+      ['C.C. / NIT', d.cobrador.doc],
       ['Empresa', d.cobrador.empresa],
-      [taxId, d.cobrador.nit],
+      ['NIT', d.cobrador.nit],
       ['Tel', d.cobrador.tel],
       ['Dir', d.cobrador.dir],
       ['Web', d.cobrador.web]
     ]);
     yR = blockLines(rightX, yR, [
       ['Nombre', d.cliente.nombre],
-      [isMx ? 'RFC' : 'NIT / C.C.', d.cliente.doc],
+      ['NIT / C.C.', d.cliente.doc],
       ['Dir', d.cliente.dir],
       ['Tel', d.cliente.tel]
     ]);
@@ -604,7 +616,7 @@
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.text(descLines, cols[0] + 2, y + 4.5);
-      doc.text(String(row.cant), cols[1] + 2, y + 4.5);
+      doc.text(global.ArpaPricing?.formatoCantidad ? global.ArpaPricing.formatoCantidad(row.cant) : String(row.cant), cols[1] + 2, y + 4.5);
       doc.text(formatoPesos(row.unit), cols[2] + 2, y + 4.5);
       doc.text(formatoPesos(row.total), cols[3] + 2, y + 4.5);
       y += rowHeight;
@@ -615,7 +627,7 @@
     doc.setFontSize(9);
     const totales = [
       ['Subtotal', formatoPesos(d.subtotal)],
-      ...(d.conIva ? [[(global.ArpaPricing?.getTaxLabelText?.()?.full || 'IVA 19%') + ':', formatoPesos(d.iva)]] : []),
+      ...(d.conIva ? [[(global.ArpaPricing?.getTaxLabelText?.()?.full || 'IVA (0%)'), formatoPesos(d.iva)]] : []),
       ...(d.conRet ? [[`Retención (${d.retPct}%)`, '- ' + formatoPesos(d.retencion)]] : [])
     ];
     totales.forEach(([label, val]) => {
@@ -642,7 +654,7 @@
       d.pago.accountType && `Tipo: ${d.pago.accountType}`,
       d.pago.accountNumber && `Cuenta N°: ${d.pago.accountNumber}`,
       d.pago.accountHolder && `Titular: ${d.pago.accountHolder}`,
-      d.pago.accountHolderDocument && `${isMx ? 'RFC' : 'NIT/C.C.'}: ${d.pago.accountHolderDocument}`
+      d.pago.accountHolderDocument && `NIT/C.C.: ${d.pago.accountHolderDocument}`
     ].filter(Boolean);
     const consigBoxH = 10 + consigLines.length * 4.5 + 4;
     if (y > ph - (consigBoxH + 15)) { doc.addPage(); y = m; }
@@ -652,7 +664,7 @@
     doc.setTextColor(21, 128, 61);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text(isMx ? 'DATOS PARA TRANSFERENCIA' : 'DATOS PARA CONSIGNACIÓN', m + 4, y + 6);
+    doc.text('DATOS PARA CONSIGNACIÓN', m + 4, y + 6);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     let py = y + 12;
@@ -716,7 +728,6 @@
   }
 
   async function generarPDF() {
-    if (!(await asegurarNumeroCc())) return;
     const jsPDF = getJsPDF();
     if (!jsPDF) {
       scheduleCcDraftSave(true);
@@ -729,6 +740,7 @@
       const { doc, filename } = await renderCcToPdf(d, jsPDF);
       doc.save(filename);
       global.ArpaHistorial?.captureFromCuentaCobro?.(d);
+        global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
       clearCcDraft();
     } catch (e) {
       scheduleCcDraftSave(true);
@@ -746,24 +758,11 @@
     global.ArpaSignature?.initCanvas?.('canvas-cc-cobrador');
     global.ArpaSignature?.initCanvas?.('canvas-cc-cliente');
 
-    let ccBorrador = {};
-    try { ccBorrador = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}') || {}; } catch (e) {}
-    const em = document.getElementById('cc-fecha-emision');
     const hadDraft = applyCcDraft();
     if (!hadDraft) {
-      // No se pide número al abrir la app: si no hay borrador, se asigna al
-      // entrar a Cuenta de Cobro (arpa-views.js) o con "+ NUEVO N°".
       initFechas();
-    } else if (em?.value && ccBorrador.fechaManual) {
-      // Fecha puesta a mano → se respeta siempre.
-      em.dataset.manual = '1';
-    } else if (!em?.value || ccBorrador.guardadoEl !== hoyIso()) {
-      // Fecha automática → hoy si el borrador es de otro día.
-      initFechas();
+      ensureCcNumero();
     }
-    const marcarManual = () => { if (em) em.dataset.manual = '1'; };
-    em?.addEventListener('input', marcarManual);
-    em?.addEventListener('change', marcarManual);
     global.ArpaBrand?.applyCuentaCobroFromSettings?.(undefined, {
       fillPago: hadDraft ? 'if-empty' : 'always'
     });
@@ -796,21 +795,14 @@
 
     // Auto-rellenar cobrador desde ajustes
     (function() {
-      var settings = getRawSettings() || {};
+      var settings = getRawSettings();
       var nombreEl = document.getElementById('cc-firma-cobrador-nombre');
       var telEl = document.getElementById('cc-cobrador-tel');
-      if (nombreEl && !String(nombreEl.textContent || '').trim()) {
+      if (nombreEl && !nombreEl.textContent.trim()) {
         nombreEl.textContent = settings.companyName || '';
       }
-      if (telEl) {
-        var currentTel = (telEl.tagName === 'INPUT' || telEl.tagName === 'TEXTAREA')
-          ? String(telEl.value || '').trim()
-          : String(telEl.textContent || '').trim();
-        if (!currentTel || currentTel === '—') {
-          var phone = settings.phone || '';
-          if (telEl.tagName === 'INPUT' || telEl.tagName === 'TEXTAREA') telEl.value = phone;
-          else telEl.textContent = phone || '—';
-        }
+      if (telEl && !telEl.value.trim()) {
+        telEl.value = settings.phone || '';
       }
     })();
   }
@@ -818,6 +810,7 @@
   global.ArpaCuentaCobro = {
     initCuentaCobro,
     refreshView,
+    recalcularTotales,
     nuevoCcNumero,
     ensureCcNumero,
     limpiarFormulario,

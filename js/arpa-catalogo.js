@@ -676,6 +676,7 @@
       return map;
     },
     getPrecioByCod,
+    getSeedCop,
     invalidateListaCache,
   };
 

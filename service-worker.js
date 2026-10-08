@@ -1,7 +1,7 @@
 // ARPA Suite — Service Worker
 // CACHE_VERSION: fallback hardcodeado + archivo externo NO protegido.
 // Si falla importScripts/arpa-ia-cache.js, la PWA igual se instala.
-var CACHE_VERSION = 'v20260925-pdf-rows';
+var CACHE_VERSION = 'v20261008-sync-produccion';
 try {
   importScripts('./js/arpa-ia/arpa-ia-cache.js');
   if (typeof self.ARPA_CACHE_VERSION === 'string' && self.ARPA_CACHE_VERSION) {
@@ -12,27 +12,50 @@ try {
 }
 var CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
 
+// Todos los archivos que carga index.html (antes faltaban varios, p. ej. arpa-numeracion.js,
+// y esos quedaban guardados con la versión vieja hasta el siguiente cambio de CACHE_VERSION).
 const LOCAL_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './js/arpa-brand.js',
-  './js/arpa-cloud-sync.js',
   './js/arpa-catalogo.js',
-  './js/arpa-mi-catalogo.js',
-  './js/arpa-historial.js',
+  './js/arpa-cloud-sync.js',
+  './js/arpa-cobros.js',
   './js/arpa-ot.js',
   './js/arpa-cotizacion.js',
   './js/arpa-cuenta-cobro.js',
+  './js/arpa-formato-tipo.js',
+  './js/arpa-historial.js',
+  './js/arpa-i18n.js',
+  './js/arpa-install-prompt.js',
   './js/arpa-license.js',
+  './js/arpa-mi-catalogo.js',
+  './js/arpa-numeracion.js',
+  './js/arpa-oficios.js',
+  './js/arpa-onboarding.js',
+  './js/arpa-pricing.js',
+  './js/arpa-signature.js',
   './js/arpa-trial-capture.js',
   './js/arpa-lab-demo.js',
+  './js/arpa-ia/arpa-ia-bootstrap.js',
+  './js/arpa-views.js',
+  './js/arpa-whatsapp.js',
+  './js/catalogo-bft-nas.js',
+  './js/catalogo-ppa.js',
+  './js/html2canvas.min.js',
+  './js/jspdf.umd.min.js',
+  './js/qrcode.min.js',
 ];
 
 // INSTALACIÓN: pre-cachear assets locales
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(LOCAL_ASSETS))
+    // cache: 'reload' → baja los archivos del servidor y no de la caché HTTP del navegador
+    // (GitHub Pages permite guardarlos 10 min; abrir la app justo después de publicar dejaba la versión vieja).
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(LOCAL_ASSETS.map((u) => new Request(u, { cache: 'reload' })))
+    )
   );
   self.skipWaiting();
 });
@@ -104,7 +127,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
-        return fetch(event.request).then((response) => {
+        const fresh = event.request.mode === 'navigate'
+          ? event.request
+          : new Request(event.request, { cache: 'no-cache' });
+        return fetch(fresh).then((response) => {
           if (!response || response.status !== 200 || response.type === 'opaque') {
             return response;
           }
