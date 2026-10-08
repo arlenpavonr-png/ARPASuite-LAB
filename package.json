@@ -2,7 +2,7 @@
   "name": "arpasuite-lab",
   "private": true,
   "scripts": {
-    "test": "node --test tests/arpa-brand.test.js tests/arpa-cloud-sync.test.js tests/pdf-print-css.test.js tests/arpa-numeracion.test.js tests/cantidades-unidades.test.js",
+    "test": "node --test tests/arpa-brand.test.js tests/arpa-cloud-sync.test.js tests/pdf-print-css.test.js tests/arpa-numeracion.test.js tests/cantidades-unidades.test.js tests/actualizaciones.test.js",
     "test:pdf": "node tests/pdf-print-footer.mjs"
   },
   "devDependencies": {

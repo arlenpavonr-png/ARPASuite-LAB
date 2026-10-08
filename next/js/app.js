@@ -916,9 +916,24 @@ function actions() {
   };
 }
 
+/** NEXT es una actualización anual: solo abre si la licencia la incluye. */
+function hasNextUpdate() {
+  const upd = window.ArpaActualizaciones;
+  const r = upd ? upd.check('next') : { ok: false, reason: 'desconocida', label: 'ARPA NEXT', hasta: '' };
+  if (r.ok) return true;
+  root.innerHTML = S.screenLocked({
+    reason: r.reason,
+    label: r.label,
+    hasta: r.hasta,
+    renewUrl: upd && r.reason !== 'sin_licencia' ? upd.renewUrl('next') : '',
+  });
+  return false;
+}
+
 export async function boot() {
   root = document.getElementById('app');
   root.innerHTML = S.screenBoot('Preparando ARPASuite NEXT…');
+  if (!hasNextUpdate()) return;
   store = await openStore();
   company = readCompanySettings();
   if (!company.name) company.name = 'ARPASuite LAB';

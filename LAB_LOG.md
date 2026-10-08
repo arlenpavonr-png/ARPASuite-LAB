@@ -173,3 +173,18 @@ cambios del LAB a producción.
 Duplicados sin internet: pendiente decisión de Arlen.
 Sin conexión, la app usa su contador local + 1 y puede repetir un número que ya existe en la nube
 (otro celular con la misma licencia, respuesta perdida, app reinstalada). Opciones propuestas en la sesión del 2026-09-27.
+
+### 2026-10-08 — Licencia de actualizaciones anuales (rama `agent/licencia-actualizaciones`)
+Modelo: licencia de por vida + actualización anual paga. NEXT es la primera actualización.
+- La fecha de vencimiento que ya guarda el servidor para Pro / PYME / White Label (PMA, 365 días)
+  se usa como "actualizaciones hasta". No se tocó el Apps Script.
+- `js/arpa-actualizaciones.js`: cada actualización tiene fecha de salida (`RELEASES`; NEXT =
+  `2027-01-01`, fecha provisional). Se tiene si el PMA estaba vigente ese día. Quien no renueva
+  conserva lo que ya tenía. Fundador: siempre. Prueba gratis vigente: sí (`TRIAL_INCLUYE_ACTUALIZACIONES`).
+  Demo del LAB (`?labdemo=1` en localhost/red local): sí.
+- NEXT muestra una pantalla de "Actualización anual" con botón de WhatsApp de ventas si no la tiene.
+- Pruebas: `tests/actualizaciones.test.js` (12); e2e de NEXT usa la demo del LAB.
+- Limitación: se decide en el navegador con los datos guardados al validar (igual que hoy el
+  fundador). Basta para el cliente normal; no frena a alguien que edite el almacenamiento.
+- Para renovar a un cliente: cambiar la fecha VENCIMIENTO de su fila en la hoja de licencias;
+  la app la toma la próxima vez que abra con internet.

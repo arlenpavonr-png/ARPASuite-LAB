@@ -488,3 +488,25 @@ export function screenFollowups(d) {
 export function screenBoot(msg) {
   return `<main class="sheet boot"><p>${esc(msg || 'Cargando…')}</p></main>`;
 }
+
+const LOCK_MESSAGES = {
+  sin_licencia: 'Active su licencia de ARPA Suite para usar NEXT.',
+  trial_vencido: 'Su prueba gratis terminó. Con una licencia de ARPA Suite y la actualización vigente puede usar NEXT.',
+  sin_fecha: 'Su licencia no tiene registrada la fecha de actualizaciones. Escríbanos y la revisamos.',
+  no_renovo: 'NEXT llegó después de que terminaran las actualizaciones de su licencia. Su ARPA Suite sigue funcionando igual; renueve la actualización anual para sumar NEXT.',
+  desconocida: 'No se pudo comprobar la actualización de su licencia. Abra ARPA Suite con internet y vuelva a intentar.',
+};
+
+/** Pantalla cuando la licencia no incluye la actualización NEXT. */
+export function screenLocked(d) {
+  const msg = LOCK_MESSAGES[d.reason] || LOCK_MESSAGES.desconocida;
+  return `${top('ARPASuite NEXT')}
+  <main class="sheet">
+    <p class="kicker">Actualización anual</p>
+    <h1>${esc(d.label || 'ARPA NEXT')}</h1>
+    <p class="lead">${esc(msg)}</p>
+    ${d.hasta ? `<p class="hint">Actualizaciones de su licencia hasta: ${esc(fmtDate(/^\d{4}-\d{2}-\d{2}$/.test(d.hasta) ? d.hasta + 'T12:00:00' : d.hasta))}.</p>` : ''}
+    ${d.renewUrl ? `<a class="btn btn-primary btn-xl btn-block" href="${esc(d.renewUrl)}" target="_blank" rel="noopener">Activar por WhatsApp</a>` : ''}
+    <a class="btn btn-secondary btn-block" href="../">Volver a ARPA Suite</a>
+  </main>`;
+}

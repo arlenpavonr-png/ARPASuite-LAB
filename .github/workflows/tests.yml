@@ -16,4 +16,4 @@ jobs:
         with:
           node-version: '20'
       - name: Run tests
-        run: node --test tests/arpa-brand.test.js tests/arpa-cloud-sync.test.js tests/pdf-print-css.test.js tests/cantidades-unidades.test.js
+        run: node --test tests/arpa-brand.test.js tests/arpa-cloud-sync.test.js tests/pdf-print-css.test.js tests/cantidades-unidades.test.js tests/actualizaciones.test.js
