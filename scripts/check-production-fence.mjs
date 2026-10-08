@@ -28,6 +28,8 @@ const PROD_IDS = [
   // Deployment de licencias que usa producción desde 2026-09-07 (Formato-Arlenpav 28a323f).
   'AKfycbwzSL7-wLi9VeyNUzkiGTGgdWEPXz5DpY2qjLOZjKXGRl8I6nleSFManrWwozNnbsUlQA',
   'AKfycbyV0-C_XACD5suCh9gm1JkiKvrI3mket-z5GSFGFc6Y87HZaqFyCtVz7jmtQMayNEUeJg',
+  // Servidor de licencias propio (cuenta personal) que usa producción desde 2026-10-08.
+  'AKfycbw9wGLhbqFUt6FxRs0iLu_4xDntE8l2a4Vpd3BsXZyddPbII03BtFG6TpH7IpEe5Z3F',
   '154LeJlcAPa3dlWxXHC2WA2_xFNL4oQ45I8630Kzcd3E',
   'formato-arlenpav',
   'arpa.arpatechnologyglobal.com'
