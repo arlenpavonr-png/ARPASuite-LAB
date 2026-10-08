@@ -49,6 +49,15 @@
         ]
       },
       {
+        id: 'checklist',
+        slot: 'arpa-ia-slot-formato',
+        panel: 'checklist',
+        scripts: [
+          './js/arpa-ia/checklist/checklist-datos.js',
+          './js/arpa-ia/checklist/checklist-ui.js'
+        ]
+      },
+      {
         id: 'comercial',
         slot: 'arpa-ia-slot-historial',
         panel: 'comercial',

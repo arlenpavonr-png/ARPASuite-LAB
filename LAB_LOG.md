@@ -1,5 +1,31 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
+
+### Qué hace
+Sección "Checklist de Mantenimiento Preventivo" en el Formato de Servicio, entre
+"Registro Fotográfico" y "Observaciones". Solo aparece con tipo de servicio
+**Mantenimiento** y oficio automatismos. Puntos generales (motor y sistema eléctrico)
+más los del tipo de puerta marcado (corrediza, batiente, levadiza/seccional, barrera,
+techo corredizo, cortina). Cada punto: OK / Ajustado / Requiere cambio; resumen de conteos
+y "próximo mantenimiento sugerido". En el PDF solo salen los puntos revisados.
+
+### Cómo se integra
+Módulo `js/arpa-ia/checklist/` registrado en `arpa-ia-registry.js` (slot formato).
+**No toca** `index.html`, `service-worker.js` ni ningún archivo protegido.
+Guarda en `localStorage` propio (`arpa_checklist_mant_v1`), una entrada por número de formato;
+no entra al borrador ni al historial del formato. Orden cerrada = solo lectura.
+
+### Pruebas
+- `node js/arpa-ia/checklist/checklist-tests.mjs` (lógica pura) — OK.
+- Prueba visual en página aislada (sin cargar la app, sin llamadas a producción).
+- Fence PASS, regresión 8/8.
+
+### Pendiente antes de producción
+- Probar dentro de la app LAB completa (PDF imprimir y PDF WhatsApp).
+- Decidir si el checklist debe guardarse también en el historial del servicio.
+- Los archivos nuevos no están en la caché offline del service worker (archivo protegido).
+
 ## 2026-10-08 — LAB actualizado con producción (`agent/sync-produccion`)
 
 ### Por qué
