@@ -182,6 +182,7 @@ Modelo: licencia de por vida + actualización anual paga. NEXT es la primera act
   `2027-01-01`, fecha provisional). Se tiene si el PMA estaba vigente ese día. Quien no renueva
   conserva lo que ya tenía. Fundador: siempre. Prueba gratis vigente: sí (`TRIAL_INCLUYE_ACTUALIZACIONES`).
   Demo del LAB (`?labdemo=1` en localhost/red local): sí.
+  Antes de la fecha de salida solo la usa el fundador (Arlen la prueba en campo).
 - NEXT muestra una pantalla de "Actualización anual" con botón de WhatsApp de ventas si no la tiene.
 - Pruebas: `tests/actualizaciones.test.js` (12); e2e de NEXT usa la demo del LAB.
 - Limitación: se decide en el navegador con los datos guardados al validar (igual que hoy el

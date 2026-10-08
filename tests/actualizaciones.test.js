@@ -16,7 +16,8 @@ function mem(data) {
 }
 
 const DESDE = upd.RELEASES.next.disponibleDesde;
-const HOY = new Date(2026, 9, 8);
+const HOY = new Date(2027, 1, 15);
+const ANTES = new Date(2026, 9, 8);
 
 function chk(local, extra) {
   return upd.check('next', { storage: mem(local), session: mem(), hostname: 'example.org', today: HOY, ...(extra || {}) });
@@ -67,9 +68,9 @@ test('plan pago sin fecha registrada no abre (hay que revisar la hoja)', () => {
 });
 
 test('prueba gratis vigente ve NEXT; vencida no', () => {
-  const vigente = chk({ arpa_suite_license_code: 'ARPA-FREE-F1', arpa_suite_license_vencimiento: '2026-10-12' });
+  const vigente = chk({ arpa_suite_license_code: 'ARPA-FREE-F1', arpa_suite_license_vencimiento: '2027-02-20' });
   assert.strictEqual(vigente.ok, upd.TRIAL_INCLUYE_ACTUALIZACIONES);
-  const vencida = chk({ arpa_suite_license_code: 'ARPA-FREE-F2', arpa_suite_license_vencimiento: '2026-10-01' });
+  const vencida = chk({ arpa_suite_license_code: 'ARPA-FREE-F2', arpa_suite_license_vencimiento: '2027-02-01' });
   assert.strictEqual(vencida.ok, false);
   assert.strictEqual(vencida.reason, 'trial_vencido');
 });
@@ -99,4 +100,15 @@ test('NEXT carga el módulo antes de arrancar y bloquea sin licencia', () => {
   assert.ok(iUpd > 0 && iUpd < iApp, 'arpa-actualizaciones.js antes de app.js');
   const app = fs.readFileSync(path.join(root, 'next/js/app.js'), 'utf8');
   assert.match(app, /if \(!hasNextUpdate\(\)\) return;\s*\n\s*store = await openStore\(\);/);
+});
+
+test('antes de la fecha de salida solo el fundador la usa', () => {
+  const opts = { session: mem(), hostname: 'example.org', today: ANTES };
+  const founder = upd.check('next', { ...opts, storage: mem({ arpa_suite_license_code: 'ARPA-X', arpa_suite_license_founder: '1' }) });
+  assert.strictEqual(founder.ok, true);
+  const pro = upd.check('next', { ...opts, storage: mem({ arpa_suite_license_code: 'ARPA-PRO-AAA111', arpa_suite_license_vencimiento: '2027-10-08' }) });
+  assert.strictEqual(pro.ok, false);
+  assert.strictEqual(pro.reason, 'pronto');
+  const trial = upd.check('next', { ...opts, storage: mem({ arpa_suite_license_code: 'ARPA-FREE-F3', arpa_suite_license_vencimiento: '2026-10-12' }) });
+  assert.strictEqual(trial.reason, 'pronto');
 });

@@ -491,6 +491,7 @@ export function screenBoot(msg) {
 
 const LOCK_MESSAGES = {
   sin_licencia: 'Active su licencia de ARPA Suite para usar NEXT.',
+  pronto: 'ARPA NEXT llega como actualización anual de ARPA Suite. Escríbanos para saber cuándo estará disponible para su licencia.',
   trial_vencido: 'Su prueba gratis terminó. Con una licencia de ARPA Suite y la actualización vigente puede usar NEXT.',
   sin_fecha: 'Su licencia no tiene registrada la fecha de actualizaciones. Escríbanos y la revisamos.',
   no_renovo: 'NEXT llegó después de que terminaran las actualizaciones de su licencia. Su ARPA Suite sigue funcionando igual; renueve la actualización anual para sumar NEXT.',

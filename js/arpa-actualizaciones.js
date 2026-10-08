@@ -86,7 +86,7 @@
    * ¿Esta licencia tiene la actualización `featureId`?
    * @returns {{ok: boolean, reason: string, feature: string, label: string,
    *            disponibleDesde: string, hasta: string}}
-   * reason: founder | lab_demo | trial | pma | sin_licencia | trial_vencido |
+   * reason: founder | lab_demo | trial | pma | sin_licencia | pronto | trial_vencido |
    *         sin_fecha | no_renovo | desconocida
    */
   function check(featureId, opts) {
@@ -111,6 +111,10 @@
       return { ...out, ok: true, reason: 'founder' };
     }
 
+    // Antes de la fecha de salida solo la usa el fundador (pruebas en campo).
+    const desde = parseDateOnly(release.disponibleDesde);
+    if (desde && env.today < desde) return { ...out, reason: 'pronto' };
+
     const hasta = parseDateOnly(out.hasta);
 
     if (code.indexOf(FREE_PREFIX) === 0) {
@@ -122,7 +126,6 @@
 
     if (!hasta) return { ...out, reason: 'sin_fecha' };
 
-    const desde = parseDateOnly(release.disponibleDesde);
     if (desde && hasta >= desde) return { ...out, ok: true, reason: 'pma' };
     return { ...out, reason: 'no_renovo' };
   }
