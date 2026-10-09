@@ -261,5 +261,34 @@ section('Copia de seguridad');
   assert(backupStatus([{ status: 'closed', source: 'classic', updatedAt: '2026-10-10' }], '', now).due === false, 'servicios importados de la suite no cuentan');
 }
 
+section('Oficio Cerrajería y Metalmecánica');
+{
+  const { detectOficio, equipmentTypeLabel: label } = await import('../js/ai/knowledge.js');
+  const mk = (o) => ({ getItem: (k) => (o[k] ?? null) });
+  assert(detectOficio(mk({})) === 'automatismos', 'sin configuración: automatismos');
+  assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['metalmecanica', 'automatismos'] }) })) === 'metalmecanica', 'oficio principal metalmecánica');
+  assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['cerrajeria'] }) })) === 'metalmecanica', 'cerrajería se trata como metalmecánica');
+  assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['gas'] }) })) === 'automatismos', 'oficio sin paquete: automatismos');
+  assert(label('cortina') === 'Cortina enrollable' && label('reja_ballesta') === 'Reja ballesta', 'nombres de equipos de cerrajería');
+
+  const nota = 'Encontré los resortes de la cortina sin tensión, lamas dobladas y la chapa dañada. Lubriqué guías y eje, soldé los puntos sueltos. Hay óxido en la estructura.';
+  const asist = buildAssistance(parseTechnicianNote(nota));
+  const recs = asist.recommendations.map((r) => r.text).join(' | ');
+  assert(/resortes/.test(recs) && /lamas/.test(recs) && /chapa/.test(recs) && /anticorrosiva/.test(recs), 'recomienda resortes, lamas, chapa y pintura');
+  assert(!/guías laterales/.test(recs), 'no recomienda guías si solo se lubricaron');
+  assert(asist.quoteItems.some((q) => q.partId === 'resorte' && q.unitPrice === 450000), 'cotiza resortes con precio de referencia');
+  const guias = buildAssistance(parseTechnicianNote('Encontré las guías desalineadas y golpeadas.'));
+  assert(guias.recommendations.some((r) => /guías laterales/.test(r.text)), 'guías desalineadas sí recomienda cambio');
+  const puerta = buildAssistance(parseTechnicianNote('Encontré desgaste del piñón y la cremallera desalineada.'));
+  assert(!puerta.recommendations.some((r) => /guías laterales|lamas|resortes/.test(r.text)), 'notas de puertas no mezclan cerrajería');
+}
+
+section('Historial de cerrajería importado');
+{
+  const { mapClassicHistorial } = await import('../js/legacy.js');
+  const m = mapClassicHistorial([{ id: 'm1', modulo: 'formato', cliente: 'Local Centro', numero: 'AP-090', fullSnapshot: { fmet7: true } }]);
+  assert(m.equipment[0].type === 'cortina', 'formato con "Cortina enrollable" se importa como cortina');
+}
+
 console.log('\n' + passed + ' ok, ' + failed + ' fallos');
 if (failed) process.exit(1);

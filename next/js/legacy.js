@@ -72,6 +72,14 @@ const DOOR_CHIPS = [
   ['c6', 'barrera'],
   ['c7', 'techo_corredizo'],
   ['c9', 'cortina'],
+  // Tipo de Trabajo de Cerrajería (oficio metalmecánica)
+  ['fmet7', 'cortina'],
+  ['fmet8', 'reja_ballesta'],
+  ['fmet9', 'chapa'],
+  ['fmet1', 'puerta_metalica'],
+  ['fmet2', 'reja'],
+  ['fmet3', 'estructura'],
+  ['fmet4', 'estructura'],
 ];
 
 export function equipmentFromClassicSnapshot(snap) {

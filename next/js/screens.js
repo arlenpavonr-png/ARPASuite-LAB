@@ -1,5 +1,5 @@
 import { esc, fmtDate, severityLabel } from './ui.js';
-import { EQUIPMENT_TYPES, SERVICE_TYPES, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel, serviceTypeLabel } from './ai/knowledge.js';
+import { EQUIPMENT_TYPES, SERVICE_TYPES, QUICK_CHIPS, PART_CHIPS, CAPTURE_HINT, equipmentTypeLabel, serviceTypeLabel } from './ai/knowledge.js';
 import { money, quoteTotals } from './quote.js';
 import { followUpLabel } from './followup.js';
 
@@ -173,7 +173,7 @@ export function screenCapture(d) {
       ${d.listening ? 'Detener dictado' : (d.voiceSupported ? 'Dictar hallazgo' : 'Dictado no disponible')}
     </button>
     ${d.interim ? `<p class="interim">${esc(d.interim)}</p>` : ''}
-    <textarea id="capture-text" class="area" rows="4" placeholder="O escriba: encontré desgaste del piñón, ajusté la cremallera…">${esc(d.buffer || '')}</textarea>
+    <textarea id="capture-text" class="area" rows="4" placeholder="${esc(CAPTURE_HINT)}">${esc(d.buffer || '')}</textarea>
     <button type="button" class="btn btn-secondary btn-block" data-act="parse-text">Organizar con IA local</button>
     <div class="chips wrap">
       ${QUICK_CHIPS.map((c) => `<button type="button" class="chip" data-act="chip" data-id="${c.id}">${esc(c.label)}</button>`).join('')}

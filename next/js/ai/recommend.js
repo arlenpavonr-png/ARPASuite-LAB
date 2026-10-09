@@ -1,6 +1,53 @@
 import { PART_CATALOG } from './knowledge.js';
 
+/** Pieza y problema cerca en la frase (hasta 4 palabras entre ellos, en cualquier orden). */
+function near(text, piece, problem) {
+  const gap = '(?:[\\wáéíóúñ]+\\W+){0,4}';
+  const re = new RegExp('(?:' + piece + ')\\w*\\W+' + gap + '(?:' + problem + ')|(?:' + problem + ')\\w*\\W+' + gap + '(?:' + piece + ')', 'i');
+  return re.test(String(text || ''));
+}
+
 const RULES = [
+  {
+    id: 'resortes',
+    test: (f) => near(f, 'resorte', 'sin tensi|flojo|roto|vencid|cansad|partid'),
+    recommendation: 'Cambio de resortes de balance y ajuste de tensión del eje.',
+    partId: 'resorte',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'lamas',
+    test: (f) => near(f, 'lama|fleje', 'doblad|golpead|rot|desgast|da[nñ]ad'),
+    recommendation: 'Cambio de lamas dañadas de la cortina.',
+    partId: 'lama',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'guias_cortina',
+    test: (f) => near(f, 'gu[ií]a', 'desaline|doblad|golpead'),
+    recommendation: 'Alineación o cambio de guías laterales.',
+    partId: 'guia_cortina',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'chapa',
+    test: (f) => near(f, 'chapa|cerradura|guarda|candado', 'da[nñ]ad|rot|falla|no cierra|no abre|forzad|trabad'),
+    recommendation: 'Cambio de chapa o cerradura.',
+    partId: 'chapa',
+    followUp: 'quote',
+    quote: true,
+  },
+  {
+    id: 'oxido',
+    test: (f) => /oxid|óxido/i.test(f),
+    recommendation: 'Limpieza y pintura anticorrosiva de la estructura.',
+    partId: 'pintura',
+    followUp: 'quote',
+    quote: true,
+  },
   {
     id: 'pinon_wear',
     test: (f) => /pi[nñ][oó]n/i.test(f) && /desgaste|gastad|avanzad/i.test(f),

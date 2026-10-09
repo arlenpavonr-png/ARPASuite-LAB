@@ -1,5 +1,5 @@
 import { buildAssistance } from './ai/recommend.js';
-import { getChecklist, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel } from './ai/knowledge.js';
+import { getChecklist, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel, EQUIPMENT_TYPES } from './ai/knowledge.js';
 import { quoteFromService, readLegacyCatalogProducts } from './quote.js';
 import { applyNoteToService, closeService } from './flow.js';
 import { planFollowups, isOverdue, followUpLabel, filterFollowups, serviceTypeFromFollowup } from './followup.js';
@@ -30,7 +30,7 @@ let ui = {
   search: '',
   showNewClient: false,
   showNewEq: false,
-  newEqType: 'corrediza',
+  newEqType: EQUIPMENT_TYPES[0].id,
   buffer: '',
   interim: '',
   listening: false,
@@ -793,7 +793,7 @@ function actions() {
       const job = await getJob();
       const eq = createEquipment({
         clientId: job.clientId,
-        type: ui.newEqType || 'corrediza',
+        type: ui.newEqType || EQUIPMENT_TYPES[0].id,
         brand: val('new-eq-brand'),
         model: val('new-eq-model'),
         serial: val('new-eq-serial'),
