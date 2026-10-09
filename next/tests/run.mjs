@@ -261,6 +261,92 @@ section('Copia de seguridad');
   assert(backupStatus([{ status: 'closed', source: 'classic', updatedAt: '2026-10-10' }], '', now).due === false, 'servicios importados de la suite no cuentan');
 }
 
+section('Respaldo en la nube');
+{
+  const mem = {};
+  globalThis.localStorage = {
+    getItem: (k) => (k in mem ? mem[k] : null),
+    setItem: (k, v) => { mem[k] = String(v); },
+    removeItem: (k) => { delete mem[k]; },
+  };
+  const files = {};
+  const calls = [];
+  let online = true;
+  globalThis.ArpaRespaldoNube = {
+    enabled: () => true,
+    deviceTag: () => 'cel1',
+    hoy: (d) => d.toISOString().slice(0, 10),
+    post: async (accion, body) => {
+      calls.push({ accion, ...body });
+      if (!online) return { ok: false, mensaje: 'sin internet' };
+      if (accion === 'respaldoguardar') { files[body.nombre] = body.contenido; return { ok: true }; }
+      if (accion === 'respaldoleer') return files[body.nombre] ? { ok: true, contenido: files[body.nombre] } : { ok: false, mensaje: 'no existe' };
+      return { ok: false };
+    },
+  };
+  const { splitBackup, joinBackup, syncNextToCloud, downloadNextFromCloud, groupCloudFiles } = await import('../js/cloud.js');
+
+  const st = createMemoryStore();
+  const nc = createClient({ name: 'Nube SAS' });
+  await st.put('clients', nc);
+  const withPhoto = createService({
+    number: 'SV-2026-0009', clientId: nc.id, status: 'closed',
+    photos: [{ id: 'p1', kind: 'antes', dataUrl: 'data:image/jpeg;base64,/9j/BBBB' }],
+    signatures: { client: { name: 'Ana', doc: '1', dataUrl: 'data:image/png;base64,iVBOR' }, technician: { name: 'Arlen', dataUrl: '' } },
+  });
+  const plain = createService({ number: 'SV-2026-0010', clientId: nc.id, status: 'closed' });
+  await st.put('services', withPhoto);
+  await st.put('services', plain);
+
+  const full = await buildBackup(st);
+  const { datos, media } = splitBackup(full);
+  const lightSv = datos.data.services.find((s) => s.id === withPhoto.id);
+  assert(media.length === 1 && media[0].photos[0].dataUrl.startsWith('data:'), 'fotos y firmas van aparte');
+  assert(lightSv.photos[0].dataUrl === '' && lightSv.signatures.client.dataUrl === '' && lightSv.signatures.client.name === 'Ana', 'datos livianos sin imágenes, conservan nombres');
+  const joined = joinBackup(datos, media);
+  assert(JSON.stringify(joined.data.services) === JSON.stringify(full.data.services.map((s) => ({ ...s }))), 'unir datos y fotos devuelve la copia completa');
+
+  const t0 = new Date('2026-10-08T15:00:00Z');
+  const r1 = await syncNextToCloud(st, { now: t0, force: true });
+  assert(r1.ok && files['next-cel1-datos.json'] && files['next-cel1-datos-2026-10-08.json'], 'sube datos y copia del día');
+  assert(files['next-cel1-fotos-' + withPhoto.id.toLowerCase() + '.json'], 'sube fotos del servicio');
+  assert(!Object.keys(files).some((n) => n.includes(plain.id.toLowerCase())), 'servicio sin fotos no crea archivo de fotos');
+
+  const before = calls.length;
+  await syncNextToCloud(st, { now: new Date('2026-10-08T15:30:00Z'), force: true });
+  assert(calls.length === before, 'sin cambios no vuelve a subir nada');
+
+  await st.put('services', { ...(await st.get('services', plain.id)), notes: 'cambio' });
+  await syncNextToCloud(st, { now: new Date('2026-10-08T15:40:00Z'), force: true });
+  const sinceChange = calls.slice(before).map((c) => c.nombre);
+  assert(sinceChange.length === 1 && sinceChange[0] === 'next-cel1-datos.json', 'un cambio sin fotos sube solo los datos (' + sinceChange.join(',') + ')');
+
+  online = false;
+  await st.put('services', { ...(await st.get('services', plain.id)), notes: 'otro cambio' });
+  const off = await syncNextToCloud(st, { now: new Date('2026-10-08T16:00:00Z'), force: true });
+  assert(!off.ok, 'sin internet avisa que no subió');
+  online = true;
+  const back = await syncNextToCloud(st, { now: new Date('2026-10-08T16:10:00Z'), force: true });
+  assert(back.ok && back.uploaded >= 1, 'con internet de nuevo sube lo pendiente');
+
+  const restoredCopy = await downloadNextFromCloud('cel1');
+  const rsv = restoredCopy.data.services.find((s) => s.id === withPhoto.id);
+  assert(rsv.photos[0].dataUrl.startsWith('data:image') && rsv.signatures.client.dataUrl.startsWith('data:image'), 'bajar de la nube trae fotos y firmas');
+  const phone2 = createMemoryStore();
+  const rr = await restoreBackup(phone2, restoredCopy);
+  assert(rr.added === 3, 'celular nuevo queda con cliente y servicios desde la nube');
+
+  const grupos = groupCloudFiles([
+    { nombre: 'next-cel1-datos.json', actualizado: '2026-10-08T16:10:00Z' },
+    { nombre: 'next-cel1-datos-2026-10-08.json', actualizado: '2026-10-08T16:10:00Z' },
+    { nombre: 'next-cel2-datos.json', actualizado: '2026-10-09T09:00:00Z' },
+    { nombre: 'next-cel1-fotos-sv_1.json', actualizado: '2026-10-08T16:10:00Z' },
+  ]);
+  assert(grupos.length === 2 && grupos[0].tag === 'cel2', 'lista celulares con copia, el más reciente primero');
+  delete globalThis.ArpaRespaldoNube;
+  delete globalThis.localStorage;
+}
+
 section('Oficio Cerrajería y Metalmecánica');
 {
   const { detectOficio, equipmentTypeLabel: label } = await import('../js/ai/knowledge.js');

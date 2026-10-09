@@ -35,9 +35,16 @@ function backupBlock(b) {
   const msg = b.pending
     ? `${b.pending} servicio${b.pending === 1 ? '' : 's'} sin copia. Última copia: ${when}.`
     : `Última copia: ${when}.`;
+  const c = b.cloud || {};
+  const cloudLine = c.enabled
+    ? (c.error
+      ? `Nube: no se pudo subir (${c.error}). Se reintenta sola cuando haya internet.`
+      : `Nube: respaldo automático activo${c.lastOk ? ' · última subida ' + fmtDate(c.lastOk) : ''}.`)
+    : '';
   return `<section class="block backup${b.due ? ' is-due' : ''}">
     <h2>Copia de seguridad</h2>
-    <p class="hint">${esc(msg)} Guárdela en Drive o envíesela por WhatsApp: si pierde el celular, la recupera desde ahí.</p>
+    ${cloudLine ? `<p class="hint">${esc(cloudLine)}</p>` : ''}
+    <p class="hint">${esc(msg)} ${c.enabled ? 'También puede guardar una copia en Drive o WhatsApp.' : 'Guárdela en Drive o envíesela por WhatsApp: si pierde el celular, la recupera desde ahí.'}</p>
     <button type="button" class="btn ${b.due ? 'btn-warn' : 'btn-secondary'} btn-block" data-act="backup-save">Guardar copia ahora</button>
     <label class="btn btn-secondary btn-block">Restaurar una copia<input type="file" accept=".txt,.json,text/plain,application/json" data-restore hidden></label>
   </section>`;

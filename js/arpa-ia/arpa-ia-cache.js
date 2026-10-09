@@ -3,4 +3,4 @@
  * Los bumps anuales se hacen aquí, no en service-worker.js.
  * El SW importa este archivo con importScripts + fallback hardcodeado.
  */
-self.ARPA_CACHE_VERSION = 'v20261008-sync-produccion';
+self.ARPA_CACHE_VERSION = 'v20261009-sync-produccion-2';

@@ -20,6 +20,7 @@ import {
   buildBackup, backupToFile, parseBackup, restoreBackup, markBackupDone, lastBackupAt,
   backupStatus, requestPersistentStorage,
 } from './backup.js';
+import { syncNextToCloud, cloudStatus } from './cloud.js';
 
 let store;
 let company = { name: '', technician: '' };
@@ -86,7 +87,25 @@ async function saveJob(patch) {
   if (!job) return null;
   const next = { ...job, ...patch, updatedAt: new Date().toISOString() };
   await store.put('services', next);
+  scheduleCloud();
   return next;
+}
+
+let cloudTimer;
+/** Sube a la nube lo nuevo unos segundos después del último cambio. */
+function scheduleCloud(delayMs = 15000) {
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(async () => {
+    try {
+      const r = await syncNextToCloud(store, { force: delayMs === 0 });
+      if (r.ok && !r.skipped) {
+        markBackupDone();
+        if (ui.screen === 'home') render();
+      }
+    } catch (err) {
+      console.warn('[arpa-next] nube', err);
+    }
+  }, delayMs);
 }
 
 function clientNameOf(clients, id) {
@@ -200,6 +219,7 @@ async function closeJob() {
   });
   if (!result.job) return;
   toast(result.skipped ? 'Servicio ya estaba cerrado' : 'Servicio cerrado');
+  scheduleCloud(2000);
   go('#/servicio/' + result.job.id + '/listo');
 }
 
@@ -312,7 +332,7 @@ async function render() {
       openService,
       followups: openFu,
       recent,
-      backup: backupStatus(services, lastBackupAt()),
+      backup: { ...backupStatus(services, lastBackupAt()), cloud: cloudStatus() },
     });
     wireRestore();
     return;
@@ -524,6 +544,8 @@ async function render() {
 
 async function saveBackup() {
   toast('Preparando copia…');
+  // También intenta subir a la nube ya mismo (sin esperar el reintento automático).
+  syncNextToCloud(store, { force: true }).then((r) => { if (r.ok && !r.skipped) markBackupDone(); if (ui.screen === 'home') render(); }).catch(() => {});
   let file;
   try {
     file = backupToFile(await buildBackup(store));
@@ -1005,6 +1027,10 @@ export async function boot() {
   await importLegacyData(store);
   if (window.ArpaActualizaciones?.check('next').reason === 'lab_demo') await seedDemoIfNeeded();
   bindClicks(root, actions());
+  scheduleCloud(8000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') scheduleCloud(0);
+  });
   window.addEventListener('hashchange', async () => {
     ui.search = '';
     ui.showNewClient = false;
