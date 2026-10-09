@@ -72,6 +72,7 @@ const DOOR_CHIPS = [
   ['c6', 'barrera'],
   ['c7', 'techo_corredizo'],
   ['c9', 'cortina'],
+  ['c10', 'cabezal'],
   // Tipo de Trabajo de Cerrajería (oficio metalmecánica)
   ['fmet7', 'cortina'],
   ['fmet8', 'reja_ballesta'],
