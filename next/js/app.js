@@ -1,5 +1,5 @@
 import { buildAssistance } from './ai/recommend.js';
-import { getChecklist, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel, EQUIPMENT_TYPES } from './ai/knowledge.js';
+import { getChecklist, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel, EQUIPMENT_TYPES, inferEquipmentType } from './ai/knowledge.js';
 import { quoteFromService, readLegacyCatalogProducts } from './quote.js';
 import { applyNoteToService, closeService } from './flow.js';
 import { planFollowups, isOverdue, followUpLabel, filterFollowups, serviceTypeFromFollowup, followupWhatsAppMessage, postponeFollowup, planHistoryMaintenance } from './followup.js';
@@ -187,7 +187,7 @@ async function startNewJob(type, technician, preset) {
   await store.put('services', job);
   ui.jobId = job.id;
   if (preset?.equipmentId) {
-    await saveJob({ status: 'in_progress', startedAt: new Date().toISOString() });
+    await saveJob({ status: 'in_progress', startedAt: new Date().toISOString(), ...(await checklistForEquipment(job, preset.equipmentId)) });
     go('#/servicio/' + job.id + '/resumen');
     return;
   }
@@ -203,8 +203,17 @@ async function attachClient(clientId) {
   go('#/servicio/' + ui.jobId + '/equipo');
 }
 
+/** Checklist según el equipo (p. ej. cabezal) si el técnico aún no marcó nada. */
+async function checklistForEquipment(job, equipmentId) {
+  const eq = equipmentId ? await store.get('equipment', equipmentId) : null;
+  const touched = (job?.checklist || []).some((i) => i.done || i.note);
+  if (!eq || touched) return {};
+  return { checklist: getChecklist(job.type, eq.type) };
+}
+
 async function attachEquipment(equipmentId) {
-  await saveJob({ equipmentId, status: 'in_progress', startedAt: new Date().toISOString() });
+  const job = await getJob();
+  await saveJob({ equipmentId, status: 'in_progress', startedAt: new Date().toISOString(), ...(await checklistForEquipment(job, equipmentId)) });
   go('#/servicio/' + ui.jobId + '/resumen');
 }
 
@@ -1039,6 +1048,25 @@ function hasNextUpdate() {
 }
 
 /** Crea los recordatorios de mantenimiento que falten según el historial (no repite). */
+/** Equipos "Otro" que son cabezales pasan a su tipo; su servicio abierto toma el checklist del cabezal. */
+async function upgradeEquipmentTypes() {
+  try {
+    const services = await store.getAll('services');
+    for (const eq of await store.getAll('equipment')) {
+      const type = inferEquipmentType(eq);
+      if (!type || type === eq.type) continue;
+      await store.put('equipment', { ...eq, type, updatedAt: new Date().toISOString() });
+      for (const sv of services) {
+        if (sv.equipmentId !== eq.id || sv.status === 'closed') continue;
+        const touched = (sv.checklist || []).some((i) => i.done || i.note);
+        if (!touched) await store.put('services', { ...sv, checklist: getChecklist(sv.type, type), updatedAt: new Date().toISOString() });
+      }
+    }
+  } catch (err) {
+    console.warn('[arpa-next] tipos de equipo', err);
+  }
+}
+
 async function planMaintenanceFromHistory() {
   try {
     const plans = planHistoryMaintenance(await store.getAll('services'), await store.getAll('followups'));
@@ -1058,6 +1086,7 @@ export async function boot() {
   if (!company.name) company.name = 'ARPA Suite';
   bindVoice();
   await importLegacyData(store);
+  await upgradeEquipmentTypes();
   await planMaintenanceFromHistory();
   if (window.ArpaActualizaciones?.check('next').reason === 'lab_demo') await seedDemoIfNeeded();
   bindClicks(root, actions());

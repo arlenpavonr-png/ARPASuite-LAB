@@ -15,6 +15,7 @@ const DOOR_EQUIPMENT = [
   { id: 'barrera', label: 'Barrera vehicular' },
   { id: 'techo_corredizo', label: 'Techo corredizo' },
   { id: 'cortina', label: 'Cortina enrollable' },
+  { id: 'cabezal', label: 'Puerta automática de vidrio (cabezal)' },
   { id: 'otro', label: 'Otro' },
 ];
 
@@ -35,6 +36,9 @@ const DOOR_CHIPS_QUICK = [
   { id: 'ciclo_ok', label: 'Ciclo de prueba OK', insert: 'Probé el ciclo de apertura y cierre, queda operativo.' },
   { id: 'cambio_pinon', label: 'Recomendar piñón', insert: 'Recomiendo cambiar el piñón.' },
   { id: 'control', label: 'Control fallando', insert: 'Encontré el control remoto fallando. Recomiendo cambiar el control.' },
+  { id: 'correa', label: 'Correa gastada (cabezal)', insert: 'Encontré la correa del cabezal gastada.' },
+  { id: 'radar', label: 'Radar desajustado', insert: 'Encontré el radar desajustado, abre solo.' },
+  { id: 'guia_piso', label: 'Guía de piso suelta', insert: 'Encontré la guía de piso suelta.' },
 ];
 
 const DOOR_PARTS = {
@@ -50,6 +54,13 @@ const DOOR_PARTS = {
   rueda: { name: 'Rueda / rodamiento', unitPrice: 40000, labor: 30000 },
   electrocerradura: { name: 'Electrocerradura', unitPrice: 150000, labor: 40000 },
   lampara: { name: 'Lámpara de cortesía', unitPrice: 25000, labor: 15000 },
+  // Puertas automáticas de vidrio (cabezales): precios del catálogo NAS/Accessmatic de la suite
+  correa: { name: 'Correa dentada del cabezal', unitPrice: 0, labor: 80000, needsQuote: true },
+  radar: { name: 'Sensor de movimiento / radar', unitPrice: 392000, labor: 40000 },
+  guia_piso: { name: 'Par de guías inferiores', unitPrice: 132000, labor: 35000 },
+  selector: { name: 'Selector y programador', unitPrice: 706000, labor: 40000 },
+  fotocelda_cabezal: { name: 'Fotoceldas para cabezal', unitPrice: 289900, labor: 40000 },
+  carros: { name: 'Carros / rodachines de las hojas', unitPrice: 0, labor: 60000, needsQuote: true },
 };
 
 const CHECKLIST_COMMON = [
@@ -88,6 +99,49 @@ const CHECKLIST_REPARACION = [
   { id: 'prueba_falla', label: 'Prueba después de la intervención' },
   { id: 'recomendacion', label: 'Recomendación informada al cliente' },
 ];
+
+const CABEZAL_MANTENIMIENTO = [
+  { id: 'correa', label: 'Correa: tensión y desgaste' },
+  { id: 'carros', label: 'Carros y rodachines de las hojas' },
+  { id: 'riel', label: 'Riel superior limpio' },
+  { id: 'guia_piso', label: 'Guía de piso' },
+  { id: 'radar', label: 'Radar / sensor de apertura' },
+  { id: 'seguridad', label: 'Sensores de seguridad (fotoceldas)' },
+  { id: 'selector', label: 'Selector de funciones y llave' },
+  { id: 'bateria', label: 'Batería / apertura de emergencia' },
+  { id: 'velocidad', label: 'Velocidad y fuerza de apertura y cierre' },
+  { id: 'cerrojo', label: 'Cerrojo electromecánico' },
+];
+
+const CABEZAL_INSTALACION = [
+  { id: 'cabezal', label: 'Cabezal nivelado y fijado' },
+  { id: 'hojas', label: 'Hojas colgadas y alineadas' },
+  { id: 'guia_piso', label: 'Guía de piso instalada' },
+  { id: 'electrico', label: 'Punto eléctrico y protección' },
+  { id: 'aprendizaje', label: 'Aprendizaje de recorrido' },
+  { id: 'sensores', label: 'Radar y fotoceldas programados' },
+  { id: 'selector', label: 'Selector configurado' },
+  { id: 'entrega', label: 'Prueba de entrega con cliente' },
+];
+
+function cabezalChecklist(serviceType) {
+  const extra =
+    serviceType === 'instalacion' ? CABEZAL_INSTALACION
+      : serviceType === 'reparacion' ? CHECKLIST_REPARACION
+        : CABEZAL_MANTENIMIENTO;
+  return [...extra, ...CHECKLIST_COMMON.filter((i) => i.id !== 'seguridad')];
+}
+
+/** Equipos con checklist propio, sin importar el oficio activo. */
+const EQUIPMENT_CHECKLISTS = { cabezal: cabezalChecklist };
+
+/** Un equipo "Otro" cuya descripción dice que es un cabezal pasa a ese tipo. */
+export function inferEquipmentType(eq) {
+  if (!eq || (eq.type && eq.type !== 'otro')) return eq?.type || '';
+  const text = [eq.brand, eq.model, eq.notes, eq.location].join(' ');
+  if (/cabezal|puerta (?:peatonal )?autom[aá]tica|puerta de vidrio|telesc[oó]pic/i.test(text)) return 'cabezal';
+  return eq.type || '';
+}
 
 function doorChecklist(serviceType) {
   const extra =
@@ -765,8 +819,9 @@ export const CAPTURE_HINT = PACK.hint || (ACTIVE_OFICIO === 'metalmecanica'
 /** Repuestos de todos los oficios: las reglas de cualquier oficio encuentran su precio. */
 export const PART_CATALOG = Object.assign({}, ...Object.values(PACKS).map((p) => p.parts));
 
-export function getChecklist(serviceType) {
-  return PACK.checklist(serviceType).map((item) => ({ ...item, done: false, note: '' }));
+export function getChecklist(serviceType, equipmentType) {
+  const build = EQUIPMENT_CHECKLISTS[equipmentType] || PACK.checklist;
+  return build(serviceType).map((item) => ({ ...item, done: false, note: '' }));
 }
 
 export function equipmentTypeLabel(id) {

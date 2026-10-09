@@ -113,6 +113,9 @@ const PARTS = [
   { id: 'pastillas', re: /pastillas?(?: de freno)?/i, name: 'Pastillas de freno' },
   { id: 'kit_arrastre', re: /kit de arrastre/i, name: 'Kit de arrastre' },
   { id: 'llanta', re: /llanta|neum[aá]tico/i, name: 'Llanta' },
+  { id: 'correa', re: /correa/i, name: 'Correa' },
+  { id: 'radar', re: /radar/i, name: 'Radar' },
+  { id: 'selector', re: /selector/i, name: 'Selector' },
 ];
 
 function splitClauses(text) {

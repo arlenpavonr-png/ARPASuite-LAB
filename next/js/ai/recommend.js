@@ -52,6 +52,7 @@ const RULES = [
   },
   {
     id: 'sensor_pir',
+    oficios: ['cctv'],
     test: (f) => near(f, 'pir|sensor de movimiento', 'falla|no detecta|da[nñ]ad|falsa'),
     recommendation: 'Cambio de sensor de movimiento de la alarma.',
     partId: 'sensor_pir',
@@ -475,6 +476,52 @@ const RULES = [
     followUp: 'repair',
     quote: true,
   },
+  // Puertas automáticas de vidrio (cabezales)
+  {
+    id: 'correa',
+    oficios: ['automatismos', 'metalmecanica'],
+    test: (f) => near(f, 'correa', 'desgast|gastad|floja|rota|resec|patina|salta'),
+    recommendation: 'Cambio de la correa dentada del cabezal.',
+    partId: 'correa',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'radar',
+    oficios: ['automatismos', 'metalmecanica'],
+    test: (f) => near(f, 'radar|sensor(?:es)? de (?:apertura|presencia|movimiento)', 'desajust|falla|no detecta|abre sol|da[nñ]ad|suci') || /abre sola|se abre sola/i.test(f),
+    recommendation: 'Ajuste o cambio del radar de apertura.',
+    partId: 'radar',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'guia_piso',
+    oficios: ['automatismos', 'metalmecanica'],
+    test: (f) => near(f, 'gu[ií]as? (?:de piso|inferior)', 'suelt|da[nñ]ad|rota|gastad|partid|golpead'),
+    recommendation: 'Cambio de guías inferiores de las hojas.',
+    partId: 'guia_piso',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'selector',
+    oficios: ['automatismos', 'metalmecanica'],
+    test: (f) => near(f, 'selector|programador', 'da[nñ]ad|falla|no cambia|no responde'),
+    recommendation: 'Cambio del selector de funciones.',
+    partId: 'selector',
+    followUp: 'quote',
+    quote: true,
+  },
+  {
+    id: 'carros',
+    oficios: ['automatismos', 'metalmecanica'],
+    test: (f) => near(f, 'carro|rodach', 'desgast|gastad|ruido|rot|trabad'),
+    recommendation: 'Cambio de carros o rodachines de las hojas.',
+    partId: 'carros',
+    followUp: 'repair',
+    quote: true,
+  },
   // Cerrajería y metalmecánica
   {
     id: 'resortes',
@@ -494,6 +541,7 @@ const RULES = [
   },
   {
     id: 'guias_cortina',
+    oficios: ['metalmecanica'],
     test: (f) => near(f, 'gu[ií]a', 'desaline|doblad|golpead'),
     recommendation: 'Alineación o cambio de guías laterales.',
     partId: 'guia_cortina',

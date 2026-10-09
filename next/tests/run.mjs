@@ -363,7 +363,7 @@ section('Oficio Cerrajería y Metalmecánica');
   assert(/resortes/.test(recs) && /lamas/.test(recs) && /chapa/.test(recs) && /anticorrosiva/.test(recs), 'recomienda resortes, lamas, chapa y pintura');
   assert(!/guías laterales/.test(recs), 'no recomienda guías si solo se lubricaron');
   assert(asist.quoteItems.some((q) => q.partId === 'resorte' && q.unitPrice === 450000), 'cotiza resortes con precio de referencia');
-  const guias = buildAssistance(parseTechnicianNote('Encontré las guías desalineadas y golpeadas.'));
+  const guias = buildAssistance(parseTechnicianNote('Encontré las guías desalineadas y golpeadas.'), { oficio: 'metalmecanica' });
   assert(guias.recommendations.some((r) => /guías laterales/.test(r.text)), 'guías desalineadas sí recomienda cambio');
   const puerta = buildAssistance(parseTechnicianNote('Encontré desgaste del piñón y la cremallera desalineada.'));
   assert(!puerta.recommendations.some((r) => /guías laterales|lamas|resortes/.test(r.text)), 'notas de puertas no mezclan cerrajería');
@@ -508,6 +508,24 @@ section('Recordatorios de mantenimiento desde el historial');
   const newer = [...sv, { id: 's6', status: 'closed', clientId: 'c2', equipmentId: 'e2', number: 'AP-050', closedAt: '2026-12-01T10:00:00Z' }];
   const after = planHistoryMaintenance(newer, done);
   assert(after.length === 1 && after[0].serviceId === 's6', 'un servicio nuevo después del recordatorio cerrado crea el siguiente');
+}
+
+section('Puertas automáticas de vidrio (cabezales)');
+{
+  const { getChecklist, equipmentTypeLabel: label, inferEquipmentType, EQUIPMENT_TYPES } = await import('../js/ai/knowledge.js');
+  assert(EQUIPMENT_TYPES.some((t) => t.id === 'cabezal') && label('cabezal') === 'Puerta automática de vidrio (cabezal)', 'cabezal aparece en la lista de equipos');
+  const mant = getChecklist('mantenimiento', 'cabezal').map((i) => i.id);
+  assert(mant.includes('correa') && mant.includes('radar') && !mant.includes('pinon'), 'checklist de cabezal: correa y radar, sin piñón');
+  assert(getChecklist('mantenimiento', 'corrediza').some((i) => i.id === 'pinon'), 'corrediza sigue con su checklist');
+  assert(getChecklist('instalacion', 'cabezal').some((i) => i.id === 'aprendizaje'), 'instalación de cabezal incluye aprendizaje de recorrido');
+  assert(inferEquipmentType({ type: 'otro', brand: 'Accessmatic', model: 'Cabezal telescopico' }) === 'cabezal', 'equipo "Otro" con modelo cabezal pasa a cabezal');
+  assert(inferEquipmentType({ type: 'otro', brand: 'Hikvision' }) === 'otro', 'otros equipos no cambian');
+  assert(inferEquipmentType({ type: 'corrediza', model: 'cabezal' }) === 'corrediza', 'no toca equipos con tipo elegido');
+  const a = buildAssistance(parseTechnicianNote('Encontré la correa del cabezal gastada, el radar desajustado y la guía de piso suelta.'), { oficio: 'automatismos' });
+  const ids = a.quoteItems.map((q) => q.partId);
+  assert(['correa', 'radar', 'guia_piso'].every((id) => ids.includes(id)), 'cotiza correa, radar y guías inferiores');
+  assert(a.quoteItems.find((q) => q.partId === 'radar')?.unitPrice === 392000, 'radar con precio del catálogo');
+  assert(!ids.includes('guia_cortina') && !ids.includes('sensor_pir'), 'no mezcla guías de cortina ni sensores de alarma');
 }
 
 console.log('\n' + passed + ' ok, ' + failed + ' fallos');

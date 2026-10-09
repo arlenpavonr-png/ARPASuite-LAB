@@ -45,6 +45,11 @@ no entra al borrador ni al historial del formato. Orden cerrada = solo lectura.
   por equipo (o cliente sin equipo) a los 180 días de su último servicio cerrado; los importados usan la
   fecha del formato (`startedAt`). No repite si hay uno abierto o creado después de ese servicio.
   Seguimiento ordenado por fecha. NEXT: 157 ok.
+- Cabezales (puertas automáticas de vidrio): tipo de equipo `cabezal` en automatismos, checklist propio
+  (`getChecklist(tipoServicio, tipoEquipo)`), frases rápidas, reglas (correa, radar, guía de piso, selector,
+  carros) y repuestos con precios del catálogo NAS/Accessmatic. Equipos "Otro" cuyo modelo dice cabezal pasan
+  a `cabezal` al abrir NEXT (`inferEquipmentType`); su servicio abierto sin marcar toma el checklist nuevo.
+  NEXT: 167 ok.
 
 ### Pruebas
 - NEXT `tests/run.mjs`: 149 ok. Etapas: 49 ok. Fence: PASS. Regresión: 8/8.
