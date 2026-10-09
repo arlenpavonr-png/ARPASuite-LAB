@@ -53,6 +53,7 @@ function backupBlock(b) {
 export function screenHome(d) {
   const open = d.openService;
   const follow = (d.followups || []).slice(0, 3);
+  const overdueCount = (d.followups || []).filter((f) => f.overdue).length;
   const recent = (d.recent || []).slice(0, 3);
   return `${top('ARPASuite NEXT')}
   <main class="sheet">
@@ -60,8 +61,8 @@ export function screenHome(d) {
     <p class="lead">Inicie el servicio. La app organiza hallazgos, trabajo y recomendaciones.</p>
     ${open ? `<a class="btn btn-warn btn-block" href="#/servicio/${esc(open.id)}/captura">Continuar ${esc(open.number || 'servicio en curso')}</a>` : ''}
     <a class="btn btn-primary btn-xl btn-block" href="#/servicio/nuevo">Iniciar servicio</a>
-    ${follow.length ? `<section class="block"><h2>Pendiente</h2>${follow.map((f) =>
-      `<a class="row-card" href="#/seguimiento"><strong>${esc(f.label || followUpLabel(f.type))}</strong><span>${esc(f.clientName || '')} · ${esc(fmtDate(f.dueDate))}</span></a>`
+    ${follow.length ? `<section class="block"><h2>Pendiente${overdueCount ? ` · ${overdueCount} vencido${overdueCount > 1 ? 's' : ''}` : ''}</h2>${follow.map((f) =>
+      `<a class="row-card ${f.overdue ? 'is-overdue' : ''}" href="#/seguimiento"><strong>${esc(f.label || followUpLabel(f.type))}</strong><span>${esc(f.clientName || '')} · ${esc(fmtDate(f.dueDate))}</span></a>`
     ).join('')}</section>` : ''}
     ${recent.length ? `<section class="block"><h2>Últimos servicios</h2>${recent.map((s) =>
       `<a class="row-card" href="#/servicio/${esc(s.id)}/listo"><strong>${esc(s.number)}</strong><span>${esc(s.clientName || '')} · ${esc(serviceTypeLabel(s.type))}</span></a>`
@@ -497,8 +498,11 @@ export function screenFollowups(d) {
         <strong>${esc(f.label || followUpLabel(f.type))}</strong>
         <span>${esc(f.clientName || '')} · ${esc(fmtDate(f.dueDate))}</span>
         ${f.notes ? `<span>${esc(f.notes)}</span>` : ''}
+        ${f.notifiedAt ? `<span class="hint">Avisado por WhatsApp el ${esc(fmtDate(f.notifiedAt))}</span>` : ''}
         ${f.status === 'open' ? `<div class="row-actions">
           <button type="button" class="text-btn" data-act="fu-start" data-id="${esc(f.id)}">Ir a servicio</button>
+          ${f.phone ? `<button type="button" class="text-btn" data-act="fu-wa" data-id="${esc(f.id)}">Avisar por WhatsApp</button>` : ''}
+          <button type="button" class="text-btn" data-act="fu-postpone" data-id="${esc(f.id)}">+1 semana</button>
           <button type="button" class="text-btn" data-act="fu-done" data-id="${esc(f.id)}">Hecho</button>
           <button type="button" class="text-btn" data-act="fu-cancel" data-id="${esc(f.id)}">Cancelar</button>
         </div>` : `<span class="pill">${esc(f.status === 'cancelled' ? 'Cancelado' : 'Cerrado')}</span>`}

@@ -376,5 +376,25 @@ section('Historial de cerrajería importado');
   assert(m.equipment[0].type === 'cortina', 'formato con "Cortina enrollable" se importa como cortina');
 }
 
+section('Seguimiento: aviso por WhatsApp y posponer');
+{
+  const { followupWhatsAppMessage, postponeFollowup } = await import('../js/followup.js');
+  const m = followupWhatsAppMessage({ type: 'maintenance' }, { clientName: 'Rocío', companyName: 'Automatismos ARPA', equipmentLabel: 'Corrediza' });
+  assert(/Hola Rocío/.test(m) && /mantenimiento preventivo de su corrediza/.test(m) && /Automatismos ARPA/.test(m), 'mensaje de mantenimiento con nombre, equipo y empresa');
+  assert(/Hola,/.test(followupWhatsAppMessage({ type: 'quote' }, {})), 'sin nombre saluda igual');
+  assert(/cambiar resortes/.test(followupWhatsAppMessage({ type: 'repair', notes: 'cambiar resortes' }, {})), 'reparación incluye la nota');
+  assert(postponeFollowup({ dueDate: '2026-10-01' }, 7, '2026-10-09').dueDate === '2026-10-16', 'vencido: pospone desde hoy');
+  assert(postponeFollowup({ dueDate: '2026-12-01' }, 7, '2026-10-09').dueDate === '2026-12-08', 'futuro: pospone desde su fecha');
+  const scr = await import('../js/screens.js');
+  const html = scr.screenFollowups({ followups: [
+    { id: 'f1', type: 'maintenance', status: 'open', dueDate: '2026-10-01', phone: '3001234567' },
+    { id: 'f2', type: 'quote', status: 'open', dueDate: '2026-10-01', phone: '' },
+  ] });
+  assert((html.match(/data-act="fu-wa"/g) || []).length === 1, 'botón WhatsApp solo si el cliente tiene teléfono');
+  assert((html.match(/data-act="fu-postpone"/g) || []).length === 2, 'botón posponer en cada seguimiento abierto');
+  const home = scr.screenHome({ followups: [{ type: 'quote', dueDate: '2026-10-01', overdue: true }, { type: 'maintenance', dueDate: '2027-01-01' }] });
+  assert(/Pendiente · 1 vencido/.test(home), 'inicio muestra cuántos seguimientos están vencidos');
+}
+
 console.log('\n' + passed + ' ok, ' + failed + ' fallos');
 if (failed) process.exit(1);

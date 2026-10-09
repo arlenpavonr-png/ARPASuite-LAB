@@ -82,3 +82,36 @@ export function filterFollowups(list, filter, todayIso) {
   if (filter === 'overdue') return rows.filter((f) => isOverdue(f, todayIso));
   return rows.filter((f) => f.status === 'open');
 }
+
+/**
+ * Mensaje de WhatsApp para recordarle al cliente su seguimiento.
+ * El técnico lo revisa en WhatsApp antes de enviarlo.
+ */
+export function followupWhatsAppMessage(followup, ctx = {}) {
+  const nombre = String(ctx.clientName || '').trim();
+  const saludo = nombre ? `Hola ${nombre}` : 'Hola';
+  const company = String(ctx.companyName || '').trim();
+  const firma = company ? ` Quedamos atentos. ${company}.` : ' Quedamos atentos.';
+  const equipo = String(ctx.equipmentLabel || '').trim().toLowerCase();
+  const del = equipo ? ` de su ${equipo}` : '';
+  switch (followup?.type) {
+    case 'maintenance':
+      return `${saludo}, ya le corresponde el mantenimiento preventivo${del}. ¿Qué día le queda bien que pasemos?${firma}`;
+    case 'repair':
+      return `${saludo}, le escribimos por la reparación pendiente${del}${followup.notes ? ` (${followup.notes})` : ''}. ¿Cuándo podemos programarla?${firma}`;
+    case 'quote':
+      return `${saludo}, ¿pudo revisar la cotización que le enviamos? Con gusto le resolvemos cualquier duda.${firma}`;
+    case 'recommendation':
+      return `${saludo}, le recordamos lo que vimos en el último servicio${del}${followup.notes ? `: ${followup.notes}` : ''}. ¿Desea que lo programemos?${firma}`;
+    default:
+      return `${saludo}, le escribimos para hacerle seguimiento${del}. ¿Le podemos ayudar en algo?${firma}`;
+  }
+}
+
+/** Corre la fecha del seguimiento: desde hoy si ya venció, si no desde su fecha. */
+export function postponeFollowup(followup, days, todayIso) {
+  const today = String(todayIso || new Date().toISOString()).slice(0, 10);
+  const due = String(followup?.dueDate || '').slice(0, 10);
+  const base = due && due >= today ? due : today;
+  return { ...followup, dueDate: addDays(base + 'T12:00:00', days || 7) };
+}

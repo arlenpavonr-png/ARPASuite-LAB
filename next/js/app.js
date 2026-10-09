@@ -2,7 +2,7 @@ import { buildAssistance } from './ai/recommend.js';
 import { getChecklist, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel, EQUIPMENT_TYPES } from './ai/knowledge.js';
 import { quoteFromService, readLegacyCatalogProducts } from './quote.js';
 import { applyNoteToService, closeService } from './flow.js';
-import { planFollowups, isOverdue, followUpLabel, filterFollowups, serviceTypeFromFollowup } from './followup.js';
+import { planFollowups, isOverdue, followUpLabel, filterFollowups, serviceTypeFromFollowup, followupWhatsAppMessage, postponeFollowup } from './followup.js';
 import {
   openStore, newId, createClient, createEquipment, createService, createFollowup,
   equipmentHistory, buildIntelligentBrief, assembleClientView, assembleEquipmentView,
@@ -323,10 +323,9 @@ async function render() {
       ...s,
       clientName: clientNameOf(clients, s.clientId),
     }));
-    const openFu = followups.filter((f) => f.status === 'open').slice(0, 5).map((f) => ({
-      ...f,
-      clientName: clientNameOf(clients, f.clientId),
-    }));
+    const openFu = followups.filter((f) => f.status === 'open')
+      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
+      .map((f) => ({ ...f, clientName: clientNameOf(clients, f.clientId), overdue: isOverdue(f) }));
     root.innerHTML = S.screenHome({
       companyName: company.name,
       openService,
@@ -398,6 +397,7 @@ async function render() {
       followups: filtered.map((f) => ({
         ...f,
         clientName: clientNameOf(clients, f.clientId),
+        phone: clients.find((c) => c.id === f.clientId)?.phone || '',
         overdue: isOverdue(f),
         label: f.label || followUpLabel(f.type),
       })),
@@ -977,6 +977,28 @@ function actions() {
       const row = await store.get('followups', id);
       if (!row) return;
       await store.put('followups', { ...row, status: 'done' });
+      render();
+    },
+    'fu-wa': async (el) => {
+      const row = await store.get('followups', el.getAttribute('data-id'));
+      if (!row) return;
+      const client = row.clientId ? await store.get('clients', row.clientId) : null;
+      const equipment = row.equipmentId ? await store.get('equipment', row.equipmentId) : null;
+      const text = followupWhatsAppMessage(row, {
+        clientName: client?.name,
+        companyName: company.name,
+        equipmentLabel: equipment ? equipmentTypeLabel(equipment.type) : '',
+      });
+      openWhatsApp(client?.phone || '', text);
+      await store.put('followups', { ...row, notifiedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      render();
+    },
+    'fu-postpone': async (el) => {
+      const row = await store.get('followups', el.getAttribute('data-id'));
+      if (!row) return;
+      const moved = postponeFollowup(row, 7);
+      await store.put('followups', { ...moved, updatedAt: new Date().toISOString() });
+      toast('Seguimiento movido al ' + moved.dueDate.split('-').reverse().join('/'));
       render();
     },
     'fu-cancel': async (el) => {
