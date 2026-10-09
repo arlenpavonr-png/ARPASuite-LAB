@@ -26,6 +26,21 @@ no entra al borrador ni al historial del formato. Orden cerrada = solo lectura.
 - Decidir si el checklist debe guardarse también en el historial del servicio.
 - Los archivos nuevos no están en la caché offline del service worker (archivo protegido).
 
+## 2026-10-09 — NEXT 2027: seguimiento por WhatsApp y 3 oficios más (`agent/next-2027`)
+
+### Qué
+- Seguimiento: botón "Avisar por WhatsApp" (mensaje según tipo: mantenimiento, reparación, cotización,
+  recomendación; solo si el cliente tiene teléfono; guarda `notifiedAt`), "+1 semana" para posponer
+  y el inicio muestra los pendientes ordenados por fecha con cuántos están vencidos.
+- Oficios nuevos en NEXT: Cámaras/CCTV, Refrigeración y Electricidad (equipos, frases rápidas,
+  checklists, reglas de recomendación con `near()` y repuestos con precios del catálogo base de la suite).
+  Plomería, gas, plagas, línea blanca, solar y motos siguen usando automatismos.
+- Historial clásico: los tipos de formato fcctv*, fref*, fe* se importan con su tipo de equipo.
+
+### Pruebas
+- NEXT `tests/run.mjs`: 134 ok. Etapas: 49 ok. Fence: PASS. Regresión: 8/8.
+- `tests/e2e.mjs` no se corrió: abre index.html del LAB, que llama al servidor de licencias de producción.
+
 ## 2026-10-09 — LAB actualizado con producción otra vez + ramas unidas (`agent/integracion-2026-10`)
 
 ### Qué

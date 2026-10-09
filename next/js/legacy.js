@@ -80,6 +80,15 @@ const DOOR_CHIPS = [
   ['fmet2', 'reja'],
   ['fmet3', 'estructura'],
   ['fmet4', 'estructura'],
+  // Cámaras y CCTV
+  ['fcctv1', 'camaras'], ['fcctv2', 'camaras_ip'], ['fcctv3', 'grabador'],
+  ['fcctv4', 'alarma'], ['fcctv5', 'control_acceso'], ['fcctv6', 'videoportero'],
+  // Refrigeración
+  ['fref1', 'nevera'], ['fref2', 'split'], ['fref3', 'aire_central'],
+  ['fref4', 'cuarto_frio'], ['fref5', 'ref_comercial'],
+  // Electricidad
+  ['fe1', 'residencial'], ['fe2', 'comercial'], ['fe3', 'tablero'], ['fe4', 'acometida'],
+  ['fe5', 'iluminacion'], ['fe6', 'tomas'], ['fe7', 'tierra'],
 ];
 
 export function equipmentFromClassicSnapshot(snap) {

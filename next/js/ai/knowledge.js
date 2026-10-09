@@ -1,5 +1,6 @@
 /**
- * Conocimiento de campo por oficio (automatismos y cerrajería/metalmecánica).
+ * Conocimiento de campo por oficio (automatismos, cerrajería/metalmecánica,
+ * cámaras/CCTV, refrigeración y electricidad).
  * NEXT usa el oficio principal elegido en ARPA Suite.
  * No copia catálogos de terceros: nombres genéricos + precios de referencia.
  */
@@ -169,12 +170,220 @@ function metalChecklist(serviceType) {
   return [...extra, ...CHECKLIST_COMMON.filter((i) => i.id !== 'ciclo')];
 }
 
+// ─── Cámaras y CCTV / Seguridad electrónica ───────────────────────────────
+
+const CCTV_EQUIPMENT = [
+  { id: 'camaras', label: 'Cámaras análogas' },
+  { id: 'camaras_ip', label: 'Cámaras IP' },
+  { id: 'grabador', label: 'DVR / NVR' },
+  { id: 'alarma', label: 'Alarma' },
+  { id: 'control_acceso', label: 'Control de acceso' },
+  { id: 'videoportero', label: 'Videoportero' },
+  { id: 'otro', label: 'Otro' },
+];
+
+const CCTV_CHIPS_QUICK = [
+  { id: 'sin_imagen', label: 'Cámara sin imagen', insert: 'Encontré una cámara sin imagen.' },
+  { id: 'disco', label: 'Disco no graba', insert: 'Encontré el disco duro dañado, no graba.' },
+  { id: 'fuente', label: 'Fuente fallando', insert: 'Encontré la fuente de poder fallando.' },
+  { id: 'conectores', label: 'Conectores sulfatados', insert: 'Encontré conectores sulfatados.' },
+  { id: 'lentes', label: 'Lentes sucios', insert: 'Encontré los lentes de las cámaras sucios.' },
+  { id: 'limpieza', label: 'Limpieza hecha', insert: 'Limpié lentes y domos de las cámaras.' },
+  { id: 'grabacion', label: 'Grabación revisada', insert: 'Revisé la grabación y los días de respaldo.' },
+  { id: 'remoto', label: 'Acceso remoto listo', insert: 'Configuré el acceso remoto en el celular del cliente.' },
+  { id: 'prueba_ok', label: 'Sistema OK', insert: 'Probé todas las cámaras, queda operativo.' },
+  { id: 'rec_disco', label: 'Recomendar disco', insert: 'Recomiendo cambiar el disco duro.' },
+];
+
+/** Precios de referencia (COP) del catálogo base de Cámaras y CCTV de ARPA Suite. */
+const CCTV_PARTS = {
+  camara: { name: 'Cámara bala HD 2MP exterior', unitPrice: 110000, labor: 85000 },
+  disco: { name: 'Disco duro 1TB vigilancia', unitPrice: 220000, labor: 40000 },
+  fuente: { name: 'Fuente de poder 12V 5A', unitPrice: 45000, labor: 30000 },
+  grabador: { name: 'DVR 4 canales 1080P', unitPrice: 280000, labor: 65000 },
+  conectores: { name: 'Cambio de conectores y cableado', unitPrice: 20000, labor: 40000 },
+  sensor_pir: { name: 'Sensor de movimiento PIR', unitPrice: 35000, labor: 30000 },
+  sirena: { name: 'Sirena exterior con flash', unitPrice: 85000, labor: 30000 },
+  remoto: { name: 'Configuración acceso remoto', unitPrice: 0, labor: 65000 },
+};
+
+const CCTV_MANTENIMIENTO = [
+  { id: 'lentes', label: 'Limpieza de lentes y domos' },
+  { id: 'imagen', label: 'Imagen de cada cámara (día y noche)' },
+  { id: 'grabacion', label: 'Grabación y días de respaldo' },
+  { id: 'disco', label: 'Estado del disco duro' },
+  { id: 'fuente', label: 'Fuentes y voltaje' },
+  { id: 'conectores', label: 'Conectores y cableado' },
+  { id: 'remoto', label: 'Acceso remoto en el celular' },
+  { id: 'hora', label: 'Fecha y hora del grabador' },
+];
+
+const CCTV_INSTALACION = [
+  { id: 'ubicacion', label: 'Ubicación y ángulos acordados con el cliente' },
+  { id: 'cableado', label: 'Cableado canalizado y marcado' },
+  { id: 'fuente', label: 'Fuentes / UPS instaladas' },
+  { id: 'grabacion', label: 'Grabación configurada' },
+  { id: 'remoto', label: 'Acceso remoto en el celular del cliente' },
+  { id: 'clave', label: 'Usuario y contraseña entregados al cliente' },
+  { id: 'entrega', label: 'Prueba de entrega con cliente' },
+];
+
+// ─── Refrigeración y aire acondicionado ───────────────────────────────────
+
+const REF_EQUIPMENT = [
+  { id: 'nevera', label: 'Nevera / congelador' },
+  { id: 'split', label: 'Aire split' },
+  { id: 'aire_central', label: 'Aire central' },
+  { id: 'cuarto_frio', label: 'Cuarto frío' },
+  { id: 'ref_comercial', label: 'Refrigeración comercial' },
+  { id: 'otro', label: 'Otro' },
+];
+
+const REF_CHIPS_QUICK = [
+  { id: 'no_enfria', label: 'No enfría', insert: 'Encontré que el equipo no enfría.' },
+  { id: 'fuga', label: 'Fuga de gas', insert: 'Encontré fuga de gas refrigerante.' },
+  { id: 'filtros', label: 'Filtros sucios', insert: 'Encontré los filtros sucios.' },
+  { id: 'serpentin', label: 'Serpentín sucio', insert: 'Encontré el serpentín de la condensadora sucio.' },
+  { id: 'goteo', label: 'Goteo de agua', insert: 'Encontré goteo de agua, el drenaje está tapado.' },
+  { id: 'compresor', label: 'Ruido en compresor', insert: 'Encontré ruido en el compresor.' },
+  { id: 'limpieza', label: 'Limpieza hecha', insert: 'Limpié filtros, evaporador y condensadora.' },
+  { id: 'carga', label: 'Carga de gas hecha', insert: 'Realicé carga de gas refrigerante.' },
+  { id: 'presiones', label: 'Presiones OK', insert: 'Verifiqué presiones y temperatura, queda operativo.' },
+  { id: 'rec_mant', label: 'Recomendar mantenimiento', insert: 'Recomiendo mantenimiento preventivo cada 6 meses.' },
+];
+
+/** Precios de referencia (COP) del catálogo base de Refrigeración de ARPA Suite. */
+const REF_PARTS = {
+  carga_gas: { name: 'Carga de gas refrigerante', unitPrice: 0, labor: 180000 },
+  diagnostico_ac: { name: 'Diagnóstico técnico', unitPrice: 0, labor: 65000 },
+  limpieza_ac: { name: 'Limpieza profunda evaporador y condensadora', unitPrice: 0, labor: 95000 },
+  filtro_deshidratador: { name: 'Filtro deshidratador', unitPrice: 35000, labor: 40000 },
+  compresor: { name: 'Compresor', unitPrice: 450000, labor: 150000, needsQuote: true },
+  termostato: { name: 'Termostato digital', unitPrice: 85000, labor: 40000 },
+  control_ac: { name: 'Control remoto universal AC', unitPrice: 45000, labor: 0 },
+  drenaje: { name: 'Destape de drenaje', unitPrice: 0, labor: 50000 },
+};
+
+const REF_MANTENIMIENTO = [
+  { id: 'filtros', label: 'Limpieza de filtros' },
+  { id: 'evaporador', label: 'Limpieza de evaporador' },
+  { id: 'condensadora', label: 'Limpieza de condensadora / serpentín' },
+  { id: 'drenaje', label: 'Drenaje y bandeja' },
+  { id: 'presiones', label: 'Presiones de gas' },
+  { id: 'temperatura', label: 'Temperatura de salida' },
+  { id: 'electrico', label: 'Conexiones eléctricas y consumo' },
+  { id: 'control', label: 'Control y termostato' },
+];
+
+const REF_INSTALACION = [
+  { id: 'ubicacion', label: 'Ubicación de unidades acordada' },
+  { id: 'soporte', label: 'Soporte y nivel de la condensadora' },
+  { id: 'tuberia', label: 'Tubería de cobre y aislamiento' },
+  { id: 'vacio', label: 'Vacío y prueba de fugas' },
+  { id: 'electrico', label: 'Punto eléctrico y protección' },
+  { id: 'drenaje', label: 'Drenaje con pendiente' },
+  { id: 'entrega', label: 'Prueba de entrega con cliente' },
+];
+
+// ─── Electricidad ──────────────────────────────────────────────────────────
+
+const ELEC_EQUIPMENT = [
+  { id: 'residencial', label: 'Instalación residencial' },
+  { id: 'comercial', label: 'Comercial / industrial' },
+  { id: 'tablero', label: 'Tablero eléctrico' },
+  { id: 'acometida', label: 'Acometida' },
+  { id: 'iluminacion', label: 'Iluminación' },
+  { id: 'tomas', label: 'Tomas y circuitos' },
+  { id: 'tierra', label: 'Puesta a tierra' },
+  { id: 'otro', label: 'Otro' },
+];
+
+const ELEC_CHIPS_QUICK = [
+  { id: 'breaker', label: 'Breaker se dispara', insert: 'Encontré que el breaker se dispara.' },
+  { id: 'toma', label: 'Toma quemada', insert: 'Encontré una toma quemada.' },
+  { id: 'cable', label: 'Cable recalentado', insert: 'Encontré cable recalentado en el circuito.' },
+  { id: 'tierra', label: 'Sin polo a tierra', insert: 'Encontré que la instalación no tiene polo a tierra.' },
+  { id: 'luminaria', label: 'Luminaria dañada', insert: 'Encontré una luminaria dañada.' },
+  { id: 'tablero', label: 'Tablero sin marcar', insert: 'Encontré el tablero sin marcar.' },
+  { id: 'bornes', label: 'Ajuste de bornes', insert: 'Ajusté los bornes del tablero.' },
+  { id: 'medicion', label: 'Medición OK', insert: 'Medí voltaje y continuidad, valores correctos.' },
+  { id: 'prueba_ok', label: 'Circuito probado', insert: 'Probé los circuitos, queda operativo.' },
+  { id: 'rec_tablero', label: 'Recomendar tablero', insert: 'Recomiendo cambiar el tablero.' },
+];
+
+/** Precios de referencia (COP) del catálogo base de Electricidad de ARPA Suite. */
+const ELEC_PARTS = {
+  breaker: { name: 'Breaker 1 polo 20A', unitPrice: 18000, labor: 25000 },
+  toma: { name: 'Toma doble con polo a tierra', unitPrice: 9500, labor: 15000 },
+  cable: { name: 'Cable 12 AWG (metro)', unitPrice: 2200, labor: 30000 },
+  luminaria: { name: 'Luminaria LED panel 24W', unitPrice: 35000, labor: 20000 },
+  tablero: { name: 'Tablero de distribución 12 circuitos', unitPrice: 95000, labor: 150000 },
+  totalizador: { name: 'Totalizador 2x40A', unitPrice: 65000, labor: 40000 },
+  tierra: { name: 'Puesta a tierra (varilla y conexión)', unitPrice: 0, labor: 0, needsQuote: true },
+};
+
+const ELEC_MANTENIMIENTO = [
+  { id: 'tablero', label: 'Tablero: bornes, marcación y temperatura' },
+  { id: 'breakers', label: 'Breakers y totalizador' },
+  { id: 'tomas', label: 'Tomas y switches' },
+  { id: 'tierra', label: 'Polo a tierra' },
+  { id: 'voltaje', label: 'Medición de voltaje' },
+  { id: 'consumo', label: 'Consumo por circuito' },
+  { id: 'iluminacion', label: 'Iluminación' },
+];
+
+const ELEC_INSTALACION = [
+  { id: 'diseno', label: 'Circuitos y cargas definidos' },
+  { id: 'canalizacion', label: 'Canalización y cajas' },
+  { id: 'calibre', label: 'Calibre de cable según carga' },
+  { id: 'protecciones', label: 'Protecciones instaladas' },
+  { id: 'tierra', label: 'Polo a tierra' },
+  { id: 'marcacion', label: 'Marcación del tablero' },
+  { id: 'entrega', label: 'Prueba de entrega con cliente' },
+];
+
+const GENERIC_REPARACION = [
+  { id: 'diagnostico', label: 'Diagnóstico de la falla' },
+  { id: 'causa', label: 'Causa raíz identificada' },
+  { id: 'repuesto', label: 'Repuesto instalado o pendiente' },
+  { id: 'prueba_falla', label: 'Prueba después de la intervención' },
+  { id: 'recomendacion', label: 'Recomendación informada al cliente' },
+];
+
+/** Checklist por tipo de servicio para los oficios sin ciclo de apertura. */
+function checklistFor(mant, inst) {
+  return (serviceType) => {
+    const extra =
+      serviceType === 'instalacion' ? inst
+        : serviceType === 'reparacion' ? GENERIC_REPARACION
+          : mant;
+    return [...extra, ...CHECKLIST_COMMON.filter((i) => i.id !== 'ciclo' && i.id !== 'seguridad')];
+  };
+}
+
 // ─── Selección del oficio ──────────────────────────────────────────────────
 
 const PACKS = {
   automatismos: { equipment: DOOR_EQUIPMENT, chips: DOOR_CHIPS_QUICK, parts: DOOR_PARTS, checklist: doorChecklist },
   metalmecanica: { equipment: METAL_EQUIPMENT, chips: METAL_CHIPS_QUICK, parts: METAL_PARTS, checklist: metalChecklist },
+  cctv: {
+    equipment: CCTV_EQUIPMENT, chips: CCTV_CHIPS_QUICK, parts: CCTV_PARTS,
+    checklist: checklistFor(CCTV_MANTENIMIENTO, CCTV_INSTALACION),
+    hint: 'O escriba: encontré una cámara sin imagen, cambié la fuente…',
+  },
+  refrigeracion: {
+    equipment: REF_EQUIPMENT, chips: REF_CHIPS_QUICK, parts: REF_PARTS,
+    checklist: checklistFor(REF_MANTENIMIENTO, REF_INSTALACION),
+    hint: 'O escriba: encontré el equipo sin gas, limpié filtros y evaporador…',
+  },
+  electricidad: {
+    equipment: ELEC_EQUIPMENT, chips: ELEC_CHIPS_QUICK, parts: ELEC_PARTS,
+    checklist: checklistFor(ELEC_MANTENIMIENTO, ELEC_INSTALACION),
+    hint: 'O escriba: encontré el breaker disparado, cambié la toma quemada…',
+  },
 };
+
+const ALL_EQUIPMENT = Object.values(PACKS).flatMap((p) => p.equipment);
 
 /** Oficio principal elegido en ARPA Suite (cerrajería se guarda como metalmecanica). */
 export function detectOficio(storage) {
@@ -197,19 +406,18 @@ const PACK = PACKS[ACTIVE_OFICIO];
 
 export const EQUIPMENT_TYPES = PACK.equipment;
 export const QUICK_CHIPS = PACK.chips;
-export const CAPTURE_HINT = ACTIVE_OFICIO === 'metalmecanica'
+export const CAPTURE_HINT = PACK.hint || (ACTIVE_OFICIO === 'metalmecanica'
   ? 'O escriba: encontré los resortes sin tensión, lubriqué guías y eje…'
-  : 'O escriba: encontré desgaste del piñón, ajusté la cremallera…';
+  : 'O escriba: encontré desgaste del piñón, ajusté la cremallera…');
 /** Repuestos de todos los oficios: las reglas de cualquier oficio encuentran su precio. */
-export const PART_CATALOG = { ...DOOR_PARTS, ...METAL_PARTS };
+export const PART_CATALOG = { ...DOOR_PARTS, ...METAL_PARTS, ...CCTV_PARTS, ...REF_PARTS, ...ELEC_PARTS };
 
 export function getChecklist(serviceType) {
   return PACK.checklist(serviceType).map((item) => ({ ...item, done: false, note: '' }));
 }
 
 export function equipmentTypeLabel(id) {
-  const all = [...DOOR_EQUIPMENT, ...METAL_EQUIPMENT];
-  return all.find((t) => t.id === id)?.label || id || 'Equipo';
+  return ALL_EQUIPMENT.find((t) => t.id === id)?.label || id || 'Equipo';
 }
 
 export function serviceTypeLabel(id) {

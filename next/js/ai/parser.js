@@ -29,6 +29,13 @@ const FINDING_CUES = [
   /sin tensi[oó]n/i,
   /doblad/i,
   /da[nñ]ad/i,
+  /sin imagen|sin se[nñ]al/i,
+  /no graba|no enfr[ií]a|enfr[ií]a poco/i,
+  /fuga/i,
+  /dispar|se bota/i,
+  /recalent|chispa|derretid/i,
+  /gote|sulfat/i,
+  /sin (?:el )?polo a tierra|no tiene polo a tierra/i,
 ];
 
 const WORK_CUES = [
@@ -87,6 +94,16 @@ const PARTS = [
   { id: 'resorte', re: /resorte(?:s)?/i, name: 'Resortes de balance' },
   { id: 'lama', re: /\blama(?:s)?\b|fleje(?:s)?/i, name: 'Lamas de cortina' },
   { id: 'chapa', re: /\bchapa(?:s)?\b(?! el[eé]ctrica)|\bcerradura(?:s)?\b|\bguarda\b|candado/i, name: 'Chapa / cerradura' },
+  { id: 'camara', re: /c[aá]mara(?:s)?/i, name: 'Cámara' },
+  { id: 'disco', re: /disco duro|\bdisco\b/i, name: 'Disco duro' },
+  { id: 'fuente', re: /fuente(?: de poder)?/i, name: 'Fuente de poder' },
+  { id: 'grabador', re: /\bdvr\b|\bnvr\b|grabador/i, name: 'Grabador DVR/NVR' },
+  { id: 'compresor', re: /compresor/i, name: 'Compresor' },
+  { id: 'termostato', re: /termostato/i, name: 'Termostato' },
+  { id: 'breaker', re: /breaker|\btaco\b/i, name: 'Breaker' },
+  { id: 'toma', re: /tomacorriente|\btoma(?:s)?\b/i, name: 'Toma' },
+  { id: 'luminaria', re: /luminaria|bombillo|reflector/i, name: 'Luminaria' },
+  { id: 'tablero', re: /tablero/i, name: 'Tablero' },
 ];
 
 function splitClauses(text) {

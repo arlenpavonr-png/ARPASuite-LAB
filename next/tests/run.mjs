@@ -396,5 +396,46 @@ section('Seguimiento: aviso por WhatsApp y posponer');
   assert(/Pendiente · 1 vencido/.test(home), 'inicio muestra cuántos seguimientos están vencidos');
 }
 
+section('Oficios CCTV, Refrigeración y Electricidad');
+{
+  const { detectOficio, equipmentTypeLabel: label } = await import('../js/ai/knowledge.js');
+  const mk = (o) => ({ getItem: (k) => (o[k] ?? null) });
+  const of = (id) => detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: [id] }) }));
+  assert(of('cctv') === 'cctv' && of('refrigeracion') === 'refrigeracion' && of('electricidad') === 'electricidad', 'detecta los tres oficios nuevos');
+  assert(of('plomeria') === 'automatismos', 'oficio sin paquete sigue en automatismos');
+  assert(label('grabador') === 'DVR / NVR' && label('split') === 'Aire split' && label('tablero') === 'Tablero eléctrico', 'nombres de equipos nuevos');
+
+  const recsOf = (nota) => buildAssistance(parseTechnicianNote(nota));
+  const cctv = recsOf('Encontré una cámara sin imagen y el disco duro dañado, no graba. Limpié lentes y domos.');
+  const cctvTxt = cctv.recommendations.map((r) => r.text).join(' | ');
+  assert(/cambio de cámara/.test(cctvTxt) && /disco duro/.test(cctvTxt), 'CCTV: recomienda cámara y disco');
+  assert(cctv.quoteItems.some((q) => q.partId === 'disco' && q.unitPrice === 220000), 'CCTV: cotiza disco con precio del catálogo');
+
+  const ac = recsOf('Encontré fuga de gas refrigerante, el equipo no enfría y los filtros sucios. Hay goteo de agua.');
+  const acIds = ac.quoteItems.map((q) => q.partId);
+  assert(['carga_gas', 'diagnostico_ac', 'limpieza_ac', 'drenaje'].every((id) => acIds.includes(id)), 'Refrigeración: gas, diagnóstico, limpieza y drenaje');
+
+  const el = recsOf('Encontré que el breaker se dispara, una toma quemada y la instalación no tiene polo a tierra.');
+  const elIds = el.quoteItems.map((q) => q.partId);
+  assert(['breaker', 'toma', 'tierra'].every((id) => elIds.includes(id)), 'Electricidad: breaker, toma y tierra');
+  assert(el.quoteItems.find((q) => q.partId === 'tierra')?.needsQuote === true, 'puesta a tierra queda por cotizar');
+
+  const door = recsOf(EXAMPLE);
+  const doorNew = door.quoteItems.filter((q) => ['camara', 'disco', 'fuente', 'carga_gas', 'breaker', 'toma', 'cable', 'tablero'].includes(q.partId));
+  assert(doorNew.length === 0, 'nota de puertas no mezcla los oficios nuevos');
+  const lamp = recsOf('Encontré la lámpara de cortesía quemada y la fotocelda sucia.');
+  assert(!lamp.quoteItems.some((q) => q.partId === 'luminaria'), 'lámpara de cortesía de puerta no se cotiza como luminaria');
+}
+
+{
+  const { mapClassicHistorial } = await import('../js/legacy.js');
+  const m = mapClassicHistorial([
+    { id: 'h1', modulo: 'formato', cliente: 'Edificio Norte', numero: 'AP-100', fullSnapshot: { fcctv3: true } },
+    { id: 'h2', modulo: 'formato', cliente: 'Casa Sur', numero: 'AP-101', fullSnapshot: { fref2: true } },
+  ]);
+  const types = m.equipment.map((e) => e.type).sort().join(',');
+  assert(types === 'grabador,split', 'historial de CCTV y refrigeración se importa con su tipo de equipo');
+}
+
 console.log('\n' + passed + ' ok, ' + failed + ' fallos');
 if (failed) process.exit(1);
