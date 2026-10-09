@@ -484,5 +484,31 @@ section('Oficios gas, plomería, plagas, línea blanca, solar y motos');
   assert(m.equipment.map((e) => e.type).sort().join(',') === 'inversor,lavadora', 'historial de línea blanca y solar se importa con su tipo');
 }
 
+section('Recordatorios de mantenimiento desde el historial');
+{
+  const { planHistoryMaintenance } = await import('../js/followup.js');
+  const sv = [
+    { id: 's1', status: 'closed', source: 'classic', clientId: 'c1', equipmentId: 'e1', number: 'AP-003', startedAt: '2026-03-01', closedAt: '2026-10-08T16:42:12Z' },
+    { id: 's2', status: 'closed', source: 'classic', clientId: 'c1', equipmentId: 'e1', number: 'AP-007', startedAt: '2026-09-08', closedAt: '2026-10-08T16:42:12Z' },
+    { id: 's3', status: 'closed', source: 'classic', clientId: 'c2', equipmentId: 'e2', number: 'AP-001', startedAt: '2025-11-02', closedAt: '2026-10-08T16:42:12Z' },
+    { id: 's4', status: 'in_progress', clientId: 'c3', equipmentId: 'e3', startedAt: '2026-01-01' },
+    { id: 's5', status: 'closed', clientId: 'c4', equipmentId: '', number: 'AP-020', closedAt: '2026-08-15T10:00:00Z' },
+  ];
+  const p = planHistoryMaintenance(sv, []);
+  const by = Object.fromEntries(p.map((x) => [x.serviceId, x]));
+  assert(p.length === 3, 'un recordatorio por equipo con servicio cerrado');
+  assert(by.s2?.dueDate === '2027-03-07' && !by.s1, 'usa el último servicio del equipo y la fecha del formato clásico');
+  assert(by.s3?.dueDate === '2026-05-01', 'servicio viejo queda vencido');
+  assert(/AP-007 del 08\/09\/2026/.test(by.s2.notes), 'la nota dice el último servicio y su fecha');
+  assert(by.s5?.clientId === 'c4' && by.s5.equipmentId === '', 'cliente sin equipo también recibe recordatorio');
+  const again = planHistoryMaintenance(sv, p.map((x) => ({ ...x, createdAt: '2026-10-09T00:00:00Z' })));
+  assert(again.length === 0, 'no repite si ya hay recordatorios abiertos');
+  const done = p.map((x) => ({ ...x, status: 'cancelled', createdAt: '2026-10-09T00:00:00Z' }));
+  assert(planHistoryMaintenance(sv, done).length === 0, 'no revive los que el técnico canceló');
+  const newer = [...sv, { id: 's6', status: 'closed', clientId: 'c2', equipmentId: 'e2', number: 'AP-050', closedAt: '2026-12-01T10:00:00Z' }];
+  const after = planHistoryMaintenance(newer, done);
+  assert(after.length === 1 && after[0].serviceId === 's6', 'un servicio nuevo después del recordatorio cerrado crea el siguiente');
+}
+
 console.log('\n' + passed + ' ok, ' + failed + ' fallos');
 if (failed) process.exit(1);

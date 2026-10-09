@@ -115,3 +115,45 @@ export function postponeFollowup(followup, days, todayIso) {
   const base = due && due >= today ? due : today;
   return { ...followup, dueDate: addDays(base + 'T12:00:00', days || 7) };
 }
+
+/** Fecha real del servicio: los importados de la suite clásica guardan la fecha del formato en startedAt. */
+function serviceDate(s) {
+  const raw = s?.source === 'classic' ? (s.startedAt || s.closedAt) : (s?.closedAt || s?.startedAt);
+  const d = String(raw || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : '';
+}
+
+/**
+ * Recordatorios de mantenimiento a partir del historial: uno por equipo (o cliente sin equipo),
+ * a los `days` días del último servicio cerrado. No repite si ya hay uno abierto o
+ * si ya se creó (y se cerró o canceló) después de ese servicio.
+ */
+export function planHistoryMaintenance(services, followups, days = 180) {
+  const last = new Map();
+  for (const s of services || []) {
+    if (s.status !== 'closed' || !s.clientId) continue;
+    const date = serviceDate(s);
+    if (!date) continue;
+    const key = s.equipmentId || 'cli:' + s.clientId;
+    const prev = last.get(key);
+    if (!prev || date > prev.date) last.set(key, { date, service: s });
+  }
+  const plans = [];
+  for (const [key, { date, service }] of last) {
+    const same = (followups || []).filter((f) => f.type === 'maintenance'
+      && (f.equipmentId ? f.equipmentId === key : 'cli:' + f.clientId === key));
+    const covered = same.some((f) => f.status === 'open' || String(f.createdAt || '').slice(0, 10) >= date);
+    if (covered) continue;
+    plans.push({
+      clientId: service.clientId,
+      equipmentId: service.equipmentId || '',
+      serviceId: service.id,
+      type: 'maintenance',
+      label: 'Próximo mantenimiento',
+      dueDate: addDays(date + 'T12:00:00', days),
+      notes: `Último servicio${service.number ? ' ' + service.number : ''} del ${date.split('-').reverse().join('/')}.`,
+      status: 'open',
+    });
+  }
+  return plans;
+}

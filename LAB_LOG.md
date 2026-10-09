@@ -41,6 +41,10 @@ no entra al borrador ni al historial del formato. Orden cerrada = solo lectura.
   piñón de puerta vs. de moto, conectores de CCTV vs. MC4 solares, motor de puerta vs. de lavadora).
   `buildAssistance(parsed, { oficio })` usa el oficio activo si no se indica.
 - Historial clásico: los tipos de formato fcctv*, fref*, fe* se importan con su tipo de equipo.
+- Recordatorios desde el historial (`planHistoryMaintenance`, al abrir NEXT): un "Próximo mantenimiento"
+  por equipo (o cliente sin equipo) a los 180 días de su último servicio cerrado; los importados usan la
+  fecha del formato (`startedAt`). No repite si hay uno abierto o creado después de ese servicio.
+  Seguimiento ordenado por fecha. NEXT: 157 ok.
 
 ### Pruebas
 - NEXT `tests/run.mjs`: 149 ok. Etapas: 49 ok. Fence: PASS. Regresión: 8/8.

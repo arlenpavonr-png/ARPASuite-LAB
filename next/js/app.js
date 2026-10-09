@@ -2,7 +2,7 @@ import { buildAssistance } from './ai/recommend.js';
 import { getChecklist, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel, EQUIPMENT_TYPES } from './ai/knowledge.js';
 import { quoteFromService, readLegacyCatalogProducts } from './quote.js';
 import { applyNoteToService, closeService } from './flow.js';
-import { planFollowups, isOverdue, followUpLabel, filterFollowups, serviceTypeFromFollowup, followupWhatsAppMessage, postponeFollowup } from './followup.js';
+import { planFollowups, isOverdue, followUpLabel, filterFollowups, serviceTypeFromFollowup, followupWhatsAppMessage, postponeFollowup, planHistoryMaintenance } from './followup.js';
 import {
   openStore, newId, createClient, createEquipment, createService, createFollowup,
   equipmentHistory, buildIntelligentBrief, assembleClientView, assembleEquipmentView,
@@ -391,7 +391,8 @@ async function render() {
   if (ui.screen === 'followups') {
     const followups = await store.getAll('followups');
     const clients = await store.getAll('clients');
-    const filtered = filterFollowups(followups, ui.fuFilter);
+    const filtered = filterFollowups(followups, ui.fuFilter)
+      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
     root.innerHTML = S.screenFollowups({
       filter: ui.fuFilter,
       followups: filtered.map((f) => ({
@@ -1037,6 +1038,16 @@ function hasNextUpdate() {
   return false;
 }
 
+/** Crea los recordatorios de mantenimiento que falten según el historial (no repite). */
+async function planMaintenanceFromHistory() {
+  try {
+    const plans = planHistoryMaintenance(await store.getAll('services'), await store.getAll('followups'));
+    for (const p of plans) await store.put('followups', createFollowup(p));
+  } catch (err) {
+    console.warn('[arpa-next] recordatorios del historial', err);
+  }
+}
+
 export async function boot() {
   root = document.getElementById('app');
   root.innerHTML = S.screenBoot('Preparando ARPASuite NEXT…');
@@ -1047,6 +1058,7 @@ export async function boot() {
   if (!company.name) company.name = 'ARPA Suite';
   bindVoice();
   await importLegacyData(store);
+  await planMaintenanceFromHistory();
   if (window.ArpaActualizaciones?.check('next').reason === 'lab_demo') await seedDemoIfNeeded();
   bindClicks(root, actions());
   scheduleCloud(8000);
