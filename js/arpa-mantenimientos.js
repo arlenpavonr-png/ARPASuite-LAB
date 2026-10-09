@@ -33,9 +33,17 @@
     return iso ? iso.split('-').reverse().join('/') : '';
   }
 
+  /** Fecha de hoy en hora de Colombia (toISOString usa UTC y después de las 7 p. m. daría mañana). */
   function hoy() {
     if (typeof global.arpaHoyIso === 'function') return global.arpaHoyIso();
-    return new Date().toISOString().slice(0, 10);
+    try {
+      const p = {};
+      new Intl.DateTimeFormat('en-US', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' })
+        .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+      return p.year + '-' + p.month + '-' + p.day;
+    } catch (e) {
+      return new Date().toISOString().slice(0, 10);
+    }
   }
 
   function esInstalacionOMantenimiento(r) {
