@@ -26,6 +26,31 @@ no entra al borrador ni al historial del formato. Orden cerrada = solo lectura.
 - Decidir si el checklist debe guardarse también en el historial del servicio.
 - Los archivos nuevos no están en la caché offline del service worker (archivo protegido).
 
+## 2026-10-09 — LAB actualizado con producción otra vez + ramas unidas (`agent/integracion-2026-10`)
+
+### Qué
+- Una sola rama con todo el trabajo del LAB: fecha-hoy → sync-produccion → licencia-actualizaciones
+  → cerrajeria → next-numero → next-oficios (ya estaban en cadena) + producción `235da2c` (PR #22–#29).
+- Snapshot `05f9ef5` (árbol de producción 235da2c, padre = snapshot anterior `728c331`) y merge de tres vías.
+- Ya incluidas por otro camino: checklist de mantenimiento (864019d) y catálogos/m² (producción #21 + 6ab38b7).
+
+### Criterio
+- `next/`: producción (más nueva; incluye respaldo en la nube `next/js/cloud.js`).
+- `arpa-licencias-apps-script.gs`: producción (trae los handlers `respaldoguardar/listar/leer`; mismo SHEET_ID que ya tenía el LAB).
+- `service-worker.js`: esquema del LAB (arpa-ia-cache.js) + precache de producción; versión `v20261009-sync-produccion-2`.
+- `package.json`: nombre `arpasuite-lab`. Sin `CNAME` ni `package-lock.json`.
+
+### Pruebas
+- Producción `npm test`: 77/77. NEXT: 115 ok + etapas 49 ok. Fence: PASS. Regresión: 8/8.
+
+### Ramas que quedan contenidas en esta (se pueden archivar)
+`agent/fecha-hoy`, `agent/sync-produccion`, `agent/licencia-actualizaciones`, `agent/cerrajeria`,
+`agent/next-numero`, `agent/next-oficios`, `agent/checklist-mantenimiento`, `agent/unidad-m2`, `agent/catalogos-paso1`.
+
+### Ojo
+- El respaldo en la nube del LAB usa el mismo servidor de licencias de producción (igual que la licencia,
+  ver 2026-09-27). Probar el LAB sin licencia real o con `?labdemo=1`.
+
 ## 2026-10-08 — LAB actualizado con producción (`agent/sync-produccion`)
 
 ### Por qué
