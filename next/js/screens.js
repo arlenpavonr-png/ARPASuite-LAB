@@ -51,7 +51,7 @@ export function screenHome(d) {
   <main class="sheet">
     <p class="kicker">${esc(d.companyName || 'ARPA Suite')}</p>
     <p class="lead">Inicie el servicio. La app organiza hallazgos, trabajo y recomendaciones.</p>
-    ${open ? `<a class="btn btn-warn btn-block" href="#/servicio/${esc(open.id)}/captura">Continuar ${esc(open.number)}</a>` : ''}
+    ${open ? `<a class="btn btn-warn btn-block" href="#/servicio/${esc(open.id)}/captura">Continuar ${esc(open.number || 'servicio en curso')}</a>` : ''}
     <a class="btn btn-primary btn-xl btn-block" href="#/servicio/nuevo">Iniciar servicio</a>
     ${follow.length ? `<section class="block"><h2>Pendiente</h2>${follow.map((f) =>
       `<a class="row-card" href="#/seguimiento"><strong>${esc(f.label || followUpLabel(f.type))}</strong><span>${esc(f.clientName || '')} · ${esc(fmtDate(f.dueDate))}</span></a>`

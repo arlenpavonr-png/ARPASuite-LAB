@@ -109,6 +109,18 @@ const closed = await closeService(store, await store.get('services', job.id), {
 });
 assert(closed.job.status === 'closed', 'servicio cerrado');
 assert(closed.followups.length >= 1, 'seguimientos creados');
+{
+  // Abrir un servicio no gasta número: se asigna al cerrar.
+  const sinNumero = createService({ number: '', clientId: 'c-x', type: 'mantenimiento', status: 'in_progress' });
+  await store.put('services', sinNumero);
+  const seqAntes = (await store.getAll('meta')).find((m) => m.id === 'app')?.serviceSeq || 0;
+  const cerrado = await closeService(store, await store.get('services', sinNumero.id), { selectedFollowUpTypes: [] });
+  assert(/^SV-\d{4}-\d{4}$/.test(cerrado.job.number), 'al cerrar recibe número (' + cerrado.job.number + ')');
+  const seqDespues = (await store.getAll('meta')).find((m) => m.id === 'app')?.serviceSeq || 0;
+  assert(seqDespues === seqAntes + 1, 'cerrar gasta exactamente un número');
+  const conNumero = await closeService(store, closed.job, {});
+  assert(conNumero.job.number === closed.job.number, 'un servicio con número lo conserva');
+}
 const again = await closeService(store, closed.job, { selectedFollowUpTypes: ['repair'] });
 assert(again.skipped === true, 'segundo cierre no duplica');
 assert((await store.getAll('followups')).filter((f) => f.serviceId === job.id).length === closed.followups.length, 'sin seguimientos duplicados');

@@ -155,9 +155,9 @@ function applyParseToJob(job, text) {
 }
 
 async function startNewJob(type, technician, preset) {
-  const number = await store.nextServiceNumber();
+  // El número se asigna al cerrar o al generar el primer PDF: abrir un servicio no gasta número.
   const job = createService({
-    number,
+    number: '',
     type,
     technician,
     status: 'draft',
@@ -702,8 +702,14 @@ function wireSign(job) {
   });
 }
 
+/** Asigna número al servicio si aún no tiene (primer PDF antes de cerrar). */
+async function ensureJobNumber(job) {
+  if (!job || job.number) return job;
+  return saveJob({ number: await store.nextServiceNumber() });
+}
+
 async function shareCurrentDocument(kind, options = {}) {
-  const job = await getJob();
+  let job = await getJob();
   if (!job) return;
   const client = job.clientId ? await store.get('clients', job.clientId) : null;
   const equipment = job.equipmentId ? await store.get('equipment', job.equipmentId) : null;
@@ -712,6 +718,7 @@ async function shareCurrentDocument(kind, options = {}) {
     go('#/servicio/' + job.id + '/firma');
     return;
   }
+  job = await ensureJobNumber(job);
   const model = kind === 'quote'
     ? buildQuoteModel(job, client, company)
     : buildReportModel(job, client, equipment, company);
