@@ -1,7 +1,7 @@
 // ARPA Suite — Service Worker
 // CACHE_VERSION: fallback hardcodeado + archivo externo NO protegido.
 // Si falla importScripts/arpa-ia-cache.js, la PWA igual se instala.
-var CACHE_VERSION = 'v20261009-sync-produccion-2';
+var CACHE_VERSION = 'v20261009-mantenimientos';
 try {
   importScripts('./js/arpa-ia/arpa-ia-cache.js');
   if (typeof self.ARPA_CACHE_VERSION === 'string' && self.ARPA_CACHE_VERSION) {
@@ -32,6 +32,7 @@ const LOCAL_ASSETS = [
   './js/arpa-i18n.js',
   './js/arpa-install-prompt.js',
   './js/arpa-license.js',
+  './js/arpa-mantenimientos.js',
   './js/arpa-mi-catalogo.js',
   './js/arpa-numeracion.js',
   './js/arpa-oficios.js',

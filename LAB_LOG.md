@@ -26,6 +26,23 @@ no entra al borrador ni al historial del formato. Orden cerrada = solo lectura.
 - Decidir si el checklist debe guardarse también en el historial del servicio.
 - Los archivos nuevos no están en la caché offline del service worker (archivo protegido).
 
+## 2026-10-09 — Mantenimientos por hacer en la suite (`agent/recordatorio-mantenimiento`)
+
+### Qué (fase 1, gratis)
+- `js/arpa-mantenimientos.js` (nuevo): al guardar un formato de Instalación o Mantenimiento muestra
+  "Próximo mantenimiento: dd/mm/aaaa" (180 días) con botón "Agendar en mi calendario" (Google Calendar,
+  evento de día completo con el WhatsApp del cliente listo en la descripción).
+- Historial: panel "Mantenimientos por hacer" (vencidos y próximos 30 días) por cliente, contado desde su
+  última instalación o mantenimiento; botones WhatsApp al cliente (mensaje listo), Calendario, +1 semana,
+  Hecho y Descartar. Estado en `localStorage.arpa_mantenimientos_estado` por cliente y fecha base: un servicio
+  nuevo reinicia el recordatorio.
+- Protegidos tocados con autorización de Arlen: `index.html` (solo el `<script>`) y `service-worker.js`
+  (precache + versión `v20261009-mantenimientos`).
+- Fase 2 (pendiente): envío automático por WhatsApp Business API cuando Arlen tenga la cuenta de Meta.
+
+### Pruebas
+- `tests/mantenimientos.test.js` 5/5; producción `npm test` 85/85. Vista probada en página aislada (sin la app).
+
 ## 2026-10-09 — LAB actualizado con producción otra vez + ramas unidas (`agent/integracion-2026-10`)
 
 ### Qué
