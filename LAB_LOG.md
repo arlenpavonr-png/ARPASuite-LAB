@@ -34,11 +34,16 @@ no entra al borrador ni al historial del formato. Orden cerrada = solo lectura.
   y el inicio muestra los pendientes ordenados por fecha con cuántos están vencidos.
 - Oficios nuevos en NEXT: Cámaras/CCTV, Refrigeración y Electricidad (equipos, frases rápidas,
   checklists, reglas de recomendación con `near()` y repuestos con precios del catálogo base de la suite).
-  Plomería, gas, plagas, línea blanca, solar y motos siguen usando automatismos.
+  Después (mismo día): gas, plomería, control de plagas, línea blanca, energía solar y taller de motos.
+  Ya todos los oficios de la suite tienen paquete en NEXT. Motos: el catálogo solo trae mano de obra,
+  así que los repuestos quedan "por cotizar".
+- Reglas por oficio: `oficios: [...]` en las reglas que chocan (fuga de gas en gas vs. refrigeración,
+  piñón de puerta vs. de moto, conectores de CCTV vs. MC4 solares, motor de puerta vs. de lavadora).
+  `buildAssistance(parsed, { oficio })` usa el oficio activo si no se indica.
 - Historial clásico: los tipos de formato fcctv*, fref*, fe* se importan con su tipo de equipo.
 
 ### Pruebas
-- NEXT `tests/run.mjs`: 134 ok. Etapas: 49 ok. Fence: PASS. Regresión: 8/8.
+- NEXT `tests/run.mjs`: 149 ok. Etapas: 49 ok. Fence: PASS. Regresión: 8/8.
 - `tests/e2e.mjs` no se corrió: abre index.html del LAB, que llama al servidor de licencias de producción.
 
 ## 2026-10-09 — LAB actualizado con producción otra vez + ramas unidas (`agent/integracion-2026-10`)

@@ -89,6 +89,20 @@ const DOOR_CHIPS = [
   // Electricidad
   ['fe1', 'residencial'], ['fe2', 'comercial'], ['fe3', 'tablero'], ['fe4', 'acometida'],
   ['fe5', 'iluminacion'], ['fe6', 'tomas'], ['fe7', 'tierra'],
+  // Gas
+  ['fgas1', 'red_gas'], ['fgas2', 'gasodomestico'], ['fgas3', 'revision_gas'], ['fgas4', 'fuga_gas'], ['fgas5', 'calentador'],
+  // Plomería
+  ['fplo1', 'red_hidraulica'], ['fplo2', 'red_sanitaria'], ['fplo3', 'fuga_agua'],
+  ['fplo4', 'calentador'], ['fplo5', 'griferia'], ['fplo6', 'bomba'],
+  // Control de plagas
+  ['fpla1', 'desinsectacion'], ['fpla2', 'desratizacion'], ['fpla3', 'desinfeccion'], ['fpla4', 'fumigacion'], ['fpla5', 'preventivo'],
+  // Línea blanca
+  ['flb1', 'lavadora'], ['flb2', 'nevera'], ['flb3', 'estufa'], ['flb4', 'secadora'], ['flb5', 'lavavajillas'],
+  // Energía solar
+  ['fsol1', 'panel'], ['fsol2', 'inversor'], ['fsol3', 'baterias'], ['fsol4', 'estructura_solar'],
+  ['fsol5', 'cableado_solar'], ['fsol6', 'mant_solar'],
+  // Taller de motos
+  ['fmot1', 'revision_moto'], ['fmot2', 'mant_moto'], ['fmot3', 'reparacion_moto'], ['fmot4', 'aceite'], ['fmot5', 'frenos'],
 ];
 
 export function equipmentFromClassicSnapshot(snap) {

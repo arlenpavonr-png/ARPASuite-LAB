@@ -36,6 +36,9 @@ const FINDING_CUES = [
   /recalent|chispa|derretid/i,
   /gote|sulfat/i,
   /sin (?:el )?polo a tierra|no tiene polo a tierra/i,
+  /olor a gas|tapad|obstruid|no descarga|presi[oó]n baja|(?:baja|poca) presi[oó]n|humedad/i,
+  /no centrifuga|no desagua|no calienta|no arranca|no prende|no enciende/i,
+  /\blisa\b|vencid|alarma|sombra|presencia|infestaci/i,
 ];
 
 const WORK_CUES = [
@@ -104,6 +107,12 @@ const PARTS = [
   { id: 'toma', re: /tomacorriente|\btoma(?:s)?\b/i, name: 'Toma' },
   { id: 'luminaria', re: /luminaria|bombillo|reflector/i, name: 'Luminaria' },
   { id: 'tablero', re: /tablero/i, name: 'Tablero' },
+  { id: 'regulador', re: /regulador/i, name: 'Regulador' },
+  { id: 'grifo', re: /grifo|grifer[ií]a/i, name: 'Grifo' },
+  { id: 'inversor', re: /inversor/i, name: 'Inversor' },
+  { id: 'pastillas', re: /pastillas?(?: de freno)?/i, name: 'Pastillas de freno' },
+  { id: 'kit_arrastre', re: /kit de arrastre/i, name: 'Kit de arrastre' },
+  { id: 'llanta', re: /llanta|neum[aá]tico/i, name: 'Llanta' },
 ];
 
 function splitClauses(text) {

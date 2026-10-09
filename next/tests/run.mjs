@@ -354,7 +354,7 @@ section('Oficio Cerrajería y Metalmecánica');
   assert(detectOficio(mk({})) === 'automatismos', 'sin configuración: automatismos');
   assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['metalmecanica', 'automatismos'] }) })) === 'metalmecanica', 'oficio principal metalmecánica');
   assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['cerrajeria'] }) })) === 'metalmecanica', 'cerrajería se trata como metalmecánica');
-  assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['gas'] }) })) === 'automatismos', 'oficio sin paquete: automatismos');
+  assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['carpinteria'] }) })) === 'automatismos', 'oficio sin paquete: automatismos');
   assert(label('cortina') === 'Cortina enrollable' && label('reja_ballesta') === 'Reja ballesta', 'nombres de equipos de cerrajería');
 
   const nota = 'Encontré los resortes de la cortina sin tensión, lamas dobladas y la chapa dañada. Lubriqué guías y eje, soldé los puntos sueltos. Hay óxido en la estructura.';
@@ -402,16 +402,16 @@ section('Oficios CCTV, Refrigeración y Electricidad');
   const mk = (o) => ({ getItem: (k) => (o[k] ?? null) });
   const of = (id) => detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: [id] }) }));
   assert(of('cctv') === 'cctv' && of('refrigeracion') === 'refrigeracion' && of('electricidad') === 'electricidad', 'detecta los tres oficios nuevos');
-  assert(of('plomeria') === 'automatismos', 'oficio sin paquete sigue en automatismos');
+  assert(of('carpinteria') === 'automatismos', 'oficio sin paquete sigue en automatismos');
   assert(label('grabador') === 'DVR / NVR' && label('split') === 'Aire split' && label('tablero') === 'Tablero eléctrico', 'nombres de equipos nuevos');
 
-  const recsOf = (nota) => buildAssistance(parseTechnicianNote(nota));
+  const recsOf = (nota, oficio) => buildAssistance(parseTechnicianNote(nota), { oficio });
   const cctv = recsOf('Encontré una cámara sin imagen y el disco duro dañado, no graba. Limpié lentes y domos.');
   const cctvTxt = cctv.recommendations.map((r) => r.text).join(' | ');
   assert(/cambio de cámara/.test(cctvTxt) && /disco duro/.test(cctvTxt), 'CCTV: recomienda cámara y disco');
   assert(cctv.quoteItems.some((q) => q.partId === 'disco' && q.unitPrice === 220000), 'CCTV: cotiza disco con precio del catálogo');
 
-  const ac = recsOf('Encontré fuga de gas refrigerante, el equipo no enfría y los filtros sucios. Hay goteo de agua.');
+  const ac = recsOf('Encontré fuga de gas refrigerante, el equipo no enfría y los filtros sucios. Hay goteo de agua.', 'refrigeracion');
   const acIds = ac.quoteItems.map((q) => q.partId);
   assert(['carga_gas', 'diagnostico_ac', 'limpieza_ac', 'drenaje'].every((id) => acIds.includes(id)), 'Refrigeración: gas, diagnóstico, limpieza y drenaje');
 
@@ -435,6 +435,53 @@ section('Oficios CCTV, Refrigeración y Electricidad');
   ]);
   const types = m.equipment.map((e) => e.type).sort().join(',');
   assert(types === 'grabador,split', 'historial de CCTV y refrigeración se importa con su tipo de equipo');
+}
+
+section('Oficios gas, plomería, plagas, línea blanca, solar y motos');
+{
+  const { detectOficio, equipmentTypeLabel: label, PART_CATALOG } = await import('../js/ai/knowledge.js');
+  const mk = (o) => ({ getItem: (k) => (o[k] ?? null) });
+  const of = (id) => detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: [id] }) }));
+  assert(['gas', 'plomeria', 'plagas', 'linea_blanca', 'solar', 'taller_motos'].every((id) => of(id) === id), 'detecta los seis oficios');
+  assert(label('lavadora') === 'Lavadora' && label('inversor') === 'Inversor' && label('frenos') === 'Frenos / llantas', 'nombres de equipos');
+
+  const ids = (nota, oficio) => buildAssistance(parseTechnicianNote(nota), { oficio }).quoteItems.map((q) => q.partId);
+  const has = (list, want) => want.every((id) => list.includes(id));
+
+  const gas = ids('Encontré olor a gas y fuga en una unión. El regulador está fallando y el conector vencido.', 'gas');
+  assert(has(gas, ['hermeticidad', 'regulador', 'conector_gas']), 'Gas: hermeticidad, regulador y conector');
+  assert(!gas.includes('carga_gas'), 'Gas: una fuga de gas no se cotiza como carga de refrigerante');
+  const ac = ids('Encontré fuga de gas refrigerante.', 'refrigeracion');
+  assert(ac.includes('carga_gas') && !ac.includes('hermeticidad'), 'Refrigeración: fuga de gas sí es carga de refrigerante');
+
+  const plo = ids('Encontré fuga de agua en la tubería, el desagüe del lavaplatos tapado y el grifo goteando.', 'plomeria');
+  assert(has(plo, ['tuberia_pvc', 'destape', 'grifo']), 'Plomería: fuga, destape y grifo');
+
+  const pla = ids('Encontré presencia de cucarachas en la cocina y excremento de ratón en la bodega.', 'plagas');
+  assert(has(pla, ['cucarachas', 'roedores']), 'Plagas: cucarachas y roedores');
+
+  const lb = ids('Encontré que la lavadora no desagua y no centrifuga.', 'linea_blanca');
+  assert(has(lb, ['bomba_lavadora', 'motor_lavadora']), 'Línea blanca: bomba y motor');
+  assert(!lb.includes('motor'), 'Línea blanca: no cotiza motor de puerta');
+
+  const sol = ids('Encontré los paneles sucios, el inversor con alarma y un conector MC4 quemado.', 'solar');
+  assert(has(sol, ['limpieza_panel', 'diagnostico_solar', 'mc4']), 'Solar: limpieza, inversor y MC4');
+
+  const mot = buildAssistance(parseTechnicianNote('Encontré las pastillas de freno gastadas y el piñón desgastado.'), { oficio: 'taller_motos' });
+  const motIds = mot.quoteItems.map((q) => q.partId);
+  assert(has(motIds, ['pastillas', 'kit_arrastre']) && !motIds.includes('pinon'), 'Motos: piñón es kit de arrastre, no piñón de puerta');
+  assert(mot.quoteItems.find((q) => q.partId === 'pastillas')?.needsQuote === true, 'Motos: repuestos quedan por cotizar');
+
+  const door = ids(EXAMPLE, 'automatismos');
+  assert(door.includes('pinon') && !door.includes('kit_arrastre'), 'Puertas: el piñón sigue siendo de puerta');
+  assert(Object.keys(PART_CATALOG).length > 60, 'catálogo de repuestos reúne todos los oficios');
+
+  const { mapClassicHistorial } = await import('../js/legacy.js');
+  const m = mapClassicHistorial([
+    { id: 'h3', modulo: 'formato', cliente: 'Casa', numero: 'AP-200', fullSnapshot: { flb1: true } },
+    { id: 'h4', modulo: 'formato', cliente: 'Finca', numero: 'AP-201', fullSnapshot: { fsol2: true } },
+  ]);
+  assert(m.equipment.map((e) => e.type).sort().join(',') === 'inversor,lavadora', 'historial de línea blanca y solar se importa con su tipo');
 }
 
 console.log('\n' + passed + ' ok, ' + failed + ' fallos');
