@@ -77,20 +77,20 @@
     'header.lang.aria': 'Language',
     'header.settings.title': 'Company settings',
     'header.settings.aria': 'Company settings',
-    'header.doc_type.formato': 'Work Order',
+    'header.doc_type.formato': 'Service Form',
     'header.doc_type.cotizacion': '💰 Quote',
     'header.doc_type.catalogo': '📦 My Catalog',
     'header.doc_type.cuenta_cobro': '🧾 Invoice',
     'header.doc_type.historial': '📋 Service History',
     'header.number_label': 'No.',
     'header.btn_new_number': '+ NEW No.',
-    'header.placeholder.formato_number': 'OT-001',
+    'header.placeholder.formato_number': '0001',
     'header.placeholder.cot_number': 'COT-001',
     'header.placeholder.cc_number': 'CC-001',
     'header.title.tap_new_number': 'Tap to generate new number',
 
     'menu.aria': 'Main menu',
-    'menu.formato': 'WO',
+    'menu.formato': 'Form',
     'menu.cotizacion': 'Quote',
     'menu.catalogo': 'Catalog',
     'menu.historial': 'History',
@@ -151,6 +151,9 @@
     'formato.metalmecanica.escalera': 'Stair/railing',
     'formato.metalmecanica.estructura': 'Metal structure',
     'formato.metalmecanica.soldadura': 'Welding/repair',
+    'formato.metalmecanica.cortina': 'Roller shutter',
+    'formato.metalmecanica.ballesta': 'Folding security grille',
+    'formato.metalmecanica.chapas': 'Locks',
     'formato.solar.panel': 'Solar panel',
     'formato.solar.inversor': 'Inverter',
     'formato.solar.baterias': 'Batteries',
@@ -224,7 +227,7 @@
     'formato.accesorio.bateria': 'Backup battery',
     'formato.accesorio.cierre_automatico': 'Auto close',
     'formato.accesorio.tarjeta_lector': 'Card / reader',
-    'formato.section.materiales': 'Materials used',
+    'formato.section.materiales': 'Materials Used',
     'formato.mat.header.descripcion': 'Material / Description',
     'formato.mat.header.unidad': 'Unit',
     'formato.mat.header.cant': 'Qty.',
@@ -279,44 +282,6 @@
     'formato.verification': 'Document issued by <strong id="brand-verification-company">{company}</strong> through <strong>Arpa Suite</strong>.',
     'formato.section.datos_bancarios': 'Bank Details',
 
-    'ot.status.label': 'Status',
-    'ot.estado.borrador': 'Draft',
-    'ot.estado.programada': 'Scheduled',
-    'ot.estado.en_ejecucion': 'In progress',
-    'ot.estado.finalizada': 'Finished',
-    'ot.estado.cerrada': 'Closed',
-    'ot.lock.note': 'This work order is closed. You can review it or generate a PDF, but it cannot be edited.',
-    'ot.section.programacion': 'Scheduling',
-    'ot.label.fecha_programada': 'Scheduled date',
-    'ot.label.hora_programada': 'Scheduled time',
-    'ot.label.inicio': 'Start',
-    'ot.label.fin': 'End',
-    'ot.btn.guardar': 'Save draft',
-    'ot.btn.programar': 'Schedule',
-    'ot.btn.iniciar': 'Start work',
-    'ot.btn.finalizar': 'Finish work',
-    'ot.btn.cerrar': 'Close WO',
-    'ot.mat.hint': 'Materials used on this job. Does not deduct inventory.',
-    'ot.mat.header.obs': 'Note',
-    'ot.mat.agregar': '+ Add material',
-    'ot.mat.quitar': 'Remove',
-    'ot.mat.placeholder.desc': 'E.g.: Photocell',
-    'ot.mat.placeholder.obs': 'Optional',
-    'ot.alert.cerrada_no_editar': 'This work order is closed and cannot be edited.',
-    'ot.alert.borrador_guardado': 'Draft saved on this device.',
-    'ot.alert.no_programar_avanzada': 'A work order already in progress or finished cannot be scheduled.',
-    'ot.alert.falta_programacion': 'Enter scheduled date and time to schedule the work order.',
-    'ot.alert.programada': 'Work order scheduled.',
-    'ot.alert.no_iniciar_cerrada': 'A closed work order cannot be started.',
-    'ot.alert.no_iniciar_finalizada': 'This work order is already finished.',
-    'ot.alert.ya_en_ejecucion': 'Work is already in progress.',
-    'ot.alert.iniciada': 'Work started. Start time was recorded.',
-    'ot.alert.no_finalizar': 'Only a work order in progress can be finished.',
-    'ot.alert.finalizada': 'Work finished. Complete notes, photos and signatures before closing.',
-    'ot.alert.no_cerrar': 'Only a finished work order can be closed.',
-    'ot.alert.cerrada': 'Work order closed and saved to history.',
-    'ui.historial.estado': 'Status',
-
     'cot.section.datos_cliente': 'Client Details',
     'cot.label.correo': 'Email',
     'cot.placeholder.correo': 'email@example.com',
@@ -337,6 +302,9 @@
     'cot.table.empty': 'Add products, services, or additional items',
     'cot.section.resumen': 'Quote Summary',
     'cot.iva.toggle': 'Include VAT 19%',
+    'tax.label.iva': 'IVA',
+    'tax.label.igv': 'IGV',
+    'tax.label.sales_tax': 'Sales tax',
     'cot.total.subtotal': 'Subtotal',
     'cot.total.iva': 'VAT (19%)',
     'cot.total.grand': 'TOTAL',
@@ -411,6 +379,7 @@
     'cc.label.tipo_cuenta': 'Account type',
     'cc.cuenta.ahorros': 'Savings',
     'cc.cuenta.corriente': 'Checking',
+    'cc.cuenta.clabe': 'CLABE',
     'cc.label.numero_cuenta': 'Account number',
     'cc.label.titular': 'Account holder',
     'cc.placeholder.titular': 'Account holder name',
@@ -464,6 +433,10 @@
     'prod_modal.label.unidad': 'Unit',
     'prod_modal.unidad.unidad': 'Unit',
     'prod_modal.unidad.metro': 'Meter',
+    'prod_modal.unidad.m2': 'Square meter',
+    'prod_modal.unidad.kg': 'Kilogram',
+    'prod_modal.unidad.galon': 'Gallon',
+    'prod_modal.unidad.libra': 'Pound',
     'prod_modal.unidad.hora': 'Hour',
     'prod_modal.unidad.servicio': 'Service',
     'prod_modal.label.marca_optional': 'Brand (optional)',
@@ -486,6 +459,16 @@
     'settings.label.website_optional': 'Website (optional)',
     'settings.placeholder.website': 'https://your-company.com',
     'settings.section.bank': 'Bank Details',
+    'settings.section.license': 'License',
+    'settings.license.plan': 'Plan',
+    'settings.license.code': 'Code (last 6)',
+    'settings.license.expiry': 'Expires',
+    'settings.license.no_expiry': 'No expiration',
+    'settings.license.change': 'Change license',
+    'settings.license.confirm_change': 'Change the license code? Company data, catalog, history and numbering will be kept.',
+    'license_gate.subtitle_enter_code': 'Enter your license code',
+    'trial.banner.days_left': 'Free trial: {days} days left',
+    'alert.numeracion.sin_licencia': 'No active license. Check Settings → License.',
     'settings.label.bank': 'Bank',
     'settings.placeholder.bank': 'Bank name',
     'settings.label.account_type': 'Account type',
@@ -499,6 +482,9 @@
     'settings.label.technician_code': 'Technician initials or code',
     'settings.placeholder.technician_code': 'PJ',
     'settings.technician_code.hint': 'PYME plan: required. Prefixes your documents (e.g. PJ-001). Other plans: optional.',
+    'settings.label.warranty_terms': 'Warranty terms',
+    'settings.label.client_requirements': 'Client requirements',
+    'settings.hint.legal_docs': 'If left empty, the standard text is used (it follows the app language). Your own text is used as-is on Quote and Service Form.',
     'settings.label.logo': 'Your company logo',
     'settings.logo.hint': 'Upload your logo (PNG, JPG or WebP). If none is uploaded, the official ARPA Suite logo will be used.',
     'settings.section.price_list': 'Price List',
@@ -598,6 +584,8 @@
     'brand.company_contact.placeholder': 'Set up your company in <strong>⚙️ Settings</strong> to personalize this document.',
     'brand.screen_footer.placeholder': 'Set up your company details in ⚙️ Settings',
     'settings.section.currency': 'Currency',
+    'settings.label.country': 'Country',
+    'settings.label.country_hint': 'Automatically sets currency and tax for your documents',
     'settings.label.currency': 'Currency for your documents',
     'currency.cop': '🇨🇴 COP — Colombian peso',
     'currency.usd': '🇺🇸 USD — US dollar',
@@ -608,7 +596,8 @@
     'currency.name.usd': 'US dollars',
     'currency.name.mxn': 'Mexican pesos',
     'currency.name.pen': 'Peruvian soles',
-    'currency.name.clp': 'Chilean pesos'
+    'currency.name.clp': 'Chilean pesos',
+    'cat.aviso.precios_convertidos': 'Reference prices converted from Colombia. Review them before quoting.'
   };
 
   var DOC_TYPE_KEYS = {
@@ -639,16 +628,25 @@
   }
 
   function t(key, vars) {
-    var dict = currentLang === 'en' ? I18N_EN : I18N_ES;
-    var text = dict[key];
+    var overrides = getCountryOverrides(currentLang);
+    var text = overrides && overrides[key];
+    if (text == null) {
+      var dict = currentLang === 'en' ? I18N_EN : I18N_ES;
+      text = dict[key];
+    }
     if (text == null && currentLang === 'en') text = I18N_EN[key];
     if (text == null) text = key;
     return interpolate(text, vars);
   }
 
   function translateIn(key, lang) {
-    var dict = lang === 'en' ? I18N_EN : I18N_ES;
-    var text = dict[key];
+    var useLang = lang === 'en' ? 'en' : 'es';
+    var overrides = getCountryOverrides(useLang);
+    var text = overrides && overrides[key];
+    if (text == null) {
+      var dict = useLang === 'en' ? I18N_EN : I18N_ES;
+      text = dict[key];
+    }
     if (text == null) text = key;
     return text;
   }
@@ -659,10 +657,246 @@
     }
   }
 
+
+  // LAB: textos de módulos propios del LAB (Orden de Trabajo, etc.). Solo rellena claves que falten;
+  // nunca reemplaza un texto que ya venga de producción o de la página.
+  function supplementLabKeys() {
+    var es = {
+      'header.doc_type.formato': "Orden de Trabajo",
+      'header.doc_type.cotizacion': "Cotización",
+      'header.doc_type.catalogo': "Mi Catálogo",
+      'header.doc_type.cuenta_cobro': "Cuenta de Cobro",
+      'header.doc_type.historial': "Historial de Servicios",
+      'formato.placeholder.telefono': "Número de contacto",
+      'formato.placeholder.ciudad': "Ciudad",
+      'header.validation_badge_ready': "Arpa Suite · Listo",
+      'formato.garantia.header': "Garantía – {company}",
+      'formato.garantia.exclusiones.body': "<strong>Exclusiones de garantía:</strong> La garantía no aplica sobre daños causados por descargas eléctricas, sobretensiones, rayos u otras causas externas. Tampoco aplica cuando el equipo ha sido intervenido por <strong>personal no autorizado por {company}</strong>.",
+      'formato.firma.tecnico_named': "Firma Técnico – {name}",
+      'cot.firma.elaborado_named': "Elaborado por – {name}",
+      'formato.puerta.cortina_enrollable': "Cortina enrollable",
+      'formato.placeholder.tipo_otra': "Especifique...",
+      'formato.titulo.electricidad': "Tipo de Trabajo Eléctrico",
+      'formato.titulo.metalmecanica': "Tipo de Trabajo Metalmecánico",
+      'formato.titulo.solar': "Tipo de Sistema Solar",
+      'formato.titulo.refrigeracion': "Tipo de Equipo",
+      'formato.titulo.cctv': "Tipo de Sistema de Seguridad",
+      'formato.titulo.plomeria': "Tipo de Trabajo Hidráulico",
+      'formato.titulo.gas': "Tipo de Trabajo de Gas",
+      'formato.titulo.plagas': "Tipo de Servicio",
+      'formato.titulo.linea_blanca': "Tipo de Electrodoméstico",
+      'cot.nota_legal': "<strong>Nota:</strong> Cotización válida por <strong>15 días calendario</strong>. Precios en {moneda_nombre} ({moneda_codigo}).",
+      'alert.cotizacion.pdf_descargado_wa': "Se descargó el PDF de la cotización. Adjúntelo en el chat de WhatsApp que se abrirá a continuación.",
+      'alert.pdf.no_generado_manual': "No se pudo generar el PDF. Adjúntelo manualmente desde su galería o archivos recientes.",
+      'alert.pdf.jspdf_no_cargo': "No se pudo cargar jsPDF. Recargue la aplicación e intente de nuevo.",
+      'alert.pdf.adjuntar_manual': "Adjunte el PDF manualmente desde su galería o archivos recientes.",
+      'alert.cuenta_cobro.pdf_no_generado': "No se pudo generar el PDF. Los datos del formulario se conservaron; intente de nuevo.",
+      'alert.historial.registro_no_encontrado': "Registro no encontrado.",
+      'alert.historial.documento_restaurado': "Documento restaurado. Revisa los datos y genera el PDF.",
+      'confirm.historial.eliminar_registro': "¿Eliminar este registro del historial?",
+      'alert.historial.no_hay_registros': "No hay registros para exportar.",
+      'confirm.catalogo.eliminar_producto': "¿Eliminar \"{label}\" del catálogo?",
+      'alert.catalogo.no_eliminar_categoria': "No se puede eliminar: hay {count} producto(s) en esta categoría.",
+      'confirm.catalogo.eliminar_categoria': "¿Eliminar la categoría \"{name}\"?",
+      'alert.catalogo.formato_no_soportado': "Formato no soportado. Use .xlsx, .xls o .csv",
+      'alert.catalogo.sin_productos_encontrados': "No se encontraron productos. Verifique que la primera fila tenga las columnas: Nombre, Referencia, Precio, Unidad, Marca, Categoría.",
+      'alert.catalogo.error_leer_archivo': "Error al leer el archivo: {detail}",
+      'alert.catalogo.formato_invalido': "formato inválido",
+      'confirm.catalogo.reemplazar': "¿Reemplazar el catálogo de este oficio con estos {count} productos?",
+      'confirm.catalogo.agregar': "¿Agregar estos {count} productos a los existentes de este oficio?",
+      'alert.catalogo.reemplazado': "Catálogo reemplazado: {count} productos importados.",
+      'alert.catalogo.agregados': "{count} productos agregados.",
+      'alert.catalogo.omitidos': "{count} omitidos por referencia duplicada.",
+      'alert.numeracion.configure_iniciales_pyme': "En plan PYME configure las iniciales del técnico en Configuración.",
+      'alert.oficios.sin_catalogo_base': "No hay catálogo base disponible para este oficio.",
+      'alert.oficios.catalogo_base_cargado': "Catálogo base cargado: {count} producto(s) agregado(s) en {label}.",
+      'alert.oficios.catalogo_ya_cargado': "El catálogo base de {label} ya estaba cargado ({total} productos). No se agregaron duplicados.",
+      'confirm.oficios.cambiar_oficio': "Vas a cambiar de {from} a {to}. Esto eliminará los productos de {from} de tu catálogo (los que agregaste manualmente en otras categorías no se tocan). ¿Continuar?",
+      'alert.catalogo.no_guardado': "No se pudo guardar el catálogo. Intente de nuevo.",
+      'alert.catalogo.marca_cargado': "Catálogo {marca} cargado: {count} productos.",
+      'alert.catalogo.modulo_no_disponible': "El módulo de catálogos por marca no está disponible.",
+      'alert.brand.logo_no_guardado_quota': "No se pudo guardar el logo. Intente con una imagen más pequeña o en otro formato.",
+      'alert.brand.config_no_guardada': "No se pudo guardar la configuración. Si subió un logo, pruebe con una imagen más pequeña.",
+      'alert.brand.imagen_invalida': "Seleccione una imagen válida (PNG, JPG o WebP).",
+      'alert.brand.imagen_muy_grande': "La imagen es demasiado grande. Máximo ~15 MB.",
+      'alert.brand.imagen_no_procesada': "No se pudo procesar la imagen. Pruebe con otra foto.",
+      'alert.brand.imagen_no_leida': "No se pudo leer la imagen.",
+      'alert.brand.campos_obligatorios': "Complete todos los campos obligatorios marcados con *.",
+      'alert.brand.pyme_codigo_requerido': "En plan PYME debe indicar las iniciales o código del técnico (ej. PJ).",
+      'alert.brand.codigo_tecnico_formato': "Use 2 a 4 letras o números para el código del técnico.",
+      'alert.numeracion.pyme_codigo_y_guardar': "En plan PYME indique las iniciales o código del técnico (ej. PJ) y guarde la configuración.",
+      'alert.catalogo.nombre_obligatorio': "El nombre es obligatorio.",
+      'alert.catalogo.referencia_obligatoria': "La referencia es obligatoria.",
+      'alert.catalogo.precio_invalido': "Ingrese un precio unitario válido.",
+      'alert.catalogo.categoria_invalida': "Seleccione una categoría válida.",
+      'alert.catalogo.referencia_duplicada': "Ya existe un producto con esa referencia.",
+      'alert.catalogo.categoria_nombre_obligatorio': "El nombre de la categoría es obligatorio.",
+      'alert.catalogo.categoria_duplicada': "Ya existe una categoría con ese nombre.",
+      'ui.catalogo.editar_producto': "Editar producto",
+      'ui.catalogo.nuevo_producto': "Nuevo producto",
+      'ui.catalogo.editar_categoria': "Editar categoría",
+      'ui.catalogo.nueva_categoria': "Nueva categoría",
+      'ui.catalogo.crear_primera_categoria': "+ Crear primera categoría",
+      'ui.catalogo.nueva_categoria_btn': "+ Nueva categoría",
+      'ui.catalogo.sin_resultados_busqueda': "Sin resultados para la búsqueda.",
+      'aria.catalogo.editar': "Editar",
+      'aria.catalogo.eliminar': "Eliminar",
+      'aria.catalogo.editar_categoria': "Editar categoría",
+      'aria.catalogo.eliminar_categoria': "Eliminar categoría",
+      'header.placeholder.formato_number': "OT-001",
+      'menu.formato': "OT",
+      'formato.section.materiales': "Materiales utilizados",
+      'ot.status.label': "Estado",
+      'ot.estado.borrador': "Borrador",
+      'ot.estado.programada': "Programada",
+      'ot.estado.en_ejecucion': "En ejecución",
+      'ot.estado.finalizada': "Finalizada",
+      'ot.estado.cerrada': "Cerrada",
+      'ot.lock.note': "Esta orden está cerrada. Puede consultar o generar PDF, pero no se modifica.",
+      'ot.section.programacion': "Programación",
+      'ot.label.fecha_programada': "Fecha programada",
+      'ot.label.hora_programada': "Hora programada",
+      'ot.label.inicio': "Inicio",
+      'ot.label.fin': "Finalización",
+      'ot.btn.guardar': "Guardar borrador",
+      'ot.btn.programar': "Programar",
+      'ot.btn.iniciar': "Iniciar trabajo",
+      'ot.btn.finalizar': "Finalizar trabajo",
+      'ot.btn.cerrar': "Cerrar OT",
+      'ot.mat.hint': "Registro de materiales usados en este trabajo. No descuenta inventario.",
+      'ot.mat.header.obs': "Observación",
+      'ot.mat.agregar': "+ Agregar material",
+      'ot.mat.quitar': "Quitar",
+      'ot.mat.placeholder.desc': "Ej: Fotocelda",
+      'ot.mat.placeholder.obs': "Opcional",
+      'ot.alert.cerrada_no_editar': "Esta orden está cerrada y no se puede modificar.",
+      'ot.alert.borrador_guardado': "Borrador guardado en este dispositivo.",
+      'ot.alert.no_programar_avanzada': "No se puede programar una orden que ya está en ejecución o finalizada.",
+      'ot.alert.falta_programacion': "Indique fecha y hora programada para programar la orden.",
+      'ot.alert.programada': "Orden programada.",
+      'ot.alert.no_iniciar_cerrada': "No se puede iniciar una orden cerrada.",
+      'ot.alert.no_iniciar_finalizada': "Esta orden ya está finalizada.",
+      'ot.alert.ya_en_ejecucion': "El trabajo ya está en ejecución.",
+      'ot.alert.iniciada': "Trabajo iniciado. Se registró la hora de inicio.",
+      'ot.alert.no_finalizar': "Solo se puede finalizar una orden que está en ejecución.",
+      'ot.alert.finalizada': "Trabajo finalizado. Complete observaciones, fotos y firmas antes de cerrar.",
+      'ot.alert.no_cerrar': "Solo se puede cerrar una orden que esté finalizada.",
+      'ot.alert.cerrada': "Orden de trabajo cerrada y guardada en el historial.",
+      'ui.historial.estado': "Estado",
+      'ui.historial.cliente': "Cliente",
+      'ui.historial.concepto': "Concepto",
+      'ui.historial.ciudad': "Ciudad",
+      'ui.historial.fecha': "Fecha",
+      'ui.historial.total': "Total",
+      'ui.historial.eliminar': "Eliminar",
+      'aria.historial.eliminar_registro': "Eliminar registro",
+      'ui.historial.ver_documento': "Ver documento",
+      'ui.historial.sin_descripcion': "Sin descripción",
+      'ui.cotizacion.sin_resultados': "Sin resultados",
+      'ui.cotizacion.tabla_vacia': "Agregue productos o ítems de cobro",
+      'alert.firma.falta_firma_cliente': "Falta la firma del cliente para generar el documento.",
+      'onboarding.demo.titulo': "Catálogo BFT, Accessmatic, Elite y NAS",
+      'onboarding.demo.pregunta': "¿Deseas precargar {count} productos?",
+      'brand.banco.configurar': "Configure datos bancarios en Ajustes ⚙️",
+      'brand.banco.completar': "Complete banco y número de cuenta en Ajustes ⚙️",
+      'brand.banco.linea': "Datos para consignación: {bank} · Cuenta {tipo} · N° {numero}",
+      'cobros.vacio': "Sin ítems de cobro. Use + para agregar.",
+      'cobros.descripcion': "Descripción",
+      'cobros.descripcion_placeholder': "Descripción del ítem",
+      'cobros.valor_cop': "Valor ({moneda})",
+      'cobros.quitar': "Quitar",
+      'cobros.item_generico': "Ítem de cobro",
+      'pricing.default.instalacion': "Instalación",
+      'pricing.default.visita_tecnica': "Visita Técnica",
+      'pricing.default.mantenimiento': "Mantenimiento Preventivo",
+      'pricing.default.reparacion': "Reparación",
+      'pricing.default.mano_obra': "Mano de Obra (hora)",
+      'brand.footer.global': "Generado con ARPA Suite · Pruébala gratis en arpatechnologyglobal.com · © 2026",
+      'brand.company_name.placeholder': "NOMBRE DE TU EMPRESA",
+      'brand.company_contact.placeholder': "Configure su empresa en <strong>⚙️ Ajustes</strong> para personalizar este documento.",
+      'brand.screen_footer.placeholder': "Configure los datos de su empresa en ⚙️ Ajustes",
+      'settings.section.currency': "Moneda",
+      'settings.label.currency': "Moneda de tus documentos",
+      'currency.cop': "🇨🇴 COP — Peso colombiano",
+      'currency.usd': "🇺🇸 USD — Dólar estadounidense",
+      'currency.mxn': "🇲🇽 MXN — Peso mexicano",
+      'currency.pen': "🇵🇪 PEN — Sol peruano",
+      'currency.clp': "🇨🇱 CLP — Peso chileno",
+      'currency.name.cop': "pesos colombianos",
+      'currency.name.usd': "dólares estadounidenses",
+      'currency.name.mxn': "pesos mexicanos",
+      'currency.name.pen': "soles peruanos",
+      'currency.name.clp': "pesos chilenos",
+      'cot.table.pvp_unit': "PRECIO UNIT.",
+      'cat.aviso.precios_convertidos': "Precios de referencia convertidos desde Colombia. Revísalos antes de cotizar.",
+      'settings.label.country': "País",
+      'settings.label.country_hint': "Define automáticamente moneda e impuesto de tus documentos",
+      'cc.cuenta.clabe': "CLABE",
+      'tax.label.iva': "IVA",
+      'tax.label.igv': "IGV",
+      'tax.label.sales_tax': "Impuesto sobre ventas"
+    };
+    var en = {
+      'ot.status.label': "Status",
+      'ot.estado.borrador': "Draft",
+      'ot.estado.programada': "Scheduled",
+      'ot.estado.en_ejecucion': "In progress",
+      'ot.estado.finalizada': "Finished",
+      'ot.estado.cerrada': "Closed",
+      'ot.lock.note': "This work order is closed. You can review it or generate a PDF, but it cannot be edited.",
+      'ot.section.programacion': "Scheduling",
+      'ot.label.fecha_programada': "Scheduled date",
+      'ot.label.hora_programada': "Scheduled time",
+      'ot.label.inicio': "Start",
+      'ot.label.fin': "End",
+      'ot.btn.guardar': "Save draft",
+      'ot.btn.programar': "Schedule",
+      'ot.btn.iniciar': "Start work",
+      'ot.btn.finalizar': "Finish work",
+      'ot.btn.cerrar': "Close WO",
+      'ot.mat.hint': "Materials used on this job. Does not deduct inventory.",
+      'ot.mat.header.obs': "Note",
+      'ot.mat.agregar': "+ Add material",
+      'ot.mat.quitar': "Remove",
+      'ot.mat.placeholder.desc': "E.g.: Photocell",
+      'ot.mat.placeholder.obs': "Optional",
+      'ot.alert.cerrada_no_editar': "This work order is closed and cannot be edited.",
+      'ot.alert.borrador_guardado': "Draft saved on this device.",
+      'ot.alert.no_programar_avanzada': "A work order already in progress or finished cannot be scheduled.",
+      'ot.alert.falta_programacion': "Enter scheduled date and time to schedule the work order.",
+      'ot.alert.programada': "Work order scheduled.",
+      'ot.alert.no_iniciar_cerrada': "A closed work order cannot be started.",
+      'ot.alert.no_iniciar_finalizada': "This work order is already finished.",
+      'ot.alert.ya_en_ejecucion': "Work is already in progress.",
+      'ot.alert.iniciada': "Work started. Start time was recorded.",
+      'ot.alert.no_finalizar': "Only a work order in progress can be finished.",
+      'ot.alert.finalizada': "Work finished. Complete notes, photos and signatures before closing.",
+      'ot.alert.no_cerrar': "Only a finished work order can be closed.",
+      'ot.alert.cerrada': "Work order closed and saved to history.",
+      'ui.historial.estado': "Status"
+    };
+    Object.keys(es).forEach(function (k) { if (I18N_ES[k] == null) I18N_ES[k] = es[k]; });
+    Object.keys(en).forEach(function (k) { if (I18N_EN[k] == null) I18N_EN[k] = en[k]; });
+  }
+
   function supplementSpanishKeys() {
     Object.assign(I18N_ES, {
-      'header.doc_type.formato': 'Orden de Trabajo',
+      'cc.cuenta.clabe': 'CLABE',
+      'cat.aviso.precios_convertidos': 'Precios de referencia convertidos desde Colombia. Revísalos antes de cotizar.',
       'header.doc_type.cotizacion': '💰 Cotización',
+      'settings.section.license': 'Licencia',
+      'settings.license.plan': 'Plan',
+      'settings.license.code': 'Código (últimos 6)',
+      'settings.license.expiry': 'Vencimiento',
+      'settings.license.no_expiry': 'Sin vencimiento',
+      'settings.license.change': 'Cambiar licencia',
+      'settings.license.confirm_change': '¿Cambiar el código de licencia? La empresa, el catálogo, el historial y la numeración se conservan.',
+      'settings.label.warranty_terms': 'Términos de garantía',
+      'settings.label.client_requirements': 'Requisitos para el cliente',
+      'settings.hint.legal_docs': 'Si lo deja vacío, se usa el texto estándar (cambia con el idioma). Si escribe el suyo, se usa tal cual en Cotización y Formato.',
+      'license_gate.subtitle_enter_code': 'Ingrese su código de licencia',
+      'trial.banner.days_left': 'Prueba gratis: quedan {days} días',
+      'alert.numeracion.sin_licencia': 'Sin licencia activa. Revise Configuración → Licencia.',
       'header.doc_type.catalogo': '📦 Mi Catálogo',
       'header.doc_type.cuenta_cobro': '🧾 Cuenta de Cobro',
       'header.doc_type.historial': '📋 Historial de Servicios',
@@ -740,46 +974,6 @@
       'aria.catalogo.eliminar': 'Eliminar',
       'aria.catalogo.editar_categoria': 'Editar categoría',
       'aria.catalogo.eliminar_categoria': 'Eliminar categoría',
-      'header.placeholder.formato_number': 'OT-001',
-      'menu.formato': 'OT',
-      'formato.section.materiales': 'Materiales utilizados',
-      'ot.status.label': 'Estado',
-      'ot.estado.borrador': 'Borrador',
-      'ot.estado.programada': 'Programada',
-      'ot.estado.en_ejecucion': 'En ejecución',
-      'ot.estado.finalizada': 'Finalizada',
-      'ot.estado.cerrada': 'Cerrada',
-      'ot.lock.note': 'Esta orden está cerrada. Puede consultar o generar PDF, pero no se modifica.',
-      'ot.section.programacion': 'Programación',
-      'ot.label.fecha_programada': 'Fecha programada',
-      'ot.label.hora_programada': 'Hora programada',
-      'ot.label.inicio': 'Inicio',
-      'ot.label.fin': 'Finalización',
-      'ot.btn.guardar': 'Guardar borrador',
-      'ot.btn.programar': 'Programar',
-      'ot.btn.iniciar': 'Iniciar trabajo',
-      'ot.btn.finalizar': 'Finalizar trabajo',
-      'ot.btn.cerrar': 'Cerrar OT',
-      'ot.mat.hint': 'Registro de materiales usados en este trabajo. No descuenta inventario.',
-      'ot.mat.header.obs': 'Observación',
-      'ot.mat.agregar': '+ Agregar material',
-      'ot.mat.quitar': 'Quitar',
-      'ot.mat.placeholder.desc': 'Ej: Fotocelda',
-      'ot.mat.placeholder.obs': 'Opcional',
-      'ot.alert.cerrada_no_editar': 'Esta orden está cerrada y no se puede modificar.',
-      'ot.alert.borrador_guardado': 'Borrador guardado en este dispositivo.',
-      'ot.alert.no_programar_avanzada': 'No se puede programar una orden que ya está en ejecución o finalizada.',
-      'ot.alert.falta_programacion': 'Indique fecha y hora programada para programar la orden.',
-      'ot.alert.programada': 'Orden programada.',
-      'ot.alert.no_iniciar_cerrada': 'No se puede iniciar una orden cerrada.',
-      'ot.alert.no_iniciar_finalizada': 'Esta orden ya está finalizada.',
-      'ot.alert.ya_en_ejecucion': 'El trabajo ya está en ejecución.',
-      'ot.alert.iniciada': 'Trabajo iniciado. Se registró la hora de inicio.',
-      'ot.alert.no_finalizar': 'Solo se puede finalizar una orden que está en ejecución.',
-      'ot.alert.finalizada': 'Trabajo finalizado. Complete observaciones, fotos y firmas antes de cerrar.',
-      'ot.alert.no_cerrar': 'Solo se puede cerrar una orden que esté finalizada.',
-      'ot.alert.cerrada': 'Orden de trabajo cerrada y guardada en el historial.',
-      'ui.historial.estado': 'Estado',
       'ui.historial.cliente': 'Cliente',
       'ui.historial.concepto': 'Concepto',
       'ui.historial.ciudad': 'Ciudad',
@@ -813,6 +1007,8 @@
       'brand.company_contact.placeholder': 'Configure su empresa en <strong>⚙️ Ajustes</strong> para personalizar este documento.',
       'brand.screen_footer.placeholder': 'Configure los datos de su empresa en ⚙️ Ajustes',
       'settings.section.currency': 'Moneda',
+      'settings.label.country': 'País',
+      'settings.label.country_hint': 'Define automáticamente moneda e impuesto de tus documentos',
       'settings.label.currency': 'Moneda de tus documentos',
       'currency.cop': '🇨🇴 COP — Peso colombiano',
       'currency.usd': '🇺🇸 USD — Dólar estadounidense',
@@ -823,7 +1019,10 @@
       'currency.name.usd': 'dólares estadounidenses',
       'currency.name.mxn': 'pesos mexicanos',
       'currency.name.pen': 'soles peruanos',
-      'currency.name.clp': 'pesos chilenos'
+      'currency.name.clp': 'pesos chilenos',
+      'tax.label.iva': 'IVA',
+      'tax.label.igv': 'IGV',
+      'tax.label.sales_tax': 'Impuesto sobre ventas'
     });
   }
 
@@ -922,10 +1121,12 @@
     applyAttributeSet('[data-i18n-title]', 'data-i18n-title', 'data-i18n-default-title', lang);
     applyAttributeSet('[data-i18n-aria-label]', 'data-i18n-aria-label', 'data-i18n-default-aria', lang);
     applyAttributeSet('[data-i18n-html]', 'data-i18n-html', 'data-i18n-default-html', lang);
+    applyCountryLabels();
     updateLangButtons(lang);
     refreshDocTypeLabel();
     refreshBrandTexts();
     window.ArpaBrand?.applyToUI?.();
+    refreshDocTypeLabel();
     window.ArpaCobros?.refreshDefaultLabels?.('cot');
   }
 
@@ -952,12 +1153,13 @@
   }
 
   function getCompanyName() {
-    var el = document.getElementById('brand-verification-company');
-    if (el && el.textContent.trim()) return el.textContent.trim();
     if (global.ArpaBrand && typeof global.ArpaBrand.getSettings === 'function') {
       var s = global.ArpaBrand.getSettings();
-      if (s && s.companyName) return s.companyName.trim();
+      if (s && s.companyName && s.companyName.trim()) return s.companyName.trim();
     }
+    var el = document.getElementById('brand-verification-company');
+    var fromDom = el && el.textContent.trim();
+    if (fromDom && !/^su empresa$/i.test(fromDom)) return fromDom;
     return 'Su Empresa';
   }
 
@@ -977,6 +1179,8 @@
     if (brandDefaultsCaptured) return;
     var header = document.getElementById('brand-warranty-header');
     if (header) brandDefaults['brand-warranty-header'] = header.innerHTML;
+    var cotHeader = document.getElementById('cot-warranty-header');
+    if (cotHeader) brandDefaults['cot-warranty-header'] = cotHeader.innerHTML;
     var exclusion = document.getElementById('brand-warranty-exclusion');
     if (exclusion) brandDefaults['brand-warranty-exclusion'] = exclusion.innerHTML;
     var companyEl = document.getElementById('brand-verification-company');
@@ -1044,6 +1248,11 @@
       pushBackup(items, warrantyHeader, 'innerHTML', warrantyHeader.innerHTML);
       warrantyHeader.innerHTML = '<span class="shield">🛡️</span> ' + interpolate(resolveText('formato.garantia.header', 'es'), { company: company });
     }
+    var cotWarrantyHeader = document.getElementById('cot-warranty-header');
+    if (cotWarrantyHeader) {
+      pushBackup(items, cotWarrantyHeader, 'innerHTML', cotWarrantyHeader.innerHTML);
+      cotWarrantyHeader.innerHTML = '<span class="shield">🛡️</span> ' + resolveText('formato.garantia.header_static', 'es');
+    }
     var warrantyExclusion = document.getElementById('brand-warranty-exclusion');
     if (warrantyExclusion) {
       pushBackup(items, warrantyExclusion, 'innerHTML', warrantyExclusion.innerHTML);
@@ -1087,11 +1296,14 @@
       applySpanishInRoot(root, pdfBackup.items);
     });
     applyPdfBrandSpanish(pdfBackup.items);
+    [viewRoot, header, qrPrint].forEach(function (root) {
+      applyCountryLabels(root);
+    });
     var viewKey = String(viewId || '').replace('view-', '');
     var docType = document.getElementById('doc-type-label');
     if (docType) {
       pushBackup(pdfBackup.items, docType, 'textContent', docType.textContent);
-      docType.textContent = resolveText(DOC_TYPE_KEYS[viewKey] || DOC_TYPE_KEYS.formato, 'es');
+      docType.textContent = chipDocTypeText(resolveText(DOC_TYPE_KEYS[viewKey] || DOC_TYPE_KEYS.formato, 'es'));
     }
   }
 
@@ -1126,6 +1338,10 @@
       if (header && brandDefaults['brand-warranty-header'] != null) {
         header.innerHTML = brandDefaults['brand-warranty-header'];
       }
+      var cotHeader = document.getElementById('cot-warranty-header');
+      if (cotHeader && brandDefaults['cot-warranty-header'] != null) {
+        cotHeader.innerHTML = brandDefaults['cot-warranty-header'];
+      }
       var exclusion = document.getElementById('brand-warranty-exclusion');
       if (exclusion && brandDefaults['brand-warranty-exclusion'] != null) {
         exclusion.innerHTML = brandDefaults['brand-warranty-exclusion'];
@@ -1147,12 +1363,19 @@
         cotLabel.textContent = brandDefaults['cot-elaborado-label'];
       }
       applyCotNotaLegal();
+      if (global.ArpaBrand && typeof global.ArpaBrand.applyLegalCopyToDocuments === 'function') {
+        global.ArpaBrand.applyLegalCopyToDocuments();
+      }
       return;
     }
 
     var warrantyHeader = document.getElementById('brand-warranty-header');
     if (warrantyHeader) {
       warrantyHeader.innerHTML = '<span class="shield">🛡️</span> ' + t('formato.garantia.header', { company: company });
+    }
+    var cotWarrantyHeader = document.getElementById('cot-warranty-header');
+    if (cotWarrantyHeader) {
+      cotWarrantyHeader.innerHTML = '<span class="shield">🛡️</span> ' + t('formato.garantia.header_static');
     }
     var warrantyExclusion = document.getElementById('brand-warranty-exclusion');
     if (warrantyExclusion) {
@@ -1175,17 +1398,129 @@
         : t('cot.firma.elaborado');
     }
     applyCotNotaLegal();
+    if (global.ArpaBrand && typeof global.ArpaBrand.applyLegalCopyToDocuments === 'function') {
+      global.ArpaBrand.applyLegalCopyToDocuments();
+    }
   }
 
-  function refreshDocTypeLabel() {
+  function chipDocTypeText(text) {
+    var cleaned = String(text || '').replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/, '').trim();
+    return cleaned || String(text || '');
+  }
+
+  function resolveCurrentView(preferredView) {
+    if (preferredView && DOC_TYPE_KEYS[preferredView]) return preferredView;
+    var visible = document.querySelector('.suite-view:not([hidden])');
+    if (visible && visible.id && visible.id.indexOf('view-') === 0) {
+      var fromDom = visible.id.slice(5);
+      if (DOC_TYPE_KEYS[fromDom]) return fromDom;
+    }
+    if (global.ArpaViews && typeof global.ArpaViews.getCurrentView === 'function') {
+      var fromApi = global.ArpaViews.getCurrentView();
+      if (fromApi && DOC_TYPE_KEYS[fromApi]) return fromApi;
+    }
+    return 'formato';
+  }
+
+  function getCountryPlaceholders(country) {
+    var map = {
+      CO: { phone: '+57 300 000 0000', cityEs: 'Medellín', cityEn: 'Medellín' },
+      MX: { phone: '+52 55 0000 0000', cityEs: 'Ciudad de México', cityEn: 'Mexico City' },
+      CL: { phone: '+56 9 0000 0000', cityEs: 'Santiago', cityEn: 'Santiago' },
+      PE: { phone: '+51 1 000 0000', cityEs: 'Lima', cityEn: 'Lima' },
+      US: { phone: '+1 555 000 0000', cityEs: 'Miami', cityEn: 'Miami' }
+    };
+    return map[country] || map.CO;
+  }
+
+  function getCountryOverrides(lang) {
+    var country = (global.ArpaPricing && typeof global.ArpaPricing.getCountryCode === 'function')
+      ? global.ArpaPricing.getCountryCode()
+      : 'CO';
+    var ph = getCountryPlaceholders(country);
+    // En Colombia se dice cerrajería; en los demás países, herrería.
+    var oficioMetal = country === 'CO' ? 'Cerrajería y Metalmecánica' : 'Herrería y Metalmecánica';
+    var es = {
+      'oficio.metalmecanica': oficioMetal,
+      'formato.titulo.metalmecanica': country === 'CO' ? 'Tipo de Trabajo de Cerrajería' : 'Tipo de Trabajo de Herrería',
+      'cot.table.pvp_unit': 'PRECIO UNIT.',
+      'formato.placeholder.telefono': ph.phone,
+      'formato.placeholder.ciudad': ph.cityEs
+    };
+    var en = {
+      'cot.table.pvp_unit': 'UNIT PRICE',
+      'formato.placeholder.telefono': ph.phone,
+      'formato.placeholder.ciudad': ph.cityEn
+    };
+    if (country === 'MX') {
+      Object.assign(es, {
+        'settings.label.nit': 'RFC',
+        'formato.label.nit_cedula': 'RFC',
+        'formato.placeholder.nit_cedula': 'RFC',
+        'formato.firma.placeholder.doc': 'RFC',
+        'settings.label.holder_doc_optional': 'RFC del titular (opcional)',
+        'settings.label.technician_doc_optional': 'RFC del técnico (opcional)',
+        'settings.label.account_number': 'CLABE / Número de cuenta',
+        'settings.placeholder.account_number': 'CLABE (18 dígitos)',
+        'cc.cobrador.cedula_nit': 'RFC personal',
+        'cc.cobrador.nit_empresa': 'RFC empresa',
+        'cc.label.nit_cc': 'RFC',
+        'cc.label.nit_titular': 'RFC titular',
+        'cc.placeholder.doc_titular': 'RFC del titular',
+        'cc.cuenta.clabe': 'CLABE',
+        'tax.label.iva': 'IVA',
+        'cot.nota_legal': '<strong>Nota:</strong> Cotización válida por <strong>15 días calendario</strong>. Precios en {moneda_nombre} ({moneda_codigo}).',
+        'brand.banco.linea': 'Datos para transferencia: {bank} · {tipo} · {numero}'
+      });
+      Object.assign(en, {
+        'settings.label.nit': 'RFC',
+        'formato.label.nit_cedula': 'RFC',
+        'formato.placeholder.nit_cedula': 'RFC',
+        'formato.firma.placeholder.doc': 'RFC',
+        'settings.label.holder_doc_optional': 'Holder RFC (optional)',
+        'settings.label.technician_doc_optional': 'Technician RFC (optional)',
+        'settings.label.account_number': 'CLABE / Account number',
+        'settings.placeholder.account_number': 'CLABE (18 digits)',
+        'cc.cobrador.cedula_nit': 'Personal RFC',
+        'cc.cobrador.nit_empresa': 'Company RFC',
+        'cc.label.nit_cc': 'RFC',
+        'cc.label.nit_titular': 'Holder RFC',
+        'cc.placeholder.doc_titular': 'Holder RFC',
+        'cc.cuenta.clabe': 'CLABE',
+        'tax.label.iva': 'VAT',
+        'cot.nota_legal': '<strong>Note:</strong> Quote valid for <strong>15 calendar days</strong>. Prices in {moneda_nombre} ({moneda_codigo}).',
+        'brand.banco.linea': 'Transfer details: {bank} · {tipo} · No. {numero}'
+      });
+    }
+    return lang === 'en' ? en : es;
+  }
+
+  function applyCountryLabels(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    var overrides = getCountryOverrides(currentLang);
+    scope.querySelectorAll('[data-i18n]').forEach(function (el) {
+      if (el.id === 'doc-type-label') return;
+      var key = el.getAttribute('data-i18n');
+      if (!key) return;
+      var text = overrides[key];
+      if (text == null) return;
+      el.textContent = interpolate(text);
+    });
+    scope.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-placeholder');
+      if (!key || overrides[key] == null) return;
+      el.setAttribute('placeholder', overrides[key]);
+    });
+  }
+
+  function refreshDocTypeLabel(preferredView) {
     var el = document.getElementById('doc-type-label');
     if (!el) return;
-    var view = 'formato';
-    if (global.ArpaViews && typeof global.ArpaViews.getCurrentView === 'function') {
-      view = global.ArpaViews.getCurrentView() || 'formato';
-    }
+    var view = resolveCurrentView(preferredView);
     var key = DOC_TYPE_KEYS[view] || DOC_TYPE_KEYS.formato;
-    el.textContent = t(key);
+    el.setAttribute('data-i18n', key);
+    el.textContent = chipDocTypeText(t(key));
   }
 
   function wrapFunction(name, afterFn) {
@@ -1237,6 +1572,7 @@
   function init() {
     captureDefaults();
     supplementSpanishKeys();
+    supplementLabKeys();
     currentLang = readStoredLang();
     bindLangSwitch();
     apply(currentLang);
@@ -1263,6 +1599,7 @@
     refreshBrandTexts: refreshBrandTexts,
     preparePdfSpanish: preparePdfSpanish,
     restorePdfSpanish: restorePdfSpanish,
+    applyCountryLabels: applyCountryLabels,
     KEY_COUNT: Object.keys(I18N_EN).length
   };
 

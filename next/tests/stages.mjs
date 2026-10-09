@@ -109,6 +109,18 @@ const closed = await closeService(store, await store.get('services', job.id), {
 });
 assert(closed.job.status === 'closed', 'servicio cerrado');
 assert(closed.followups.length >= 1, 'seguimientos creados');
+{
+  // Abrir un servicio no gasta número: se asigna al cerrar.
+  const sinNumero = createService({ number: '', clientId: 'c-x', type: 'mantenimiento', status: 'in_progress' });
+  await store.put('services', sinNumero);
+  const seqAntes = (await store.getAll('meta')).find((m) => m.id === 'app')?.serviceSeq || 0;
+  const cerrado = await closeService(store, await store.get('services', sinNumero.id), { selectedFollowUpTypes: [] });
+  assert(/^SV-\d{4}-\d{4}$/.test(cerrado.job.number), 'al cerrar recibe número (' + cerrado.job.number + ')');
+  const seqDespues = (await store.getAll('meta')).find((m) => m.id === 'app')?.serviceSeq || 0;
+  assert(seqDespues === seqAntes + 1, 'cerrar gasta exactamente un número');
+  const conNumero = await closeService(store, closed.job, {});
+  assert(conNumero.job.number === closed.job.number, 'un servicio con número lo conserva');
+}
 const again = await closeService(store, closed.job, { selectedFollowUpTypes: ['repair'] });
 assert(again.skipped === true, 'segundo cierre no duplica');
 assert((await store.getAll('followups')).filter((f) => f.serviceId === job.id).length === closed.followups.length, 'sin seguimientos duplicados');
@@ -156,6 +168,10 @@ const mapped = mapClassicHistorial([
 assert(mapped.equipment.length === 1 && mapped.equipment[0].type === 'corrediza', 'equipo inferido del formato');
 assert(mapped.services.length === 1 && mapped.services[0].number === 'AP-0042', 'solo formatos viran a servicio');
 assert(mapped.services[0].technician === 'Carlos Pérez', 'importa técnico del formato');
+const unnamed = mapClassicHistorial([
+  { id: 'h9', modulo: 'formato', cliente: 'Nombre completo o razón social', numero: 'AP-023', fullSnapshot: {} },
+]);
+assert(unnamed.services[0]?.clientName === 'Cliente sin nombre', 'texto de ejemplo de la casilla no se vuelve cliente');
 const classicStore = createMemoryStore();
 const imported = await importLegacyHistorial(classicStore, [
   {

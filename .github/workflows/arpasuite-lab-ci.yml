@@ -1,0 +1,35 @@
+# CI LAB: Production Fence + regresión.
+# Solo pull_request. No deploy. No se dispara en push.
+name: ARPASuite LAB CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fence-and-regression:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Presentar cambios del PR contra su base
+        run: git reset --soft "${{ github.event.pull_request.base.sha }}"
+
+      - name: Node LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Production Fence
+        run: node scripts/check-production-fence.mjs
+
+      - name: Regresión 8/8
+        run: node scripts/run-regression.mjs

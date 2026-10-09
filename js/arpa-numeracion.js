@@ -85,7 +85,27 @@
     cc: formatCcNumber
   };
 
+  function hasActiveLicenseCode() {
+    try {
+      return !!String(localStorage.getItem('arpa_suite_license_code') || '').trim();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function blockIfNoLicense() {
+    if (hasActiveLicenseCode()) return true;
+    const msg = (window.ArpaI18n && window.ArpaI18n.t)
+      ? window.ArpaI18n.t('alert.numeracion.sin_licencia')
+      : 'Sin licencia activa. Revise Configuración → Licencia.';
+    alert(msg);
+    return false;
+  }
+
   function nextNumber(docType, fieldValue) {
+    if (!hasActiveLicenseCode()) {
+      return { sequence: 0, value: '', blocked: true };
+    }
     const storageKey = KEYS[docType] || KEYS.formato;
     const next = getMaxCounter(storageKey, fieldValue) + 1;
     setCounter(storageKey, next);
@@ -93,7 +113,29 @@
     return { sequence: next, value: format(next) };
   }
 
-  async function nextNumberAsync(docType, fieldValue) {
+  /**
+   * Pedidos de número en curso, uno por tipo de documento.
+   * Si llega un segundo pedido mientras la nube aún no responde el primero
+   * (abrir la app + tocar el módulo, o doble toque en "+ NUEVO N°"),
+   * se devuelve el MISMO pedido en vez de reservar otro número.
+   * Antes eso consumía dos números y se saltaba uno (COT-004 → COT-005).
+   */
+  const pendingRequests = {};
+
+  function nextNumberAsync(docType, fieldValue) {
+    const key = KEYS[docType] ? docType : 'formato';
+    if (pendingRequests[key]) return pendingRequests[key];
+    const request = requestNextNumber(key, fieldValue);
+    pendingRequests[key] = request;
+    const clear = () => { if (pendingRequests[key] === request) delete pendingRequests[key]; };
+    request.then(clear, clear);
+    return request;
+  }
+
+  async function requestNextNumber(docType, fieldValue) {
+    if (!hasActiveLicenseCode()) {
+      return { sequence: 0, value: '', sincronizado: false, blocked: true };
+    }
     const storageKey = KEYS[docType] || KEYS.formato;
     const localBase = getMaxCounter(storageKey, fieldValue);
     const format = FORMATTERS[docType] || formatFormNumber;
@@ -112,6 +154,37 @@
     return { sequence: numero, value: format(numero), sincronizado };
   }
 
+  /**
+   * Número reservado que todavía no se ha usado en un documento guardado.
+   * Antes, abrir la app con el formulario vacío pedía un número nuevo cada vez
+   * (abrir y cerrar 3 veces gastaba 171, 172 y 173). Ahora se reutiliza el
+   * reservado hasta que el documento se guarde en el Historial.
+   */
+  const RESERVED_PREFIX = 'arpa_numero_reservado_';
+
+  function getReserved(docType) {
+    try {
+      return String(localStorage.getItem(RESERVED_PREFIX + docType) || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function setReserved(docType, value) {
+    try {
+      if (value) localStorage.setItem(RESERVED_PREFIX + docType, String(value));
+    } catch (e) { /* ignore */ }
+  }
+
+  /** Libera el reservado solo si es el número que se acaba de usar (si se reabrió un documento viejo, se conserva). */
+  function clearReserved(docType, usedValue) {
+    try {
+      const used = String(usedValue || '').trim();
+      if (used && getReserved(docType) !== used) return;
+      localStorage.removeItem(RESERVED_PREFIX + docType);
+    } catch (e) { /* ignore */ }
+  }
+
   function blockIfPymeMissingCode() {
     if (!global.ArpaLicense?.isPymePlan?.()) return true;
     if (getTechnicianCode()) return true;
@@ -123,6 +196,51 @@
     } else {
       alert(window.ArpaI18n.t('alert.numeracion.configure_iniciales_pyme'));
     }
+    return false;
+  }
+
+  function mostrarAvisoNumero(texto) {
+    const el = document.createElement('div');
+    el.setAttribute('role', 'status');
+    el.textContent = texto;
+    el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
+      'background:#0f2044;color:#fff;padding:10px 18px;border-radius:8px;' +
+      'font:600 14px system-ui,sans-serif;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.25);';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  /**
+   * Antes de generar PDF, compartir o guardar al Historial: el documento debe tener número.
+   * Si el número se está pidiendo (a la nube), muestra "Obteniendo número..." y espera
+   * hasta `limiteMs`. Devuelve true si hay número; si no, avisa al usuario y devuelve false.
+   * opts: { fieldId, enCurso: () => Promise|null, documento: 'la cotización', limiteMs }
+   */
+  async function asegurarNumero(opts) {
+    const campo = document.getElementById(opts.fieldId);
+    const tieneNumero = () => !!String(campo?.value || '').trim();
+    if (tieneNumero()) return true;
+
+    const enCurso = typeof opts.enCurso === 'function' ? opts.enCurso() : null;
+    if (enCurso) {
+      const limiteMs = opts.limiteMs || 10000;
+      const aviso = mostrarAvisoNumero('Obteniendo número...');
+      try {
+        await Promise.race([
+          Promise.resolve(enCurso).catch(() => {}),
+          new Promise((resolve) => setTimeout(resolve, limiteMs))
+        ]);
+      } finally {
+        aviso.remove();
+      }
+      if (tieneNumero()) return true;
+      alert('No se pudo obtener el número de ' + opts.documento + ' (sin respuesta en ' +
+        Math.round(limiteMs / 1000) + ' segundos). Revisa tu conexión e inténtalo de nuevo.');
+      return false;
+    }
+
+    alert('No se generó nada: ' + opts.documento + ' no tiene número.\n' +
+      'Toca «+ NUEVO N°» para asignarle uno y vuelve a intentarlo.');
     return false;
   }
 
@@ -140,6 +258,12 @@
     formatCcNumber,
     nextNumber,
     nextNumberAsync,
-    blockIfPymeMissingCode
+    hasActiveLicenseCode,
+    blockIfNoLicense,
+    blockIfPymeMissingCode,
+    getReserved,
+    setReserved,
+    clearReserved,
+    asegurarNumero
   };
 })(typeof window !== 'undefined' ? window : globalThis);

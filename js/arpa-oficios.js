@@ -20,7 +20,8 @@
 
   function buildFormatoOpciones(prefix, items) {
     return items.map((item, index) => ({
-      id: prefix + (index + 1),
+      // id fijo opcional: las opciones nuevas no corren el número de las que ya están en formatos guardados
+      id: item.id || prefix + (index + 1),
       label: item.label,
       i18nKey: item.i18nKey,
       catalogKey: item.catalogKey || '',
@@ -35,7 +36,8 @@
     refrigeracion: 'generico',
     cctv: 'generico',
     solar: 'generico',
-    linea_blanca: 'generico'
+    linea_blanca: 'generico',
+    taller_motos: 'generico'
   };
 
   const FORMATO_EQUIPO_REF_DEFAULT = {
@@ -49,7 +51,8 @@
     refrigeracion: { i18nKey: 'formato.placeholder.ref.refrigeracion', default: 'Ej: Midea 12,000 BTU' },
     cctv: { i18nKey: 'formato.placeholder.ref.cctv', default: 'Ej: Hikvision DS-2CD2043G2' },
     solar: { i18nKey: 'formato.placeholder.ref.solar', default: 'Ej: JA Solar 450W' },
-    linea_blanca: { i18nKey: 'formato.placeholder.ref.linea_blanca', default: 'Ej: Lavadora Samsung 18kg' }
+    linea_blanca: { i18nKey: 'formato.placeholder.ref.linea_blanca', default: 'Ej: Lavadora Samsung 18kg' },
+    taller_motos: { i18nKey: 'formato.placeholder.ref.taller_motos', default: 'Ej: Honda CB 150' }
   };
 
   /** @type {{ id: string, i18nKey: string, formatoTitulo: string, formatoTituloI18nKey: string, formatoOpciones: object[] }[]} */
@@ -146,7 +149,10 @@
         { label: 'Escalera/baranda', i18nKey: 'formato.metalmecanica.escalera' },
         { label: 'Estructura metálica', i18nKey: 'formato.metalmecanica.estructura' },
         { label: 'Soldadura/reparación', i18nKey: 'formato.metalmecanica.soldadura' },
-        { label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
+        { id: 'fmet7', label: 'Cortina enrollable', i18nKey: 'formato.metalmecanica.cortina' },
+        { id: 'fmet8', label: 'Reja ballesta', i18nKey: 'formato.metalmecanica.ballesta' },
+        { id: 'fmet9', label: 'Chapas y cerraduras', i18nKey: 'formato.metalmecanica.chapas' },
+        { id: 'fmet6', label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
       ])
     },
     {
@@ -191,6 +197,20 @@
         { label: 'Mantenimiento/limpieza', i18nKey: 'formato.solar.mantenimiento' },
         { label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
       ])
+    },
+    {
+      id: 'taller_motos',
+      i18nKey: 'oficio.taller_motos',
+      formatoTitulo: 'Tipo de Servicio de Moto',
+      formatoTituloI18nKey: 'formato.titulo.taller_motos',
+      formatoOpciones: buildFormatoOpciones('fmot', [
+        { label: 'Revisión general', i18nKey: 'formato.taller_motos.revision' },
+        { label: 'Mantenimiento', i18nKey: 'formato.taller_motos.mantenimiento' },
+        { label: 'Reparación', i18nKey: 'formato.taller_motos.reparacion' },
+        { label: 'Cambio de aceite', i18nKey: 'formato.taller_motos.aceite' },
+        { label: 'Frenos/llantas', i18nKey: 'formato.taller_motos.frenos' },
+        { label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
+      ])
     }
   ];
 
@@ -203,12 +223,21 @@
       mts: 'metro',
       metros: 'metro',
       m: 'metro',
+      'm²': 'm2',
+      mt2: 'm2',
+      kilo: 'kg',
+      kilos: 'kg',
+      kgs: 'kg',
+      galon: 'galón',
+      galones: 'galón',
+      lb: 'libra',
+      libras: 'libra',
       hr: 'hora',
       horas: 'hora',
       servicios: 'servicio'
     };
     if (aliases[v]) return aliases[v];
-    if (['unidad', 'metro', 'hora', 'servicio'].includes(v)) return v;
+    if (['unidad', 'metro', 'm2', 'kg', 'galón', 'libra', 'hora', 'servicio'].includes(v)) return v;
     return v || 'unidad';
   }
 
@@ -316,7 +345,7 @@
     ];
   }
 
-  /** Catálogo base Metalmecánica y Soldadura — 20 productos (COP). */
+  /** Catálogo base Cerrajería y Metalmecánica — 30 productos (COP). */
   function seedCatalog_metalmecanica() {
     return [
       { cod: 'MET-001', nom: 'Electrodo 6013 1/8" (kg)', categoria: 'Consumibles', pvp: 18000, unidad: 'kg' },
@@ -335,10 +364,20 @@
       { cod: 'MET-014', nom: 'Bisagra reforzada 4" (par)', categoria: 'Accesorios', pvp: 18000, unidad: 'un' },
       { cod: 'MET-015', nom: 'Riel puerta corrediza (metro)', categoria: 'Accesorios', pvp: 35000, unidad: 'metro' },
       { cod: 'MET-016', nom: 'Rueda puerta corrediza (unidad)', categoria: 'Accesorios', pvp: 25000, unidad: 'un' },
-      { cod: 'MET-017', nom: 'Fabricación puerta metálica (m²)', categoria: 'Servicios', pvp: 180000, unidad: 'servicio' },
-      { cod: 'MET-018', nom: 'Fabricación reja ventana (m²)', categoria: 'Servicios', pvp: 120000, unidad: 'servicio' },
-      { cod: 'MET-019', nom: 'Fabricación techo corredizo (m²)', categoria: 'Servicios', pvp: 250000, unidad: 'servicio' },
-      { cod: 'MET-020', nom: 'Instalación estructura metálica', categoria: 'Servicios', pvp: 200000, unidad: 'servicio' }
+      { cod: 'MET-017', nom: 'Fabricación puerta metálica (m²)', categoria: 'Servicios', pvp: 180000, unidad: 'm2' },
+      { cod: 'MET-018', nom: 'Fabricación reja ventana (m²)', categoria: 'Servicios', pvp: 120000, unidad: 'm2' },
+      { cod: 'MET-019', nom: 'Fabricación techo corredizo (m²)', categoria: 'Servicios', pvp: 250000, unidad: 'm2' },
+      { cod: 'MET-020', nom: 'Instalación estructura metálica', categoria: 'Servicios', pvp: 200000, unidad: 'servicio' },
+      { cod: 'MET-021', nom: 'Cortina enrollable lámina lisa galvanizada (m²)', categoria: 'Cortinas', pvp: 280000, unidad: 'm2' },
+      { cod: 'MET-022', nom: 'Cortina enrollable microperforada (m²)', categoria: 'Cortinas', pvp: 320000, unidad: 'm2' },
+      { cod: 'MET-023', nom: 'Eje y resortes de balance para cortina', categoria: 'Cortinas', pvp: 450000, unidad: 'un' },
+      { cod: 'MET-024', nom: 'Guías laterales para cortina (par)', categoria: 'Cortinas', pvp: 180000, unidad: 'un' },
+      { cod: 'MET-025', nom: 'Reja plegable tipo ballesta (m²)', categoria: 'Rejas', pvp: 260000, unidad: 'm2' },
+      { cod: 'MET-026', nom: 'Chapa de seguridad para puerta metálica', categoria: 'Chapas y cerraduras', pvp: 120000, unidad: 'un' },
+      { cod: 'MET-027', nom: 'Cerradura de piso para cortina', categoria: 'Chapas y cerraduras', pvp: 95000, unidad: 'un' },
+      { cod: 'MET-028', nom: 'Chapa pico de loro para reja', categoria: 'Chapas y cerraduras', pvp: 140000, unidad: 'un' },
+      { cod: 'MET-029', nom: 'Apertura y cambio de guarda', categoria: 'Servicios', pvp: 80000, unidad: 'servicio' },
+      { cod: 'MET-030', nom: 'Mantenimiento preventivo de cortina enrollable', categoria: 'Servicios', pvp: 150000, unidad: 'servicio' }
     ];
   }
 
@@ -420,6 +459,17 @@
     ];
   }
 
+  /** Catálogo base Taller de Motos — precios de referencia (COP); cada cliente los ajusta. */
+  function seedCatalog_taller_motos() {
+    return [
+      { cod: 'MOT-001', nom: 'Revisión general', categoria: 'Servicios', pvp: 60000, unidad: 'servicio', seed: true },
+      { cod: 'MOT-002', nom: 'Mantenimiento preventivo', categoria: 'Servicios', pvp: 120000, unidad: 'servicio', seed: true },
+      { cod: 'MOT-003', nom: 'Cambio de aceite (mano de obra)', categoria: 'Servicios', pvp: 25000, unidad: 'servicio', seed: true },
+      { cod: 'MOT-004', nom: 'Diagnóstico de falla', categoria: 'Servicios', pvp: 40000, unidad: 'servicio', seed: true },
+      { cod: 'MOT-005', nom: 'Mano de obra (por hora)', categoria: 'Servicios', pvp: 40000, unidad: 'hora', seed: true }
+    ];
+  }
+
   const SEED_CATALOG_BUILDERS = {
     gas: seedCatalog_gas,
     refrigeracion: seedCatalog_refrigeracion,
@@ -428,7 +478,8 @@
     metalmecanica: seedCatalog_metalmecanica,
     plagas: seedCatalog_plagas,
     linea_blanca: seedCatalog_linea_blanca,
-    solar: seedCatalog_solar
+    solar: seedCatalog_solar,
+    taller_motos: seedCatalog_taller_motos
   };
 
   /**
@@ -604,10 +655,11 @@
       refrigeracion: 'Refrigeración y Aire Acondicionado',
       cctv: 'Cámaras y CCTV / Seguridad Electrónica',
       plomeria: 'Plomería y Fontanería',
-      metalmecanica: 'Metalmecánica y Soldadura',
+      metalmecanica: 'Cerrajería y Metalmecánica',
       plagas: 'Control de Plagas / Fumigación',
       linea_blanca: 'Línea Blanca / Electrodomésticos',
-      solar: 'Energía Solar'
+      solar: 'Energía Solar',
+      taller_motos: 'Taller de motos'
     };
     return fallbacks[normalizeOficioId(oficioId)] || oficioId;
   }
@@ -697,7 +749,15 @@
       const seedPvp = id === OFICIO_AUTOMATISMOS
         ? 0
         : (Number(item.pvp != null ? item.pvp : item.precio) || 0);
-      products.push({
+      products.push(global.ArpaPricing?.markPrecargadoProduct?.({
+        id: newId(),
+        cod,
+        nom,
+        unidad: normalizeSeedUnidad(item.unidad),
+        marca: String(item.marca || '').trim(),
+        categoriaId,
+        oficioId: id
+      }, seedPvp) || {
         id: newId(),
         cod,
         nom,
@@ -758,8 +818,42 @@
     global.ArpaCotizacion?.updateCatalogHint?.();
   }
 
+  // Versión del catálogo base de automatismos. Subirla cuando se agreguen productos nuevos al seed:
+  // a quien ya tenía el catálogo se le AGREGAN solo los códigos que le falten (no toca precios ni
+  // nombres editados, no duplica). Si el técnico borró un producto a propósito, puede volver a
+  // aparecer una vez por versión.
+  const AUTOMATISMOS_SEED_VERSION = '2026-09-listas-distribuidor-2';
+  const AUTOMATISMOS_SEED_VERSION_KEY = 'arpa_seed_version_automatismos';
+  /** Catálogos ampliados después de sembrados: agregan solo los códigos que faltan, una vez. */
+  const SEED_UPDATES = { metalmecanica: '2026-10-cerrajeria' };
+
   function seedOficioIfNeeded(oficioId) {
-    return importSeedCatalog(oficioId, { force: false });
+    const id = normalizeOficioId(oficioId);
+    if (SEED_UPDATES[id] && getSeededOficios().includes(id)) {
+      const key = 'arpa_seed_version_' + id;
+      let current = '';
+      try { current = localStorage.getItem(key) || ''; } catch (e) { /* ignore */ }
+      if (current !== SEED_UPDATES[id]) {
+        const result = importSeedCatalog(id, { force: true });
+        try { localStorage.setItem(key, SEED_UPDATES[id]); } catch (e) { /* ignore */ }
+        return result;
+      }
+    }
+    if (id === OFICIO_AUTOMATISMOS && getSeededOficios().includes(id)) {
+      let current = '';
+      try { current = localStorage.getItem(AUTOMATISMOS_SEED_VERSION_KEY) || ''; } catch (e) { /* ignore */ }
+      if (current !== AUTOMATISMOS_SEED_VERSION) {
+        const result = importSeedCatalog(id, { force: true });
+        try { localStorage.setItem(AUTOMATISMOS_SEED_VERSION_KEY, AUTOMATISMOS_SEED_VERSION); } catch (e) { /* ignore */ }
+        if (result.added > 0) global.ArpaMiCatalogo?.resyncPrecargadoPrices?.();
+        return result;
+      }
+    }
+    const result = importSeedCatalog(id, { force: false });
+    if (id === OFICIO_AUTOMATISMOS && !result.skipped) {
+      try { localStorage.setItem(AUTOMATISMOS_SEED_VERSION_KEY, AUTOMATISMOS_SEED_VERSION); } catch (e) { /* ignore */ }
+    }
+    return result;
   }
 
   function getSeedProductCount(oficioId) {
@@ -909,6 +1003,7 @@
     seedCatalog_plagas,
     seedCatalog_linea_blanca,
     seedCatalog_solar,
+    seedCatalog_taller_motos,
     ACTIVE_OFICIOS_KEY,
     normalizeOficioId,
     normalizeActiveOficiosList,

@@ -87,6 +87,9 @@ function assistanceFromJob(job) {
 export async function closeService(store, job, options = {}) {
   if (!job) return { job: null, followups: [], skipped: true };
   if (job.status === 'closed') return { job, followups: [], skipped: true };
+  if (!job.number && typeof store.nextServiceNumber === 'function') {
+    job = { ...job, number: await store.nextServiceNumber() };
+  }
 
   const assistance = assistanceFromJob(job);
   const existing = (await store.getAll('followups')).filter((f) => f.serviceId === job.id);

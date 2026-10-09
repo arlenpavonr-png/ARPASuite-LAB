@@ -13,14 +13,14 @@
     const pdfCot = document.getElementById('pdf-actions-cot');
 
     if (window.ArpaI18n?.refreshDocTypeLabel) {
-      window.ArpaI18n.refreshDocTypeLabel();
+      window.ArpaI18n.refreshDocTypeLabel(view);
     } else {
       const labels = {
         formato: 'Orden de Trabajo',
-        cotizacion: '💰 Cotización',
-        catalogo: '📦 Mi Catálogo',
-        'cuenta-cobro': '🧾 Cuenta de Cobro',
-        historial: '📋 Historial de Servicios'
+        cotizacion: 'Cotización',
+        catalogo: 'Mi Catálogo',
+        'cuenta-cobro': 'Cuenta de Cobro',
+        historial: 'Historial de Servicios'
       };
       if (docType) docType.textContent = labels[view] || labels.formato;
     }
@@ -47,6 +47,7 @@
       global.ArpaCotizacion?.renderTablaCot?.();
       global.ArpaCotizacion?.ensureCotNumero?.();
       global.ArpaCotizacion?.updateCatalogHint?.();
+      global.ArpaCotizacion?.syncTaxLabels?.();
     }
     if (view === 'cuenta-cobro') {
       global.applyUserSettingsToUI?.();
@@ -86,6 +87,7 @@
     menuBtn?.classList.add('active');
     setHeaderActions('historial');
     global.ArpaHistorial?.render?.();
+    global.ArpaIaComercialUi?.refresh?.();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 

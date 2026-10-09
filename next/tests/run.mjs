@@ -10,6 +10,7 @@ import { imageDataHasInk, isSignedDataUrl, mergeSignatures } from '../js/signatu
 import { sanitizeFilenamePart, documentFilename, htmlDocumentToFile, shareMessage, buildWaMeUrl, whatsAppMessage } from '../js/share.js';
 import { renderReportPdf, renderQuotePdf, isPdfMagic } from '../js/pdf.js';
 import { createRequire } from 'module';
+import { buildBackup, backupToFile, backupFilename, parseBackup, restoreBackup, backupStatus } from '../js/backup.js';
 
 const EXAMPLE = 'Encontré desgaste avanzado del piñón, ajusté la cremallera, lubriqué el sistema y recomiendo cambiar el piñón.';
 
@@ -191,6 +192,189 @@ const quotePdf = renderQuotePdf(buildQuoteModel({
 const quoteBytes = new Uint8Array(await quotePdf.blob.arrayBuffer());
 assert(isPdfMagic(quoteBytes), 'cotización es PDF real (%PDF)');
 assert(quoteBytes.length > 400, 'PDF de cotización no está vacío');
+
+section('Copia de seguridad');
+{
+  const src = createMemoryStore();
+  const bc = createClient({ name: 'Cliente Copia', phone: '3000000000' });
+  await src.put('clients', bc);
+  const be = createEquipment({ clientId: bc.id, type: 'corrediza', brand: 'BFT' });
+  await src.put('equipment', be);
+  const bs = createService({
+    number: 'SV-2026-0007', clientId: bc.id, equipmentId: be.id, status: 'closed',
+    closedAt: '2026-10-08T15:00:00.000Z',
+    findings: [{ id: 'f1', text: 'Desgaste de piñón' }],
+    photos: [{ id: 'ph1', kind: 'antes', dataUrl: 'data:image/jpeg;base64,/9j/AAAA' }],
+    signatures: { client: { name: 'Pedro', doc: '', dataUrl: 'data:image/png;base64,iVBORw0KGgo=' }, technician: { name: 'Arlen', dataUrl: '' } },
+  });
+  await src.put('services', bs);
+  await src.nextServiceNumber();
+  const backup = await buildBackup(src, new Date('2026-10-08T16:00:00Z'));
+  assert(backup.format === 'arpa-next-copia' && backup.version === 1, 'copia con formato y versión');
+  assert(backup.data.services[0].photos[0].dataUrl.startsWith('data:image'), 'copia incluye fotos');
+  assert(backup.data.services[0].signatures.client.dataUrl.startsWith('data:image'), 'copia incluye firmas');
+  assert(/^ARPA-NEXT-copia-2026-10-08\.txt$/.test(backupFilename(new Date(2026, 9, 8))), 'nombre de archivo de copia (.txt para poder compartir)');
+  const file = backupToFile(backup);
+  const parsed = parseBackup(await file.text());
+  assert(parsed.data.clients.length === 1, 'archivo de copia se vuelve a leer');
+
+  let err = '';
+  try { parseBackup('{"hola":1}'); } catch (e) { err = e.message; }
+  assert(/no es una copia/.test(err), 'archivo ajeno se rechaza con mensaje claro');
+  err = '';
+  try { parseBackup('no es json'); } catch (e) { err = e.message; }
+  assert(/no es una copia/.test(err), 'texto inválido se rechaza');
+
+  const dst = createMemoryStore();
+  const r1 = await restoreBackup(dst, parsed);
+  assert(r1.added === 3, 'restaurar en celular nuevo trae cliente, equipo y servicio');
+  const restored = await dst.get('services', bs.id);
+  assert(restored?.photos?.length === 1 && restored.findings[0].text === 'Desgaste de piñón', 'servicio restaurado completo');
+  const seqNext = await dst.nextServiceNumber();
+  assert(seqNext === 'SV-' + new Date().getFullYear() + '-0002', 'numeración sigue después de la copia (' + seqNext + ')');
+
+  await dst.put('clients', { ...(await dst.get('clients', bc.id)), phone: '3111111111' });
+  const r2 = await restoreBackup(dst, parsed);
+  assert(r2.added === 0 && (await dst.get('clients', bc.id)).phone === '3111111111', 'restaurar no pisa cambios más nuevos');
+  const r3 = await restoreBackup(dst, parsed);
+  assert(r3.added === 0, 'restaurar dos veces no duplica');
+
+  // Celular nuevo: NEXT ya importó el mismo cliente desde la suite, con otro id.
+  const fresh = createMemoryStore();
+  const imported = createClient({ name: 'cliente copia ', city: 'Medellín' });
+  await fresh.put('clients', imported);
+  const r4 = await restoreBackup(fresh, parsed);
+  const freshClients = await fresh.getAll('clients');
+  assert(freshClients.length === 1, 'restaurar no duplica el cliente importado de la suite');
+  assert(freshClients[0].phone === '3000000000' && freshClients[0].city === 'Medellín', 'cliente unido conserva y completa sus datos');
+  const freshSv = (await fresh.getAll('services'))[0];
+  const freshEq = (await fresh.getAll('equipment'))[0];
+  assert(freshSv.clientId === imported.id && freshEq.clientId === imported.id && freshSv.equipmentId === freshEq.id, 'servicio y equipo quedan ligados al cliente existente');
+  assert(r4.added === 2, 'trae equipo y servicio (' + JSON.stringify(r4) + ')');
+
+  const now = new Date('2026-10-20T12:00:00Z');
+  const closedList = [{ status: 'closed', updatedAt: '2026-10-10T10:00:00Z' }];
+  assert(backupStatus([], '', now).due === false, 'sin servicios no pide copia');
+  assert(backupStatus(closedList, '', now).due === true, 'nunca hizo copia: la pide');
+  assert(backupStatus(closedList, '2026-10-11T00:00:00Z', now).pending === 0, 'servicio ya copiado no queda pendiente');
+  assert(backupStatus(closedList, '2026-10-09T00:00:00Z', now).due === true, 'copia vieja con servicio nuevo: la pide');
+  assert(backupStatus([{ status: 'closed', source: 'classic', updatedAt: '2026-10-10' }], '', now).due === false, 'servicios importados de la suite no cuentan');
+}
+
+section('Respaldo en la nube');
+{
+  const mem = {};
+  globalThis.localStorage = {
+    getItem: (k) => (k in mem ? mem[k] : null),
+    setItem: (k, v) => { mem[k] = String(v); },
+    removeItem: (k) => { delete mem[k]; },
+  };
+  const files = {};
+  const calls = [];
+  let online = true;
+  globalThis.ArpaRespaldoNube = {
+    enabled: () => true,
+    deviceTag: () => 'cel1',
+    hoy: (d) => d.toISOString().slice(0, 10),
+    post: async (accion, body) => {
+      calls.push({ accion, ...body });
+      if (!online) return { ok: false, mensaje: 'sin internet' };
+      if (accion === 'respaldoguardar') { files[body.nombre] = body.contenido; return { ok: true }; }
+      if (accion === 'respaldoleer') return files[body.nombre] ? { ok: true, contenido: files[body.nombre] } : { ok: false, mensaje: 'no existe' };
+      return { ok: false };
+    },
+  };
+  const { splitBackup, joinBackup, syncNextToCloud, downloadNextFromCloud, groupCloudFiles } = await import('../js/cloud.js');
+
+  const st = createMemoryStore();
+  const nc = createClient({ name: 'Nube SAS' });
+  await st.put('clients', nc);
+  const withPhoto = createService({
+    number: 'SV-2026-0009', clientId: nc.id, status: 'closed',
+    photos: [{ id: 'p1', kind: 'antes', dataUrl: 'data:image/jpeg;base64,/9j/BBBB' }],
+    signatures: { client: { name: 'Ana', doc: '1', dataUrl: 'data:image/png;base64,iVBOR' }, technician: { name: 'Arlen', dataUrl: '' } },
+  });
+  const plain = createService({ number: 'SV-2026-0010', clientId: nc.id, status: 'closed' });
+  await st.put('services', withPhoto);
+  await st.put('services', plain);
+
+  const full = await buildBackup(st);
+  const { datos, media } = splitBackup(full);
+  const lightSv = datos.data.services.find((s) => s.id === withPhoto.id);
+  assert(media.length === 1 && media[0].photos[0].dataUrl.startsWith('data:'), 'fotos y firmas van aparte');
+  assert(lightSv.photos[0].dataUrl === '' && lightSv.signatures.client.dataUrl === '' && lightSv.signatures.client.name === 'Ana', 'datos livianos sin imágenes, conservan nombres');
+  const joined = joinBackup(datos, media);
+  assert(JSON.stringify(joined.data.services) === JSON.stringify(full.data.services.map((s) => ({ ...s }))), 'unir datos y fotos devuelve la copia completa');
+
+  const t0 = new Date('2026-10-08T15:00:00Z');
+  const r1 = await syncNextToCloud(st, { now: t0, force: true });
+  assert(r1.ok && files['next-cel1-datos.json'] && files['next-cel1-datos-2026-10-08.json'], 'sube datos y copia del día');
+  assert(files['next-cel1-fotos-' + withPhoto.id.toLowerCase() + '.json'], 'sube fotos del servicio');
+  assert(!Object.keys(files).some((n) => n.includes(plain.id.toLowerCase())), 'servicio sin fotos no crea archivo de fotos');
+
+  const before = calls.length;
+  await syncNextToCloud(st, { now: new Date('2026-10-08T15:30:00Z'), force: true });
+  assert(calls.length === before, 'sin cambios no vuelve a subir nada');
+
+  await st.put('services', { ...(await st.get('services', plain.id)), notes: 'cambio' });
+  await syncNextToCloud(st, { now: new Date('2026-10-08T15:40:00Z'), force: true });
+  const sinceChange = calls.slice(before).map((c) => c.nombre);
+  assert(sinceChange.length === 1 && sinceChange[0] === 'next-cel1-datos.json', 'un cambio sin fotos sube solo los datos (' + sinceChange.join(',') + ')');
+
+  online = false;
+  await st.put('services', { ...(await st.get('services', plain.id)), notes: 'otro cambio' });
+  const off = await syncNextToCloud(st, { now: new Date('2026-10-08T16:00:00Z'), force: true });
+  assert(!off.ok, 'sin internet avisa que no subió');
+  online = true;
+  const back = await syncNextToCloud(st, { now: new Date('2026-10-08T16:10:00Z'), force: true });
+  assert(back.ok && back.uploaded >= 1, 'con internet de nuevo sube lo pendiente');
+
+  const restoredCopy = await downloadNextFromCloud('cel1');
+  const rsv = restoredCopy.data.services.find((s) => s.id === withPhoto.id);
+  assert(rsv.photos[0].dataUrl.startsWith('data:image') && rsv.signatures.client.dataUrl.startsWith('data:image'), 'bajar de la nube trae fotos y firmas');
+  const phone2 = createMemoryStore();
+  const rr = await restoreBackup(phone2, restoredCopy);
+  assert(rr.added === 3, 'celular nuevo queda con cliente y servicios desde la nube');
+
+  const grupos = groupCloudFiles([
+    { nombre: 'next-cel1-datos.json', actualizado: '2026-10-08T16:10:00Z' },
+    { nombre: 'next-cel1-datos-2026-10-08.json', actualizado: '2026-10-08T16:10:00Z' },
+    { nombre: 'next-cel2-datos.json', actualizado: '2026-10-09T09:00:00Z' },
+    { nombre: 'next-cel1-fotos-sv_1.json', actualizado: '2026-10-08T16:10:00Z' },
+  ]);
+  assert(grupos.length === 2 && grupos[0].tag === 'cel2', 'lista celulares con copia, el más reciente primero');
+  delete globalThis.ArpaRespaldoNube;
+  delete globalThis.localStorage;
+}
+
+section('Oficio Cerrajería y Metalmecánica');
+{
+  const { detectOficio, equipmentTypeLabel: label } = await import('../js/ai/knowledge.js');
+  const mk = (o) => ({ getItem: (k) => (o[k] ?? null) });
+  assert(detectOficio(mk({})) === 'automatismos', 'sin configuración: automatismos');
+  assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['metalmecanica', 'automatismos'] }) })) === 'metalmecanica', 'oficio principal metalmecánica');
+  assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['cerrajeria'] }) })) === 'metalmecanica', 'cerrajería se trata como metalmecánica');
+  assert(detectOficio(mk({ arpa_suite_user_settings: JSON.stringify({ activeOficios: ['gas'] }) })) === 'automatismos', 'oficio sin paquete: automatismos');
+  assert(label('cortina') === 'Cortina enrollable' && label('reja_ballesta') === 'Reja ballesta', 'nombres de equipos de cerrajería');
+
+  const nota = 'Encontré los resortes de la cortina sin tensión, lamas dobladas y la chapa dañada. Lubriqué guías y eje, soldé los puntos sueltos. Hay óxido en la estructura.';
+  const asist = buildAssistance(parseTechnicianNote(nota));
+  const recs = asist.recommendations.map((r) => r.text).join(' | ');
+  assert(/resortes/.test(recs) && /lamas/.test(recs) && /chapa/.test(recs) && /anticorrosiva/.test(recs), 'recomienda resortes, lamas, chapa y pintura');
+  assert(!/guías laterales/.test(recs), 'no recomienda guías si solo se lubricaron');
+  assert(asist.quoteItems.some((q) => q.partId === 'resorte' && q.unitPrice === 450000), 'cotiza resortes con precio de referencia');
+  const guias = buildAssistance(parseTechnicianNote('Encontré las guías desalineadas y golpeadas.'));
+  assert(guias.recommendations.some((r) => /guías laterales/.test(r.text)), 'guías desalineadas sí recomienda cambio');
+  const puerta = buildAssistance(parseTechnicianNote('Encontré desgaste del piñón y la cremallera desalineada.'));
+  assert(!puerta.recommendations.some((r) => /guías laterales|lamas|resortes/.test(r.text)), 'notas de puertas no mezclan cerrajería');
+}
+
+section('Historial de cerrajería importado');
+{
+  const { mapClassicHistorial } = await import('../js/legacy.js');
+  const m = mapClassicHistorial([{ id: 'm1', modulo: 'formato', cliente: 'Local Centro', numero: 'AP-090', fullSnapshot: { fmet7: true } }]);
+  assert(m.equipment[0].type === 'cortina', 'formato con "Cortina enrollable" se importa como cortina');
+}
 
 console.log('\n' + passed + ' ok, ' + failed + ' fallos');
 if (failed) process.exit(1);

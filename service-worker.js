@@ -1,28 +1,88 @@
 // ARPA Suite — Service Worker
-// Cambia CACHE_VERSION con cada deploy para que los usuarios reciban la versión nueva.
-const CACHE_VERSION = 'v20260901-ot';
-const CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
+// CACHE_VERSION: fallback hardcodeado + archivo externo NO protegido.
+// Si falla importScripts/arpa-ia-cache.js, la PWA igual se instala.
+var CACHE_VERSION = 'v20261009-sync-produccion-2';
+try {
+  importScripts('./js/arpa-ia/arpa-ia-cache.js');
+  if (typeof self.ARPA_CACHE_VERSION === 'string' && self.ARPA_CACHE_VERSION) {
+    CACHE_VERSION = self.ARPA_CACHE_VERSION;
+  }
+} catch (err) {
+  // Conservar fallback. No abortar install.
+}
+var CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
 
+// Todos los archivos que carga index.html (antes faltaban varios, p. ej. arpa-numeracion.js,
+// y esos quedaban guardados con la versión vieja hasta el siguiente cambio de CACHE_VERSION).
 const LOCAL_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './js/arpa-brand.js',
-  './js/arpa-cloud-sync.js',
   './js/arpa-catalogo.js',
-  './js/arpa-mi-catalogo.js',
-  './js/arpa-historial.js',
+  './js/arpa-cloud-sync.js',
+  './js/arpa-respaldo-nube.js',
+  './respaldo.html',
+  './js/arpa-cobros.js',
   './js/arpa-ot.js',
   './js/arpa-cotizacion.js',
   './js/arpa-cuenta-cobro.js',
+  './js/arpa-formato-tipo.js',
+  './js/arpa-historial.js',
+  './js/arpa-i18n.js',
+  './js/arpa-install-prompt.js',
   './js/arpa-license.js',
+  './js/arpa-mi-catalogo.js',
+  './js/arpa-numeracion.js',
+  './js/arpa-oficios.js',
+  './js/arpa-onboarding.js',
+  './js/arpa-pricing.js',
+  './js/arpa-signature.js',
   './js/arpa-trial-capture.js',
+  './js/arpa-lab-demo.js',
+  './js/arpa-ia/arpa-ia-bootstrap.js',
+  './js/arpa-views.js',
+  './js/arpa-whatsapp.js',
+  './js/catalogo-bft-nas.js',
+  './js/catalogo-ppa.js',
+  './js/html2canvas.min.js',
+  './js/jspdf.umd.min.js',
+  './js/qrcode.min.js',
+  // ARPA NEXT (app de campo; se abre solo con la actualización anual vigente)
+  './js/arpa-actualizaciones.js',
+  './next/',
+  './next/css/app.css',
+  './next/index.html',
+  './next/js/ai/knowledge.js',
+  './next/js/ai/parser.js',
+  './next/js/ai/recommend.js',
+  './next/js/app.js',
+  './next/js/backup.js',
+  './next/js/cloud.js',
+  './next/js/flow.js',
+  './next/js/followup.js',
+  './next/js/legacy.js',
+  './next/js/pdf.js',
+  './next/js/photos.js',
+  './next/js/quote.js',
+  './next/js/report.js',
+  './next/js/screens.js',
+  './next/js/share.js',
+  './next/js/signature.js',
+  './next/js/store.js',
+  './next/js/ui.js',
+  './next/js/voice.js',
+  './next/manifest.json',
 ];
 
 // INSTALACIÓN: pre-cachear assets locales
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(LOCAL_ASSETS))
+    // cache: 'reload' → baja los archivos del servidor y no de la caché HTTP del navegador
+    // (GitHub Pages permite guardarlos 10 min; abrir la app justo después de publicar dejaba la versión vieja).
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(LOCAL_ASSETS.map((u) => new Request(u, { cache: 'reload' })))
+    )
   );
   self.skipWaiting();
 });
@@ -46,11 +106,34 @@ self.addEventListener('fetch', (event) => {
 
   // No interceptar llamadas a la API de Google ni recursos de terceros
   if (url.includes('script.google.com') ||
+      url.includes('script.googleusercontent.com') ||
       url.includes('cdnjs.cloudflare.com') ||
       url.includes('fonts.googleapis.com') ||
       url.includes('fonts.gstatic.com')) {
     return;
   }
+
+  function networkFirst(request) {
+    return fetch(request).then((response) => {
+      if (response && response.status === 200 && response.type !== 'opaque') {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+      }
+      return response;
+    }).catch(() => caches.match(request));
+  }
+
+  // HTML e IA: red primero. Si no, el SW sirve un index.html viejo sin los motores IA.
+  try {
+    const parsed = new URL(url);
+    if (parsed.origin === self.location.origin) {
+      const path = parsed.pathname;
+      if (path === '/' || path.endsWith('/index.html') || path.indexOf('/js/arpa-ia/') !== -1) {
+        event.respondWith(networkFirst(event.request));
+        return;
+      }
+    }
+  } catch (err) {}
 
   // NEXT: red primero para no servir una app de campo obsoleta
   if (url.includes('/next/')) {
@@ -71,7 +154,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
-        return fetch(event.request).then((response) => {
+        const fresh = event.request.mode === 'navigate'
+          ? event.request
+          : new Request(event.request, { cache: 'no-cache' });
+        return fetch(fresh).then((response) => {
           if (!response || response.status !== 200 || response.type === 'opaque') {
             return response;
           }
