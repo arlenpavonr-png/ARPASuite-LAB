@@ -151,6 +151,9 @@
     'formato.metalmecanica.escalera': 'Stair/railing',
     'formato.metalmecanica.estructura': 'Metal structure',
     'formato.metalmecanica.soldadura': 'Welding/repair',
+    'formato.metalmecanica.cortina': 'Roller shutter',
+    'formato.metalmecanica.ballesta': 'Folding security grille',
+    'formato.metalmecanica.chapas': 'Locks',
     'formato.solar.panel': 'Solar panel',
     'formato.solar.inversor': 'Inverter',
     'formato.solar.baterias': 'Batteries',
@@ -1213,7 +1216,11 @@
       ? global.ArpaPricing.getCountryCode()
       : 'CO';
     var ph = getCountryPlaceholders(country);
+    // En Colombia se dice cerrajería; en los demás países, herrería.
+    var oficioMetal = country === 'CO' ? 'Cerrajería y Metalmecánica' : 'Herrería y Metalmecánica';
     var es = {
+      'oficio.metalmecanica': oficioMetal,
+      'formato.titulo.metalmecanica': country === 'CO' ? 'Tipo de Trabajo de Cerrajería' : 'Tipo de Trabajo de Herrería',
       'cot.table.pvp_unit': 'PRECIO UNIT.',
       'formato.placeholder.telefono': ph.phone,
       'formato.placeholder.ciudad': ph.cityEs

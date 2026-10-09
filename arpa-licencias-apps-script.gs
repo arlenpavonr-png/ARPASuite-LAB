@@ -1296,15 +1296,23 @@ function handleSyncPost_(e) {
 
   }
 
+  if (accion === 'respaldoguardar') {
+    return respondJson_(respaldoGuardar_(licencia, body));
+  }
+  if (accion === 'respaldolistar') {
+    return respondJson_(respaldoListar_(licencia, body));
+  }
+  if (accion === 'respaldoleer') {
+    return respondJson_(respaldoLeer_(licencia, body));
+  }
   if (accion === 'siguientenumero') {
 
     return respondJson_(siguienteNumero_(licencia, body.tipo, body.clienteUltimo));
 
   }
 
-
-
-  return null;
+  // Pedido JSON que este servidor no conoce: responder JSON, nunca seguir al flujo de Gumroad.
+  return respondJson_({ ok: false, mensaje: 'Acción desconocida.' });
 
 }
 
@@ -2425,4 +2433,121 @@ function getDispositivosSheet_() {
   return sheet;
 }
 
+// ─── Respaldo completo en Google Drive (suite y NEXT) ──────────────────────
+// Guarda archivos JSON en la carpeta "ARPA Respaldos/<licencia>/<app>/" del Drive
+// del dueño del script. Solo licencias pagas activas o fundador.
+// Al publicar esta versión, Google pide autorizar el acceso a Drive.
 
+const RESPALDO_CARPETA_ = 'ARPA Respaldos';
+const RESPALDO_APPS_ = ['suite', 'next'];
+const RESPALDO_NOMBRE_RE_ = /^[a-z0-9][a-z0-9_.-]{0,79}$/;
+const RESPALDO_MAX_BYTES_ = 20 * 1024 * 1024;
+const RESPALDO_DIARIOS_A_GUARDAR_ = 30;
+
+/** ¿Esta licencia puede guardar respaldos? Activa y no es prueba gratis. */
+function licenciaPuedeRespaldar_(licencia) {
+  const codigo = String(licencia || '').trim().toUpperCase();
+  if (!codigo || codigo.indexOf('ARPA-FREE-') === 0) return false;
+  const sheet = getLicenseSheet_();
+  const data = sheet.getDataRange().getValues();
+  const cols = getColumnMap_(normalizeHeaders_(data[0]));
+  if (cols.codigo < 0) return false;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][cols.codigo] || '').trim().toUpperCase() !== codigo) continue;
+    if (cols.activo < 0) return true;
+    return String(data[i][cols.activo] || '').trim().toUpperCase() === 'SI';
+  }
+  return false;
+}
+
+function respaldoSubcarpeta_(padre, nombre) {
+  const it = padre.getFoldersByName(nombre);
+  return it.hasNext() ? it.next() : padre.createFolder(nombre);
+}
+
+function respaldoCarpeta_(licencia, app) {
+  const props = PropertiesService.getScriptProperties();
+  let raiz = null;
+  const raizId = props.getProperty('RESPALDO_FOLDER_ID');
+  if (raizId) {
+    try { raiz = DriveApp.getFolderById(raizId); } catch (err) { raiz = null; }
+  }
+  if (!raiz) {
+    raiz = respaldoSubcarpeta_(DriveApp.getRootFolder(), RESPALDO_CARPETA_);
+    props.setProperty('RESPALDO_FOLDER_ID', raiz.getId());
+  }
+  const lic = respaldoSubcarpeta_(raiz, licencia.replace(/[^A-Z0-9-]/g, ''));
+  return respaldoSubcarpeta_(lic, app);
+}
+
+function respaldoValidar_(licencia, body, conNombre) {
+  const app = String(body.app || '').trim().toLowerCase();
+  if (RESPALDO_APPS_.indexOf(app) < 0) return { error: 'App no válida.' };
+  const nombre = String(body.nombre || '').trim().toLowerCase();
+  if (conNombre && !RESPALDO_NOMBRE_RE_.test(nombre)) return { error: 'Nombre de archivo no válido.' };
+  if (!licenciaPuedeRespaldar_(licencia)) return { error: 'La licencia no tiene respaldo en la nube.' };
+  return { app: app, nombre: nombre };
+}
+
+/** Borra los respaldos diarios más viejos (<prefijo>-AAAA-MM-DD.json), deja los últimos N. */
+function respaldoPodarDiarios_(carpeta, nombreGuardado) {
+  const m = /^(.*)-\d{4}-\d{2}-\d{2}\.json$/.exec(nombreGuardado);
+  if (!m) return;
+  const prefijo = m[1] + '-';
+  const diarios = [];
+  const it = carpeta.getFiles();
+  while (it.hasNext()) {
+    const f = it.next();
+    const n = f.getName();
+    if (n.indexOf(prefijo) === 0 && /-\d{4}-\d{2}-\d{2}\.json$/.test(n) && n.length === nombreGuardado.length) diarios.push(f);
+  }
+  diarios.sort(function (a, b) { return a.getName() < b.getName() ? 1 : -1; });
+  diarios.slice(RESPALDO_DIARIOS_A_GUARDAR_).forEach(function (f) { f.setTrashed(true); });
+}
+
+function respaldoGuardar_(licencia, body) {
+  const v = respaldoValidar_(licencia, body, true);
+  if (v.error) return { ok: false, mensaje: v.error };
+  const contenido = String(body.contenido == null ? '' : body.contenido);
+  if (!contenido) return { ok: false, mensaje: 'Respaldo vacío.' };
+  if (contenido.length > RESPALDO_MAX_BYTES_) return { ok: false, mensaje: 'Respaldo demasiado grande.' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const carpeta = respaldoCarpeta_(licencia, v.app);
+    const it = carpeta.getFilesByName(v.nombre);
+    let file;
+    if (it.hasNext()) {
+      file = it.next();
+      file.setContent(contenido);
+    } else {
+      file = carpeta.createFile(v.nombre, contenido, 'application/json');
+    }
+    respaldoPodarDiarios_(carpeta, v.nombre);
+    return { ok: true, nombre: v.nombre, bytes: contenido.length, actualizado: file.getLastUpdated().toISOString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function respaldoListar_(licencia, body) {
+  const v = respaldoValidar_(licencia, body, false);
+  if (v.error) return { ok: false, mensaje: v.error };
+  const carpeta = respaldoCarpeta_(licencia, v.app);
+  const archivos = [];
+  const it = carpeta.getFiles();
+  while (it.hasNext()) {
+    const f = it.next();
+    archivos.push({ nombre: f.getName(), bytes: f.getSize(), actualizado: f.getLastUpdated().toISOString() });
+  }
+  archivos.sort(function (a, b) { return a.nombre < b.nombre ? -1 : 1; });
+  return { ok: true, archivos: archivos };
+}
+
+function respaldoLeer_(licencia, body) {
+  const v = respaldoValidar_(licencia, body, true);
+  if (v.error) return { ok: false, mensaje: v.error };
+  const it = respaldoCarpeta_(licencia, v.app).getFilesByName(v.nombre);
+  if (!it.hasNext()) return { ok: false, mensaje: 'No existe ese respaldo.' };
+  return { ok: true, nombre: v.nombre, contenido: it.next().getBlob().getDataAsString('UTF-8') };
+}

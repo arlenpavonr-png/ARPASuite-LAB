@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbwzSL7-wLi9VeyNUzkiGTGgdWEPXz5DpY2qjLOZjKXGRl8I6nleSFManrWwozNnbsUlQA/exec';
+  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbw9wGLhbqFUt6FxRs0iLu_4xDntE8l2a4Vpd3BsXZyddPbII03BtFG6TpH7IpEe5Z3F/exec';
   const LICENSE_CODE_KEY = 'arpa_suite_license_code';
   const ACTIVE_OFICIOS_KEY = 'arpa_active_oficios';
   const TRIAL_START_KEY = 'arpa_trial_fecha_inicio';
@@ -24,7 +24,7 @@
     { id: 'refrigeracion', label: 'Refrigeración y Aire Acondicionado' },
     { id: 'cctv', label: 'Cámaras y CCTV / Seguridad Electrónica' },
     { id: 'plomeria', label: 'Plomería y Fontanería' },
-    { id: 'metalmecanica', label: 'Metalmecánica y Soldadura' },
+    { id: 'metalmecanica', label: 'Cerrajería y Metalmecánica' },
     { id: 'plagas', label: 'Control de Plagas / Fumigación' },
     { id: 'linea_blanca', label: 'Línea Blanca / Electrodomésticos' },
     { id: 'solar', label: 'Energía Solar' }
@@ -147,7 +147,8 @@
   function populateOficioSelect(select) {
     if (!select) return;
     select.innerHTML = '<option value="">' + t('trial_capture.oficio_placeholder', 'Seleccione su oficio principal…') + '</option>' +
-      OFICIO_OPTIONS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('');
+      // Nombre del oficio según idioma y país (p. ej. Cerrajería en Colombia, Herrería en otros países)
+      OFICIO_OPTIONS.map((o) => `<option value="${o.id}">${t('oficio.' + o.id, o.label)}</option>`).join('');
     const preferred = getPreferredOficioId();
     if (preferred) {
       select.value = preferred;

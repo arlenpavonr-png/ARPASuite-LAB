@@ -1,6 +1,6 @@
 // ARPA Suite — Service Worker
 // Cambia CACHE_VERSION con cada deploy para que los usuarios reciban la versión nueva.
-const CACHE_VERSION = 'v20261008-decimales-m2';
+const CACHE_VERSION = 'v20261009-nube-reintento';
 const CACHE_NAME = 'arpa-suite-' + CACHE_VERSION;
 
 // Todos los archivos que carga index.html (antes faltaban varios, p. ej. arpa-numeracion.js,
@@ -12,6 +12,8 @@ const LOCAL_ASSETS = [
   './js/arpa-brand.js',
   './js/arpa-catalogo.js',
   './js/arpa-cloud-sync.js',
+  './js/arpa-respaldo-nube.js',
+  './respaldo.html',
   './js/arpa-cobros.js',
   './js/arpa-cotizacion.js',
   './js/arpa-cuenta-cobro.js',
@@ -34,6 +36,31 @@ const LOCAL_ASSETS = [
   './js/html2canvas.min.js',
   './js/jspdf.umd.min.js',
   './js/qrcode.min.js',
+  // ARPA NEXT (app de campo; se abre solo con la actualización anual vigente)
+  './js/arpa-actualizaciones.js',
+  './next/',
+  './next/css/app.css',
+  './next/index.html',
+  './next/js/ai/knowledge.js',
+  './next/js/ai/parser.js',
+  './next/js/ai/recommend.js',
+  './next/js/app.js',
+  './next/js/backup.js',
+  './next/js/cloud.js',
+  './next/js/flow.js',
+  './next/js/followup.js',
+  './next/js/legacy.js',
+  './next/js/pdf.js',
+  './next/js/photos.js',
+  './next/js/quote.js',
+  './next/js/report.js',
+  './next/js/screens.js',
+  './next/js/share.js',
+  './next/js/signature.js',
+  './next/js/store.js',
+  './next/js/ui.js',
+  './next/js/voice.js',
+  './next/manifest.json',
 ];
 
 // INSTALACIÓN: pre-cachear assets locales

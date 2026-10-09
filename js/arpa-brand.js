@@ -5,7 +5,7 @@
   const SETTINGS_KEY = 'arpa_suite_user_settings';
   const SETTINGS_CONFIGURED_KEY = 'arpa_suite_settings_configured';
   const LICENSE_CODE_KEY = 'arpa_suite_license_code';
-  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbwzSL7-wLi9VeyNUzkiGTGgdWEPXz5DpY2qjLOZjKXGRl8I6nleSFManrWwozNnbsUlQA/exec';
+  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbw9wGLhbqFUt6FxRs0iLu_4xDntE8l2a4Vpd3BsXZyddPbII03BtFG6TpH7IpEe5Z3F/exec';
   const SALES_ENTRY_KEY = 'arpa_suite_sales_entry';
   const FORMATO_DRAFT_KEY = 'arpa_formato_borrador';
   const LOGO_STORAGE_KEY = 'arpa_logo';

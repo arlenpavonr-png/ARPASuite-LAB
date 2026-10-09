@@ -20,7 +20,8 @@
 
   function buildFormatoOpciones(prefix, items) {
     return items.map((item, index) => ({
-      id: prefix + (index + 1),
+      // id fijo opcional: las opciones nuevas no corren el número de las que ya están en formatos guardados
+      id: item.id || prefix + (index + 1),
       label: item.label,
       i18nKey: item.i18nKey,
       catalogKey: item.catalogKey || '',
@@ -146,7 +147,10 @@
         { label: 'Escalera/baranda', i18nKey: 'formato.metalmecanica.escalera' },
         { label: 'Estructura metálica', i18nKey: 'formato.metalmecanica.estructura' },
         { label: 'Soldadura/reparación', i18nKey: 'formato.metalmecanica.soldadura' },
-        { label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
+        { id: 'fmet7', label: 'Cortina enrollable', i18nKey: 'formato.metalmecanica.cortina' },
+        { id: 'fmet8', label: 'Reja ballesta', i18nKey: 'formato.metalmecanica.ballesta' },
+        { id: 'fmet9', label: 'Chapas y cerraduras', i18nKey: 'formato.metalmecanica.chapas' },
+        { id: 'fmet6', label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
       ])
     },
     {
@@ -325,7 +329,7 @@
     ];
   }
 
-  /** Catálogo base Metalmecánica y Soldadura — 20 productos (COP). */
+  /** Catálogo base Cerrajería y Metalmecánica — 30 productos (COP). */
   function seedCatalog_metalmecanica() {
     return [
       { cod: 'MET-001', nom: 'Electrodo 6013 1/8" (kg)', categoria: 'Consumibles', pvp: 18000, unidad: 'kg' },
@@ -347,7 +351,17 @@
       { cod: 'MET-017', nom: 'Fabricación puerta metálica (m²)', categoria: 'Servicios', pvp: 180000, unidad: 'm2' },
       { cod: 'MET-018', nom: 'Fabricación reja ventana (m²)', categoria: 'Servicios', pvp: 120000, unidad: 'm2' },
       { cod: 'MET-019', nom: 'Fabricación techo corredizo (m²)', categoria: 'Servicios', pvp: 250000, unidad: 'm2' },
-      { cod: 'MET-020', nom: 'Instalación estructura metálica', categoria: 'Servicios', pvp: 200000, unidad: 'servicio' }
+      { cod: 'MET-020', nom: 'Instalación estructura metálica', categoria: 'Servicios', pvp: 200000, unidad: 'servicio' },
+      { cod: 'MET-021', nom: 'Cortina enrollable lámina lisa galvanizada (m²)', categoria: 'Cortinas', pvp: 280000, unidad: 'm2' },
+      { cod: 'MET-022', nom: 'Cortina enrollable microperforada (m²)', categoria: 'Cortinas', pvp: 320000, unidad: 'm2' },
+      { cod: 'MET-023', nom: 'Eje y resortes de balance para cortina', categoria: 'Cortinas', pvp: 450000, unidad: 'un' },
+      { cod: 'MET-024', nom: 'Guías laterales para cortina (par)', categoria: 'Cortinas', pvp: 180000, unidad: 'un' },
+      { cod: 'MET-025', nom: 'Reja plegable tipo ballesta (m²)', categoria: 'Rejas', pvp: 260000, unidad: 'm2' },
+      { cod: 'MET-026', nom: 'Chapa de seguridad para puerta metálica', categoria: 'Chapas y cerraduras', pvp: 120000, unidad: 'un' },
+      { cod: 'MET-027', nom: 'Cerradura de piso para cortina', categoria: 'Chapas y cerraduras', pvp: 95000, unidad: 'un' },
+      { cod: 'MET-028', nom: 'Chapa pico de loro para reja', categoria: 'Chapas y cerraduras', pvp: 140000, unidad: 'un' },
+      { cod: 'MET-029', nom: 'Apertura y cambio de guarda', categoria: 'Servicios', pvp: 80000, unidad: 'servicio' },
+      { cod: 'MET-030', nom: 'Mantenimiento preventivo de cortina enrollable', categoria: 'Servicios', pvp: 150000, unidad: 'servicio' }
     ];
   }
 
@@ -613,7 +627,7 @@
       refrigeracion: 'Refrigeración y Aire Acondicionado',
       cctv: 'Cámaras y CCTV / Seguridad Electrónica',
       plomeria: 'Plomería y Fontanería',
-      metalmecanica: 'Metalmecánica y Soldadura',
+      metalmecanica: 'Cerrajería y Metalmecánica',
       plagas: 'Control de Plagas / Fumigación',
       linea_blanca: 'Línea Blanca / Electrodomésticos',
       solar: 'Energía Solar'
@@ -777,9 +791,21 @@
 
   const AUTOMATISMOS_SEED_VERSION = '2026-09-listas-distribuidor-2';
   const AUTOMATISMOS_SEED_VERSION_KEY = 'arpa_seed_version_automatismos';
+  /** Catálogos ampliados después de sembrados: agregan solo los códigos que faltan, una vez. */
+  const SEED_UPDATES = { metalmecanica: '2026-10-cerrajeria' };
 
   function seedOficioIfNeeded(oficioId) {
     const id = normalizeOficioId(oficioId);
+    if (SEED_UPDATES[id] && getSeededOficios().includes(id)) {
+      const key = 'arpa_seed_version_' + id;
+      let current = '';
+      try { current = localStorage.getItem(key) || ''; } catch (e) { /* ignore */ }
+      if (current !== SEED_UPDATES[id]) {
+        const result = importSeedCatalog(id, { force: true });
+        try { localStorage.setItem(key, SEED_UPDATES[id]); } catch (e) { /* ignore */ }
+        return result;
+      }
+    }
     if (id === OFICIO_AUTOMATISMOS && getSeededOficios().includes(id)) {
       let current = '';
       try { current = localStorage.getItem(AUTOMATISMOS_SEED_VERSION_KEY) || ''; } catch (e) { /* ignore */ }
