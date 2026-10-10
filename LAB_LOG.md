@@ -1,5 +1,15 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-10 — WhatsApp al cliente con el prefijo del país (`agent/whatsapp-prefijo-pais`)
+
+`buildWaMeUrl` (`js/arpa-whatsapp.js`) anteponía siempre +57 a números de 10 dígitos: con país
+Estados Unidos el mensaje al cliente iba a un número de Colombia. Ahora usa el prefijo del país
+configurado (`ArpaPricing.getCountryProfile().phonePrefix`: CO 57, MX 52, CL 56, PE 51, US 1).
+Número de 9–10 dígitos → prefijo del país; más de 10 → ya trae código de país, se usa tal cual.
+Colombia queda igual. Chile y Perú (9 dígitos) ahora sí abren el chat del cliente.
+
+- Pruebas: `tests/whatsapp-prefijo.test.js` (4). `npm test` 81/81. Sin archivos protegidos.
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace

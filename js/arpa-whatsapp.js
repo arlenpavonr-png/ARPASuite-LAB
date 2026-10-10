@@ -12,10 +12,17 @@
       || 'su empresa';
   }
 
+  /** Prefijo del país configurado (CO 57, MX 52, CL 56, PE 51, US 1). */
+  function countryPhonePrefix() {
+    return global.ArpaPricing?.getCountryProfile?.()?.phonePrefix || '57';
+  }
+
   function buildWaMeUrl(telRaw, message) {
     const tel = String(telRaw || '').replace(/\D/g, '');
     const text = encodeURIComponent(message);
-    const phone = tel.length >= 10 ? (tel.startsWith('57') ? tel : '57' + tel) : '';
+    // Número nacional (9–10 dígitos) → se antepone el prefijo del país configurado.
+    // Más de 10 dígitos → ya trae el código de país y se usa tal cual.
+    const phone = tel.length > 10 ? tel : (tel.length >= 9 ? countryPhonePrefix() + tel : '');
     return phone
       ? `https://wa.me/${phone}?text=${text}`
       : `https://wa.me/?text=${text}`;
@@ -142,6 +149,7 @@
     compartirFormatoWhatsApp,
     generarFormatoPdfFile,
     buildFormatoMessage,
+    buildWaMeUrl,
     openWhatsAppWithMessage
   };
 
