@@ -354,11 +354,11 @@
   }
 
   async function nuevoCotNumero() {
-    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return;
-    if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return;
+    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return false;
+    if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return false;
     const numField = document.getElementById('numero-cot');
     const result = await global.ArpaNumeracion.nextNumberAsync('cot', numField?.value);
-    if (!result || result.blocked) return;
+    if (!result || result.blocked || !result.value) return false;
     const { value, sincronizado } = result;
     if (!sincronizado) console.warn('[ARPA] Número de cotización generado offline, no sincronizado con la nube todavía.');
     const badge = document.getElementById('sync-status-cot');
@@ -391,18 +391,36 @@
     const cliente = document.getElementById('cot-nombre')?.value || '';
     const nc = cliente ? '-' + cliente.replace(/\s+/g, '-').substring(0, 20) : '';
     document.title = `${value}${nc}-${fechaISO}`;
+    // Guardar el número de inmediato en el borrador: al reabrir no se pide otro.
+    saveCotDraftNow();
+    return true;
   }
 
+  /** Pone número si falta (reusa el reservado si hay). Devuelve true si queda con número. */
   async function ensureCotNumero() {
-    if (!global.ArpaNumeracion?.hasActiveLicenseCode?.()) return;
     const numField = document.getElementById('numero-cot');
-    if (!numField || numField.value.trim()) return;
+    if (!numField) return false;
+    if (numField.value.trim()) return true;
+    if (!global.ArpaNumeracion?.hasActiveLicenseCode?.()) return false;
     const reservado = global.ArpaNumeracion?.getReserved?.('cot');
     if (reservado) {
       numField.value = reservado;
-      return;
+      saveCotDraftNow();
+      return true;
     }
-    await nuevoCotNumero();
+    return (await nuevoCotNumero()) === true && !!numField.value.trim();
+  }
+
+  /**
+   * El número se asigna al guardar / generar PDF / compartir, no al entrar a
+   * Cotización: así no se gastan números en cotizaciones que no se terminan.
+   * Si ya tiene número, se conserva. Sin número no se genera nada.
+   */
+  async function asegurarNumeroCot() {
+    const numField = document.getElementById('numero-cot');
+    if (numField?.value.trim()) return true;
+    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return false;
+    return ensureCotNumero();
   }
 
   function lockCotRowsForPrint(viewRoot) {
@@ -966,7 +984,8 @@
     }
   }
 
-  function guardarCotPDF() {
+  async function guardarCotPDF() {
+    if (!(await asegurarNumeroCot())) return;
     saveCotMetadata();
 
     const ctx = beginCotPdfExport();
@@ -990,6 +1009,7 @@
   }
 
   async function guardarCotPDFYWhatsApp() {
+    if (!(await asegurarNumeroCot())) return;
     saveCotMetadata();
 
     const telRaw = document.getElementById('cot-tel')?.value.trim() || '';
@@ -1125,6 +1145,14 @@
     }, 1500);
   }
 
+  function saveCotDraftNow() {
+    if (draftSaveTimer) clearTimeout(draftSaveTimer);
+    draftSaveTimer = null;
+    try {
+      localStorage.setItem(COT_DRAFT_KEY, JSON.stringify(collectCotDraft()));
+    } catch (e) {}
+  }
+
   function clearCotDraft() {
     localStorage.removeItem(COT_DRAFT_KEY);
   }
@@ -1151,10 +1179,8 @@
       const v = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 15);
       validez.value = global.fechaLocalISO(v);
     }
-    const numField = document.getElementById('numero-cot');
-    if (numField && !numField.value.trim()) {
-      ensureCotNumero();
-    }
+    // No se pide número al iniciar: se asigna al guardar, generar PDF o compartir
+    // (asegurarNumeroCot) o con "+ NUEVO N°"; el borrador trae el suyo si lo tiene.
 
     document.getElementById('buscador-cot')?.addEventListener('input', buscarProductoCot);
     document.getElementById('buscador-cot')?.addEventListener('focus', updateCatalogHint);
@@ -1246,6 +1272,7 @@
     recalcularCotizacion,
     nuevoCotNumero,
     ensureCotNumero,
+    asegurarNumeroCot,
     guardarCotPDF,
     guardarCotPDFYWhatsApp,
     generarCotPdfFile,
