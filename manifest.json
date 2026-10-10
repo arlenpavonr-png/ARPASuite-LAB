@@ -18,7 +18,7 @@
       "short_name": "ARPA NEXT",
       "description": "App de campo: dicte el servicio y la app arma el informe",
       "url": "/next/",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "next/icons/icon-next-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "icons": [

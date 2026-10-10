@@ -1,5 +1,20 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-09 — Ícono propio de ARPA NEXT (`agent/next-icono`)
+
+### Por qué
+NEXT usaba el mismo ícono "AS" de la suite (manifest de NEXT y atajo de la suite): en el celular no se distinguían.
+Además el scope de la suite es todo el sitio, así que Android abre `/next/` con la app de la suite.
+
+### Qué
+- `next/icons/`: íconos nuevos (dorado con "AN" y "NEXT", colores invertidos de la suite), normal y maskable, 192 y 512.
+- `next/manifest.json` y `next/index.html` (favicon + apple-touch-icon) usan los íconos nuevos.
+- Protegido tocado con autorización de Arlen: `manifest.json` (solo el ícono del atajo ARPA NEXT).
+
+### En el celular
+Mantener presionado el ícono de ARPA Suite → mantener "ARPA NEXT" y arrastrarlo a la pantalla. Chrome
+actualiza el ícono de la app instalada solo, en uno o dos días después de publicar.
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace
