@@ -104,6 +104,15 @@
     }, delay);
   }
 
+  /** Guarda el borrador ya (sin esperar el temporizador). */
+  function saveCcDraftNow() {
+    if (draftSaveTimer) clearTimeout(draftSaveTimer);
+    draftSaveTimer = null;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(collectCcDraft()));
+    } catch (e) { /* quota */ }
+  }
+
   function bindCcDraftListeners() {
     const root = document.getElementById('view-cuenta-cobro');
     if (!root || root.__ccDraftBound) return;
@@ -181,10 +190,10 @@
   }
 
   async function nuevoCcNumero() {
-    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return;
-    if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return;
+    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return false;
+    if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return false;
     const result = await global.ArpaNumeracion.nextNumberAsync('cc', document.getElementById('cc-numero')?.value);
-    if (!result || result.blocked) return;
+    if (!result || result.blocked || !result.value) return false;
     const { value, sincronizado } = result;
     if (!sincronizado) console.warn('[ARPA] Número de cuenta de cobro generado offline, no sincronizado con la nube todavía.');
     const badge = document.getElementById('sync-status-cc');
@@ -206,18 +215,36 @@
     const el = document.getElementById('cc-numero');
     if (el) el.value = value;
     global.ArpaNumeracion?.setReserved?.('cc', value);
+    // Guardar el número de inmediato en el borrador: al reabrir no se pide otro.
+    saveCcDraftNow();
+    return true;
   }
 
+  /** Pone número si falta (reusa el reservado si hay). Devuelve true si queda con número. */
   async function ensureCcNumero() {
-    if (!global.ArpaNumeracion?.hasActiveLicenseCode?.()) return;
     const el = document.getElementById('cc-numero');
-    if (!el || el.value.trim()) return;
+    if (!el) return false;
+    if (el.value.trim()) return true;
+    if (!global.ArpaNumeracion?.hasActiveLicenseCode?.()) return false;
     const reservado = global.ArpaNumeracion?.getReserved?.('cc');
     if (reservado) {
       el.value = reservado;
-      return;
+      saveCcDraftNow();
+      return true;
     }
-    await nuevoCcNumero();
+    return (await nuevoCcNumero()) === true && !!el.value.trim();
+  }
+
+  /**
+   * El número se asigna al generar el PDF o compartir, no al entrar a Cuenta
+   * de Cobro ni al abrir la app: así no se gastan números en cuentas que no se
+   * terminan. Si ya tiene número, se conserva. Sin número no se genera nada.
+   */
+  async function asegurarNumeroCc() {
+    const el = document.getElementById('cc-numero');
+    if (el?.value.trim()) return true;
+    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return false;
+    return ensureCcNumero();
   }
 
   function renderCobrador() {
@@ -436,6 +463,7 @@
       alert(window.ArpaI18n.t('alert.pdf.jspdf_no_cargo'));
       return;
     }
+    if (!(await asegurarNumeroCc())) return;
 
     const d = getFormSnapshot();
     const msg = buildCcShareMessage(d);
@@ -734,6 +762,7 @@
       alert(window.ArpaI18n.t('alert.pdf.jspdf_no_cargo'));
       return;
     }
+    if (!(await asegurarNumeroCc())) return;
 
     const d = getFormSnapshot();
     try {
@@ -761,7 +790,8 @@
     const hadDraft = applyCcDraft();
     if (!hadDraft) {
       initFechas();
-      ensureCcNumero();
+      // No se pide número al abrir: se asigna al generar PDF o compartir
+      // (asegurarNumeroCc) o con "+ NUEVO N°"; el borrador trae el suyo si lo tiene.
     }
     global.ArpaBrand?.applyCuentaCobroFromSettings?.(undefined, {
       fillPago: hadDraft ? 'if-empty' : 'always'
@@ -813,6 +843,7 @@
     recalcularTotales,
     nuevoCcNumero,
     ensureCcNumero,
+    asegurarNumeroCc,
     limpiarFormulario,
     enviarWhatsApp,
     generarPDF,
