@@ -821,6 +821,13 @@
     const nombre = (document.getElementById('cot-nombre')?.value.trim() || 'Cliente').split(' ')[0];
     const numero = document.getElementById('numero-cot')?.value.trim() || '—';
     const company = global.ArpaBrand?.getSettings?.()?.companyName?.trim() || 'su empresa';
+    // Idioma del documento = English (arpa-i18n.js): mensaje al cliente en inglés. Con Español, null → texto de siempre.
+    const enMsg = global.ArpaDocLang?.shareMessage?.('cot', {
+      nombre: (document.getElementById('cot-nombre')?.value.trim() || '').split(' ')[0],
+      numero,
+      company: global.ArpaBrand?.getSettings?.()?.companyName?.trim()
+    });
+    if (enMsg) return enMsg;
     return `Hola ${nombre}, le comparto la cotización N°${numero} de ${company}. Por favor revísela y confírmenos su recepción.`;
   }
 
@@ -954,7 +961,8 @@
       const blob = pdf.output('blob');
       const numeroArchivo = numero || document.getElementById('numero-cot')?.value.trim() || 'Cotizacion';
       const cliente = document.getElementById('cot-nombre')?.value.trim() || 'Cliente';
-      const filename = `Cotizacion_${sanitizeCotFilenamePart(numeroArchivo)}_${sanitizeCotFilenamePart(cliente)}.pdf`;
+      // Nombre del archivo en el idioma del documento ("Estimate_…" con English; igual que siempre con Español).
+      const filename = `${global.ArpaDocLang?.text?.('file.cot', 'Cotizacion') ?? 'Cotizacion'}_${sanitizeCotFilenamePart(numeroArchivo)}_${sanitizeCotFilenamePart(cliente)}.pdf`;
       return new File([blob], filename, { type: 'application/pdf' });
     } finally {
       if (numeroSwap?.parent && numeroSwap.span?.parentNode === numeroSwap.parent) {
@@ -1025,7 +1033,7 @@
     }
     global.ArpaWhatsApp?.openWhatsAppWithMessage?.(
       telRaw,
-      message + ' (Adjunte el PDF descargado.)'
+      message + (global.ArpaDocLang?.text?.('msg.attach_note', ' (Adjunte el PDF descargado.)') ?? ' (Adjunte el PDF descargado.)')
     );
     global.ArpaTrialCapture?.onDocumentSaved?.('cotizacion');
   }
