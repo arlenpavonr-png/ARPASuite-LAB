@@ -1362,6 +1362,13 @@
       if (cotLabel && brandDefaults['cot-elaborado-label'] != null) {
         cotLabel.textContent = brandDefaults['cot-elaborado-label'];
       }
+      var marcaLista = global.ArpaBrand && typeof global.ArpaBrand.hasUserSettings === 'function' && global.ArpaBrand.hasUserSettings();
+      var empresaEs = document.getElementById('brand-verification-company');
+      if (empresaEs && marcaLista && company && company !== 'Su Empresa') empresaEs.textContent = company;
+      if (techName) {
+        if (techLabel) techLabel.textContent = 'Firma Técnico – ' + techName;
+        if (cotLabel) cotLabel.textContent = 'Elaborado por – ' + techName;
+      }
       applyCotNotaLegal();
       if (global.ArpaBrand && typeof global.ArpaBrand.applyLegalCopyToDocuments === 'function') {
         global.ArpaBrand.applyLegalCopyToDocuments();

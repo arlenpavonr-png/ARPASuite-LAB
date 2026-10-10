@@ -801,7 +801,7 @@
       if (nombreEl && !nombreEl.textContent.trim()) {
         nombreEl.textContent = settings.companyName || '';
       }
-      if (telEl && !telEl.value.trim()) {
+      if (telEl && typeof telEl.value === 'string' && !telEl.value.trim()) {
         telEl.value = settings.phone || '';
       }
     })();

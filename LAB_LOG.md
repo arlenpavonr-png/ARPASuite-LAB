@@ -1,5 +1,20 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-09 — Arreglos visibles para clientes (`agent/arreglos-visibles`)
+
+### Qué (comprobado en una copia local de producción `31dac7e`, sin conexión)
+- `js/arpa-i18n.js`: en español, al restaurar textos originales se borraban empresa y técnico
+  ("Documento emitido por su empresa", "Firma Técnico" / "Elaborado por" sin nombre). Ahora se vuelven a poner.
+- `js/arpa-historial.js`: "2026-10-09" se leía como UTC y en Colombia salía 08/10/2026.
+- `js/arpa-cuenta-cobro.js`: `cc-cobrador-tel` es un `<strong>`; `.value.trim()` rompía el arranque y
+  "Verificando última sincronización…" nunca terminaba.
+- No tocados: "HEADER.DOC_TYPE.FORMATO" solo pasa en el LAB (index.html del LAB); cotización sin número
+  pasa solo sin licencia (modo demo).
+
+### Pruebas
+- `npm test` 77/77, fence PASS, regresión 8/8. Copia local de producción: acta con empresa, firmas con nombre,
+  sin error de arranque.
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace

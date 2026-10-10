@@ -7,6 +7,8 @@
   const MAX_RECORDS = 200;
   function formatFechaLegible(fechaStr) {
     if (!fechaStr) return '—';
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(fechaStr).trim());
+    if (m) return m[3] + '/' + m[2] + '/' + m[1];
     var d = new Date(fechaStr);
     if (!isNaN(d.getTime())) {
       return String(d.getDate()).padStart(2,'0') + '/' +
