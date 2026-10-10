@@ -1,5 +1,18 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-10 — Cuenta de Cobro: número al generar PDF/compartir (`agent/cuenta-cobro-numero-al-guardar`)
+
+Mismo arreglo que Cotización. Entrar a Cuenta de Cobro o abrir la app ya no gasta
+número CC-XXX: se asigna al generar el PDF o compartir por WhatsApp (o con
+"+ NUEVO N°") y queda guardado al instante en el borrador. Si el borrador ya tiene
+número se conserva; un número reservado se reutiliza. Sin licencia: aviso, no hay
+PDF ni Historial.
+
+- Archivos: `js/arpa-cuenta-cobro.js`, `js/arpa-views.js`, `tests/cuenta-cobro-numero.test.js`, `package.json`.
+- Pruebas: `npm test` 85/85, Fence PASS, regresión 8/8. Solo camino local (sin nube).
+- Pendiente: probar en la app LAB con licencia; tras generar un PDF el campo
+  conserva el número hasta "+ NUEVO N°" o recargar (comportamiento previo, sin cambio).
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace
