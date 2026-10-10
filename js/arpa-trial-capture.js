@@ -231,6 +231,10 @@
   }
 
   function postRegisterTrial(payload) {
+    // Fuera del dominio de producción (LAB, localhost, red local) no se llama al servidor.
+    if (global.location?.hostname !== 'arpa.arpatechnologyglobal.com') {
+      return Promise.reject(new Error('network'));
+    }
     return fetch(LICENSE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
