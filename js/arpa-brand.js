@@ -306,6 +306,11 @@
 
   function licenseJsonp(params) {
     return new Promise((resolve, reject) => {
+      // Fuera del dominio de producción (LAB, localhost, red local) no se llama al servidor.
+      if (global.location?.hostname !== 'arpa.arpatechnologyglobal.com') {
+        reject(new Error('network'));
+        return;
+      }
       companyApiCounter += 1;
       const cbName = 'arpaCompanyCb' + companyApiCounter + '_' + Date.now();
       const scriptId = 'arpa-company-jsonp-' + companyApiCounter;
