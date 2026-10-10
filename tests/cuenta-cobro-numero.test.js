@@ -140,7 +140,6 @@ test('generar PDF asigna número, lo guarda en el borrador y lo usa en el Histor
   const orig = s.sb.ArpaHistorial.captureFromCuentaCobro;
   s.sb.ArpaHistorial.captureFromCuentaCobro = (d) => { draftAlAsignar = s.draft(); orig(d); };
   await s.sb.ArpaCuentaCobro.generarPDF();
-  assert.equal(s.numero(), 'CC-004');
   assert.equal(s.store.arpa_cc_num, '4');
   assert.equal(draftAlAsignar?.numero, 'CC-004', 'el número quedó en el borrador al asignarse');
   assert.deepEqual(s.historial, ['CC-004']);
@@ -154,7 +153,6 @@ test('compartir (WhatsApp) también asigna número antes de generar', async () =
   const orig = s.sb.ArpaHistorial.captureFromCuentaCobro;
   s.sb.ArpaHistorial.captureFromCuentaCobro = (d) => { draftAlAsignar = s.draft(); orig(d); };
   await s.sb.ArpaCuentaCobro.enviarWhatsApp();
-  assert.equal(s.numero(), 'CC-004');
   assert.equal(draftAlAsignar?.numero, 'CC-004');
   assert.deepEqual(s.historial, ['CC-004']);
 });
@@ -170,10 +168,18 @@ test('un borrador con número lo conserva al entrar y al generar PDF', async () 
   s.sb.openCuentaCobroView(null);
   assert.equal(s.numero(), 'CC-010');
   await s.sb.ArpaCuentaCobro.generarPDF();
-  await s.sb.ArpaCuentaCobro.generarPDF();
-  assert.equal(s.numero(), 'CC-010');
   assert.equal(s.store.arpa_cc_num, '3', 'no se pidió otro número');
-  assert.deepEqual(s.historial, ['CC-010', 'CC-010']);
+  assert.deepEqual(s.historial, ['CC-010']);
+});
+
+test('después de generar el PDF el campo queda vacío y la siguiente no sale repetida', async () => {
+  const s = loadSuite();
+  await s.sb.ArpaCuentaCobro.generarPDF();
+  assert.equal(s.numero(), '', 'el campo se vacía al terminar');
+  assert.equal(s.draft(), null, 'el borrador se borra');
+  await s.sb.ArpaCuentaCobro.generarPDF();
+  assert.equal(s.numero(), '');
+  assert.deepEqual(s.historial, ['CC-004', 'CC-005']);
 });
 
 test('un número reservado (de una versión anterior) se reutiliza al generar PDF', async () => {
@@ -183,7 +189,6 @@ test('un número reservado (de una versión anterior) se reutiliza al generar PD
   s.sb.openCuentaCobroView(null);
   assert.equal(s.numero(), '', 'entrar no toma el reservado');
   await s.sb.ArpaCuentaCobro.generarPDF();
-  assert.equal(s.numero(), 'CC-004');
   assert.equal(s.store.arpa_cc_num, '4');
   assert.deepEqual(s.historial, ['CC-004']);
 });

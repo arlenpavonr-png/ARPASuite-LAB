@@ -89,6 +89,17 @@
     }
   }
 
+  /**
+   * La cuenta de cobro quedó terminada (PDF guardado o compartido y en el Historial):
+   * se libera el número y se vacía el campo, para que la siguiente no salga repetida.
+   */
+  function cerrarCcTerminada(d) {
+    global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
+    const el = document.getElementById('cc-numero');
+    if (el) el.value = '';
+    clearCcDraft();
+  }
+
   function clearCcDraft() {
     localStorage.removeItem(DRAFT_KEY);
   }
@@ -478,8 +489,7 @@
           text: msg
         });
         global.ArpaHistorial?.captureFromCuentaCobro?.(d);
-        global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
-        clearCcDraft();
+        cerrarCcTerminada(d);
         return;
       }
     } catch (err) {
@@ -769,8 +779,7 @@
       const { doc, filename } = await renderCcToPdf(d, jsPDF);
       doc.save(filename);
       global.ArpaHistorial?.captureFromCuentaCobro?.(d);
-        global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
-      clearCcDraft();
+      cerrarCcTerminada(d);
     } catch (e) {
       scheduleCcDraftSave(true);
       alert(window.ArpaI18n.t('alert.cuenta_cobro.pdf_no_generado'));

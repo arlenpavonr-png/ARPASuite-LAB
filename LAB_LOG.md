@@ -9,9 +9,11 @@ número se conserva; un número reservado se reutiliza. Sin licencia: aviso, no 
 PDF ni Historial.
 
 - Archivos: `js/arpa-cuenta-cobro.js`, `js/arpa-views.js`, `tests/cuenta-cobro-numero.test.js`, `package.json`.
-- Pruebas: `npm test` 85/85, Fence PASS, regresión 8/8. Solo camino local (sin nube).
-- Pendiente: probar en la app LAB con licencia; tras generar un PDF el campo
-  conserva el número hasta "+ NUEVO N°" o recargar (comportamiento previo, sin cambio).
+- Pruebas: `npm test` 86/86, Fence PASS, regresión 8/8. Solo camino local (sin nube).
+- Al terminar (PDF guardado o compartido con éxito) el campo de número queda vacío
+  (decisión de Arlen): la siguiente cuenta no sale con el número repetido. En el camino
+  "adjunte el PDF a mano" el número se conserva, por si hay que generar el PDF.
+- Pendiente: probar en la app LAB con licencia.
 
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
