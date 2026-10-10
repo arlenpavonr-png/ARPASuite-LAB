@@ -1,5 +1,30 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-10 — PDF en inglés para clientes en EE. UU. (`agent/pdf-ingles`)
+
+### Qué hace
+Ajuste en Configuración "Idioma del PDF para tu cliente" (Español por defecto / English),
+independiente del idioma de la app (clave `arpa_doc_lang`). Con English: Cotización →
+**Estimate**, Formato → **Work Order**, Cuenta de Cobro → **Invoice**; encabezados, totales,
+"Sales tax", firmas ("Customer signature"), validez, notas, pie, nombre del archivo y mensaje
+de WhatsApp en inglés; fechas MM/DD/YYYY. La app sigue en español. Con Español nada cambia.
+
+### Cómo se integra
+Lógica en `js/arpa-i18n.js` (`ArpaDocLang`, modo PDF en inglés dentro de
+`preparePdfSpanish`/`restorePdfSpanish`). Sin archivos JS nuevos → no hay pendiente de caché offline.
+Protegidos tocados con autorización (mínimo): `index.html` (selector) y `js/arpa-cotizacion.js`
+(mensaje de WhatsApp y nombre de archivo).
+
+### Pruebas
+- `tests/pdf-idioma-documento.test.js` en `npm test`; Fence PASS; regresión 8/8.
+- PDFs de ejemplo generados en local (Chrome sin red, datos ficticios): Estimate (impresión y
+  WhatsApp), Work Order e Invoice.
+
+### Pendiente antes de producción
+- Ítems precargados con nombre por defecto (p. ej. "Instalación") salen como estén escritos.
+- WhatsApp antepone +57 a números de 10 dígitos aunque el país sea US (`arpa-whatsapp.js`, previo).
+- El panel "ARPA IA — Cotizador" sale en el PDF de WhatsApp de la cotización en el LAB (también en español; previo).
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace
