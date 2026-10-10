@@ -2,10 +2,14 @@
  * Mantenimientos por hacer: a los 6 meses de cada instalación o mantenimiento.
  * - Al guardar el formato muestra la fecha del próximo mantenimiento y permite agendarla en Google Calendar.
  * - En Historial muestra los vencidos y los de los próximos 30 días, con WhatsApp al cliente en un toque.
- * Todo queda en el dispositivo; no envía nada solo (fase 2: WhatsApp Business API).
+ * - Fase 2: con licencia habilitada en el servidor, la lista se sincroniza y el servidor manda el
+ *   WhatsApp solo (WhatsApp Business API) 7 días antes. Ver whatsapp-mantenimientos.gs.
  */
 (function (global) {
   const ESTADO_KEY = 'arpa_mantenimientos_estado';
+  const SYNC_KEY = 'arpa_mantenimientos_sync';
+  const SYNC_CADA_MS = 24 * 3600 * 1000;
+  const SYNC_APAGADO_MS = 7 * 24 * 3600 * 1000;
   const DIAS = 180;
   const VENTANA_DIAS = 30;
   const DAY = 86400000;
@@ -106,6 +110,7 @@
         concepto: r.concepto || '',
         vence,
         dias: daysBetween(today, vence),
+        estado: vigente && est.status === 'pospuesto' ? 'pospuesto' : 'pendiente',
         avisadoEl: vigente && est.avisadoEl ? est.avisadoEl : '',
       });
     }
@@ -168,6 +173,74 @@
     };
   }
 
+  // ── Sincronización con el servidor (envío automático por WhatsApp) ───────
+
+  function licencia() {
+    if (global.ArpaLabDemo?.isActive?.()) return '';
+    try { return (global.localStorage.getItem('arpa_suite_license_code') || '').trim().toUpperCase(); } catch (e) { return ''; }
+  }
+
+  /** Lo que se manda al servidor: solo lo necesario para el aviso. */
+  function payloadSync(items) {
+    return items.map((i) => ({
+      clave: i.key, cliente: i.cliente, tel: i.tel, base: i.base, tipo: i.tipoBase,
+      vence: i.vence, estado: i.estado, avisadoEl: i.avisadoEl,
+    }));
+  }
+
+  function hash(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return String(h);
+  }
+
+  /** Marca como avisados los que el servidor ya avisó (sin pisar estados de otra fecha base). */
+  function aplicarAvisados(avisados) {
+    let cambio = false;
+    const estados = getEstados();
+    const bases = new Map(lista().map((i) => [i.key, i.base]));
+    Object.keys(avisados || {}).forEach((key) => {
+      const a = avisados[key] || {};
+      const prev = estados[key];
+      if (!a.avisadoEl || bases.get(key) !== a.base || (prev && prev.base !== a.base) || prev?.avisadoEl) return;
+      setEstado(key, { ...(prev || { status: 'pendiente' }), base: a.base, avisadoEl: a.avisadoEl });
+      cambio = true;
+    });
+    return cambio;
+  }
+
+  /**
+   * Manda la lista al servidor si cambió (o una vez al día). Si el servidor dice que la licencia
+   * no tiene envío automático, no vuelve a intentar en 7 días.
+   */
+  function sincronizar(force) {
+    const lic = licencia();
+    const post = global.ArpaCloudSync?.postJson;
+    if (!lic || typeof post !== 'function' || global.navigator?.onLine === false) return Promise.resolve(null);
+    const st = readJson(SYNC_KEY, {});
+    const ahora = Date.now();
+    if (!force && st.lic === lic && st.activo === false && ahora - (st.at || 0) < SYNC_APAGADO_MS) return Promise.resolve(null);
+    const items = payloadSync(lista());
+    const h = hash(JSON.stringify(items));
+    if (!force && st.lic === lic && st.hash === h && ahora - (st.at || 0) < SYNC_CADA_MS) return Promise.resolve(null);
+    return post({ accion: 'mantenimientossync', licencia: lic, empresa: companyName(), items })
+      .then((res) => {
+        const activo = !!(res && res.ok && res.activo);
+        const nuevo = { lic, hash: h, at: ahora, activo, envioReal: activo && !!res.envioReal, diasAntes: res?.diasAntes || 7 };
+        if (activo && aplicarAvisados(res.avisados)) nuevo.hash = hash(JSON.stringify(payloadSync(lista())));
+        try { global.localStorage.setItem(SYNC_KEY, JSON.stringify(nuevo)); } catch (e) { /* sin espacio */ }
+        renderPanel();
+        return res;
+      })
+      .catch(() => null);
+  }
+
+  let syncTimer = null;
+  function programarSync() {
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => { syncTimer = null; sincronizar(false); }, 3000);
+  }
+
   // ── Interfaz ────────────────────────────────────────────────────────────
 
   function esc(s) {
@@ -182,6 +255,14 @@
 
   function btn(act, key, label, primary) {
     return `<button type="button" data-mant="${act}" data-key="${esc(key)}" style="padding:6px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${primary ? '#16a34a' : 'var(--border,#d0d7e2)'};background:${primary ? '#16a34a' : '#fff'};color:${primary ? '#fff' : 'var(--navy,#1a2a4a)'};">${label}</button>`;
+  }
+
+  function textoAuto() {
+    const st = readJson(SYNC_KEY, {});
+    if (!st.activo || st.lic !== licencia()) return '';
+    return st.envioReal
+      ? ` <b style="color:#15803d;">WhatsApp automático: se avisa al cliente ${st.diasAntes || 7} días antes.</b>`
+      : ' WhatsApp automático en modo prueba (no envía todavía).';
   }
 
   function renderPanel() {
@@ -223,7 +304,7 @@
     }).join('');
     panel.innerHTML = `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px;margin-bottom:14px;">
       <div style="font-weight:700;color:var(--navy,#1a2a4a);">🔧 Mantenimientos por hacer${vencidos ? ` · <span style="color:#b91c1c;">${vencidos} vencido${vencidos > 1 ? 's' : ''}</span>` : ''}</div>
-      <div style="font-size:12px;color:var(--muted,#64748b);margin-top:2px;">A los 6 meses de cada instalación o mantenimiento.${luego ? ` ${luego} más después de 30 días.` : ''}</div>
+      <div style="font-size:12px;color:var(--muted,#64748b);margin-top:2px;">A los 6 meses de cada instalación o mantenimiento.${luego ? ` ${luego} más después de 30 días.` : ''}${textoAuto()}</div>
       ${filas || '<div style="font-size:12px;color:var(--muted,#64748b);margin-top:8px;">Nada para los próximos 30 días.</div>'}
     </div>`;
   }
@@ -254,6 +335,7 @@
       setEstado(key, { base: item.base, status: 'descartado' });
     }
     renderPanel();
+    programarSync();
   }
 
   /** Aviso al guardar: fecha del próximo mantenimiento y botón para agendarlo. */
@@ -291,6 +373,7 @@
         try {
           avisoAlGuardar(rec);
           renderPanel();
+          programarSync();
         } catch (e) { /* el aviso nunca bloquea el guardado */ }
         return rec;
       };
@@ -302,6 +385,7 @@
         .observe(view, { attributes: true, attributeFilter: ['hidden'] });
     }
     renderPanel();
+    programarSync();
   }
 
   global.ArpaMantenimientos = {
@@ -312,6 +396,9 @@
     calendarUrl,
     waUrl,
     renderPanel,
+    payloadSync,
+    aplicarAvisados,
+    sincronizar,
   };
 
   if (global.document) {

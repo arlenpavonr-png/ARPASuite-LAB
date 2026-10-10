@@ -1305,6 +1305,10 @@ function handleSyncPost_(e) {
   if (accion === 'respaldoleer') {
     return respondJson_(respaldoLeer_(licencia, body));
   }
+  if (accion === 'mantenimientossync') {
+    // Definida en el archivo aparte WhatsApp (whatsapp-mantenimientos.gs).
+    return respondJson_(mantenimientosSync_(licencia, body));
+  }
   if (accion === 'siguientenumero') {
 
     return respondJson_(siguienteNumero_(licencia, body.tipo, body.clienteUltimo));

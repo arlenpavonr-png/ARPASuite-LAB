@@ -43,6 +43,29 @@ no entra al borrador ni al historial del formato. Orden cerrada = solo lectura.
 ### Pruebas
 - `tests/mantenimientos.test.js` 5/5; producción `npm test` 85/85. Vista probada en página aislada (sin la app).
 
+## 2026-10-09 — WhatsApp automático de mantenimiento, fase 2 (`agent/whatsapp-mantenimientos`)
+
+### Qué
+- Solo el negocio de Arlen (licencia de fundador; otras con `WA_LICENCIAS`). Aviso 7 días antes de los 6 meses.
+- Suite (`js/arpa-mantenimientos.js`): cuando cambia la lista de "Mantenimientos por hacer" (o una vez al día)
+  la manda al servidor con `ArpaCloudSync.postJson` (acción `mantenimientossync`): clave, cliente, teléfono,
+  fecha base, tipo, vence, estado y avisado. Si la licencia no está habilitada no reintenta en 7 días.
+  Lo que el servidor ya avisó queda como "avisado el" en el panel; el panel dice si el envío automático está activo.
+- Servidor: archivo nuevo `whatsapp-mantenimientos.gs` (va aparte en el mismo proyecto de Apps Script).
+  Pestaña "Mantenimientos" en el Sheet; disparador diario 8 a. m. (Bogotá) `avisarMantenimientosDiario`
+  con la plantilla `recordatorio_mantenimiento` (WhatsApp Cloud API). Máximo 40 por día; vencidos hace más
+  de 30 días no se mandan; lo avisado a mano no se repite. Correo con el resumen al dueño del script.
+  `WA_ACTIVO` distinto de SI = modo prueba (anota en la hoja, no envía). Token solo en Script Properties.
+- Protegido tocado con autorización de Arlen: `arpa-licencias-apps-script.gs` (4 líneas: enrutar `mantenimientossync`).
+
+### Pruebas
+- `tests/mantenimientos.test.js` 9/9 (4 nuevas de sincronización).
+
+### Pendiente
+- Arlen: cuenta de Meta (WhatsApp Business), número, plantilla aprobada y token permanente.
+- Después: subir el servidor (Code.gs + archivo WhatsApp), `instalarAvisoWhatsApp()`, probar con
+  `probarWhatsAppMantenimiento()`, y publicar la suite.
+
 ## 2026-10-09 — LAB actualizado con producción otra vez + ramas unidas (`agent/integracion-2026-10`)
 
 ### Qué
