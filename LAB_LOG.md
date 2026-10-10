@@ -1,5 +1,27 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-10 — Cotización: el número se asigna al guardar/PDF/compartir (`agent/cotizacion-numero-al-guardar`)
+
+### Qué hace
+Entrar a Cotización ya no gasta número. El COT-XXX se asigna justo antes de generar el
+PDF o compartir por WhatsApp (que es cuando pasa al Historial). Si el borrador ya tiene
+número, se conserva; si hay uno reservado, se reutiliza; si no, se pide (nube o local)
+y se guarda de inmediato en el borrador. Sin número no se genera PDF ni Historial.
+"+ NUEVO N°" sigue igual (y ahora también guarda el número en el borrador al instante).
+
+### Archivos
+`js/arpa-views.js`, `js/arpa-cotizacion.js` (protegido, autorizado por Arlen para este
+punto), prueba nueva `tests/cotizacion-numero.test.js` (en `npm test`).
+
+### Pruebas
+- `npm test` verde (incluye la nueva prueba, camino local sin nube).
+- Fence PASS, regresión 8/8.
+
+### Pendiente
+- Probar en la app LAB completa (imprimir PDF y WhatsApp) y con licencia real.
+- Cuenta de Cobro tiene el mismo problema (pide número al entrar y al abrir sin
+  borrador); no se tocó.
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace
