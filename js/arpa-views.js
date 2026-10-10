@@ -45,14 +45,14 @@
       global.ArpaCobros?.seedFromPriceList('cot');
       global.ArpaCotizacion?.refreshCobros?.();
       global.ArpaCotizacion?.renderTablaCot?.();
-      global.ArpaCotizacion?.ensureCotNumero?.();
+      // No se asigna número al entrar: se asigna al guardar, generar PDF o compartir.
       global.ArpaCotizacion?.updateCatalogHint?.();
       global.ArpaCotizacion?.syncTaxLabels?.();
     }
     if (view === 'cuenta-cobro') {
       global.applyUserSettingsToUI?.();
       global.ArpaCuentaCobro?.refreshView?.();
-      global.ArpaCuentaCobro?.ensureCcNumero?.();
+      // No se asigna número al entrar: se asigna al generar PDF o compartir.
     }
     if (view === 'catalogo') {
       global.ArpaMiCatalogo?.refreshView?.();

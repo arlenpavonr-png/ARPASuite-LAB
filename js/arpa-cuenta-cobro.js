@@ -12,6 +12,16 @@
   let servicios = [{ desc: '', cant: 1, unit: 0 }];
   let draftSaveTimer = null;
 
+  // Idioma del documento para el cliente (ArpaDocLang en arpa-i18n.js). Con Español devuelven el texto
+  // y la fecha exactamente como antes; con English, el PDF y el mensaje salen en inglés.
+  function dt(key, esText) {
+    return global.ArpaDocLang?.text?.(key, esText) ?? esText;
+  }
+
+  function fd(value) {
+    return global.ArpaDocLang?.date?.(value) ?? value;
+  }
+
   function getJsPDF() {
     return global.jspdf?.jsPDF || global.jsPDF || null;
   }
@@ -89,6 +99,17 @@
     }
   }
 
+  /**
+   * La cuenta de cobro quedó terminada (PDF guardado o compartido y en el Historial):
+   * se libera el número y se vacía el campo, para que la siguiente no salga repetida.
+   */
+  function cerrarCcTerminada(d) {
+    global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
+    const el = document.getElementById('cc-numero');
+    if (el) el.value = '';
+    clearCcDraft();
+  }
+
   function clearCcDraft() {
     localStorage.removeItem(DRAFT_KEY);
   }
@@ -102,6 +123,15 @@
         localStorage.setItem(DRAFT_KEY, JSON.stringify(collectCcDraft()));
       } catch (e) { /* quota */ }
     }, delay);
+  }
+
+  /** Guarda el borrador ya (sin esperar el temporizador). */
+  function saveCcDraftNow() {
+    if (draftSaveTimer) clearTimeout(draftSaveTimer);
+    draftSaveTimer = null;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(collectCcDraft()));
+    } catch (e) { /* quota */ }
   }
 
   function bindCcDraftListeners() {
@@ -181,10 +211,10 @@
   }
 
   async function nuevoCcNumero() {
-    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return;
-    if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return;
+    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return false;
+    if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return false;
     const result = await global.ArpaNumeracion.nextNumberAsync('cc', document.getElementById('cc-numero')?.value);
-    if (!result || result.blocked) return;
+    if (!result || result.blocked || !result.value) return false;
     const { value, sincronizado } = result;
     if (!sincronizado) console.warn('[ARPA] Número de cuenta de cobro generado offline, no sincronizado con la nube todavía.');
     const badge = document.getElementById('sync-status-cc');
@@ -206,18 +236,36 @@
     const el = document.getElementById('cc-numero');
     if (el) el.value = value;
     global.ArpaNumeracion?.setReserved?.('cc', value);
+    // Guardar el número de inmediato en el borrador: al reabrir no se pide otro.
+    saveCcDraftNow();
+    return true;
   }
 
+  /** Pone número si falta (reusa el reservado si hay). Devuelve true si queda con número. */
   async function ensureCcNumero() {
-    if (!global.ArpaNumeracion?.hasActiveLicenseCode?.()) return;
     const el = document.getElementById('cc-numero');
-    if (!el || el.value.trim()) return;
+    if (!el) return false;
+    if (el.value.trim()) return true;
+    if (!global.ArpaNumeracion?.hasActiveLicenseCode?.()) return false;
     const reservado = global.ArpaNumeracion?.getReserved?.('cc');
     if (reservado) {
       el.value = reservado;
-      return;
+      saveCcDraftNow();
+      return true;
     }
-    await nuevoCcNumero();
+    return (await nuevoCcNumero()) === true && !!el.value.trim();
+  }
+
+  /**
+   * El número se asigna al generar el PDF o compartir, no al entrar a Cuenta
+   * de Cobro ni al abrir la app: así no se gastan números en cuentas que no se
+   * terminan. Si ya tiene número, se conserva. Sin número no se genera nada.
+   */
+  async function asegurarNumeroCc() {
+    const el = document.getElementById('cc-numero');
+    if (el?.value.trim()) return true;
+    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return false;
+    return ensureCcNumero();
   }
 
   function renderCobrador() {
@@ -424,6 +472,11 @@
   }
 
   function buildCcShareMessage(d) {
+    const enMsg = global.ArpaDocLang?.shareMessage?.('cc', {
+      nombre: d.cliente.nombre, numero: d.numero, company: d.cobrador.empresa,
+      total: formatoPesos(d.total), tel: d.cobrador.tel || ''
+    });
+    if (enMsg) return enMsg;
     const empresa = d.cobrador.empresa || 'nuestra empresa';
     const telEmp = d.cobrador.tel || '';
     return `Hola ${d.cliente.nombre || 'cliente'}, le compartimos la ${d.numero} de ${empresa} por un valor de ${formatoPesos(d.total)}. Quedamos atentos para cualquier consulta.\n${empresa} 📞 ${telEmp}`;
@@ -436,6 +489,7 @@
       alert(window.ArpaI18n.t('alert.pdf.jspdf_no_cargo'));
       return;
     }
+    if (!(await asegurarNumeroCc())) return;
 
     const d = getFormSnapshot();
     const msg = buildCcShareMessage(d);
@@ -450,8 +504,7 @@
           text: msg
         });
         global.ArpaHistorial?.captureFromCuentaCobro?.(d);
-        global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
-        clearCcDraft();
+        cerrarCcTerminada(d);
         return;
       }
     } catch (err) {
@@ -462,7 +515,7 @@
     alert(window.ArpaI18n.t('alert.pdf.adjuntar_manual'));
     global.ArpaWhatsApp?.openWhatsAppWithMessage?.(
       d.cliente.tel,
-      msg + ' (Adjunte el PDF desde su dispositivo.)'
+      msg + dt('msg.attach_note', ' (Adjunte el PDF desde su dispositivo.)')
     );
     global.ArpaHistorial?.captureFromCuentaCobro?.(d);
     global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
@@ -514,8 +567,8 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     let hy = 20;
-    if (d.cobrador.nit) { doc.text(`NIT: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
-    if (d.cobrador.tel) { doc.text(`Tel: ${d.cobrador.tel}`, m + (logoData ? 26 : 0), hy); }
+    if (d.cobrador.nit) { doc.text(`${dt('cc.pdf.tax_id', 'NIT')}: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
+    if (d.cobrador.tel) { doc.text(`${dt('cc.pdf.tel', 'Tel')}: ${d.cobrador.tel}`, m + (logoData ? 26 : 0), hy); }
 
     doc.setFillColor(...GOLD);
     doc.rect(0, 38, pw, 1.2, 'F');
@@ -524,7 +577,7 @@
     doc.setTextColor(...NAVY);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('CUENTA DE COBRO', pw / 2, y, { align: 'center' });
+    doc.text(dt('cc.pdf.title', 'CUENTA DE COBRO'), pw / 2, y, { align: 'center' });
     y += 8;
     doc.setFontSize(14);
     doc.setTextColor(...GOLD);
@@ -560,31 +613,31 @@
       return by;
     }
 
-    blockTitle(leftX, y, 'COBRADOR');
-    blockTitle(rightX, y, 'CLIENTE');
+    blockTitle(leftX, y, dt('cc.pdf.from', 'COBRADOR'));
+    blockTitle(rightX, y, dt('cc.pdf.bill_to', 'CLIENTE'));
     let yL = y + 6;
     let yR = y + 6;
     yL = blockLines(leftX, yL, [
-      ['Nombre', d.cobrador.nombre],
-      ['C.C. / NIT', d.cobrador.doc],
-      ['Empresa', d.cobrador.empresa],
-      ['NIT', d.cobrador.nit],
-      ['Tel', d.cobrador.tel],
-      ['Dir', d.cobrador.dir],
-      ['Web', d.cobrador.web]
+      [dt('cc.pdf.name', 'Nombre'), d.cobrador.nombre],
+      [dt('cc.pdf.id_tax', 'C.C. / NIT'), d.cobrador.doc],
+      [dt('cc.pdf.company', 'Empresa'), d.cobrador.empresa],
+      [dt('cc.pdf.tax_id', 'NIT'), d.cobrador.nit],
+      [dt('cc.pdf.tel', 'Tel'), d.cobrador.tel],
+      [dt('cc.pdf.address', 'Dir'), d.cobrador.dir],
+      [dt('cc.pdf.web', 'Web'), d.cobrador.web]
     ]);
     yR = blockLines(rightX, yR, [
-      ['Nombre', d.cliente.nombre],
-      ['NIT / C.C.', d.cliente.doc],
-      ['Dir', d.cliente.dir],
-      ['Tel', d.cliente.tel]
+      [dt('cc.pdf.name', 'Nombre'), d.cliente.nombre],
+      [dt('cc.pdf.id_tax', 'NIT / C.C.'), d.cliente.doc],
+      [dt('cc.pdf.address', 'Dir'), d.cliente.dir],
+      [dt('cc.pdf.tel', 'Tel'), d.cliente.tel]
     ]);
     y = Math.max(yL, yR) + 6;
 
     if (d.ciudad || d.fechaEmision) {
       doc.setFontSize(8);
       doc.setTextColor(...MUTED);
-      const meta = [d.ciudad, d.fechaEmision ? `Emisión: ${d.fechaEmision}` : '', d.fechaVencimiento ? `Vence: ${d.fechaVencimiento}` : ''].filter(Boolean).join('  ·  ');
+      const meta = [d.ciudad, d.fechaEmision ? `${dt('cc.pdf.issued', 'Emisión')}: ${fd(d.fechaEmision)}` : '', d.fechaVencimiento ? `${dt('cc.pdf.due', 'Vence')}: ${fd(d.fechaVencimiento)}` : ''].filter(Boolean).join('  ·  ');
       doc.text(meta, m, y);
       y += 6;
     }
@@ -595,7 +648,7 @@
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    ['Descripción', 'Cant.', 'V. Unit.', 'Total'].forEach((h, i) => {
+    [dt('cc.pdf.col_desc', 'Descripción'), dt('cc.pdf.col_qty', 'Cant.'), dt('cc.pdf.col_unit', 'V. Unit.'), dt('cc.pdf.col_total', 'Total')].forEach((h, i) => {
       const x = [cols[0] + 2, cols[1] + 2, cols[2] + 2, cols[3] + 2][i];
       doc.text(h, x, y + 4.5);
     });
@@ -626,9 +679,9 @@
     const totX = pw - m - 62;
     doc.setFontSize(9);
     const totales = [
-      ['Subtotal', formatoPesos(d.subtotal)],
-      ...(d.conIva ? [[(global.ArpaPricing?.getTaxLabelText?.()?.full || 'IVA (0%)'), formatoPesos(d.iva)]] : []),
-      ...(d.conRet ? [[`Retención (${d.retPct}%)`, '- ' + formatoPesos(d.retencion)]] : [])
+      [dt('cc.pdf.subtotal', 'Subtotal'), formatoPesos(d.subtotal)],
+      ...(d.conIva ? [[(global.ArpaDocLang?.taxLabel?.() || global.ArpaPricing?.getTaxLabelText?.()?.full || 'IVA (0%)'), formatoPesos(d.iva)]] : []),
+      ...(d.conRet ? [[`${dt('cc.pdf.withholding', 'Retención')} (${d.retPct}%)`, '- ' + formatoPesos(d.retencion)]] : [])
     ];
     totales.forEach(([label, val]) => {
       doc.setTextColor(...MUTED);
@@ -645,16 +698,16 @@
     y += 5;
     doc.setFontSize(11);
     doc.setTextColor(...NAVY);
-    doc.text('TOTAL A COBRAR', totX, y);
+    doc.text(dt('cc.pdf.total', 'TOTAL A COBRAR'), totX, y);
     doc.text(formatoPesos(d.total), pw - m, y, { align: 'right' });
     y += 10;
 
     const consigLines = [
-      d.pago.bankName && `Banco: ${d.pago.bankName}`,
-      d.pago.accountType && `Tipo: ${d.pago.accountType}`,
-      d.pago.accountNumber && `Cuenta N°: ${d.pago.accountNumber}`,
-      d.pago.accountHolder && `Titular: ${d.pago.accountHolder}`,
-      d.pago.accountHolderDocument && `NIT/C.C.: ${d.pago.accountHolderDocument}`
+      d.pago.bankName && `${dt('cc.pdf.bank', 'Banco')}: ${d.pago.bankName}`,
+      d.pago.accountType && `${dt('cc.pdf.account_type', 'Tipo')}: ${dt('cc.pdf.account.' + d.pago.accountType, d.pago.accountType)}`,
+      d.pago.accountNumber && `${dt('cc.pdf.account_no', 'Cuenta N°')}: ${d.pago.accountNumber}`,
+      d.pago.accountHolder && `${dt('cc.pdf.holder', 'Titular')}: ${d.pago.accountHolder}`,
+      d.pago.accountHolderDocument && `${dt('cc.pdf.holder_doc', 'NIT/C.C.')}: ${d.pago.accountHolderDocument}`
     ].filter(Boolean);
     const consigBoxH = 10 + consigLines.length * 4.5 + 4;
     if (y > ph - (consigBoxH + 15)) { doc.addPage(); y = m; }
@@ -664,7 +717,7 @@
     doc.setTextColor(21, 128, 61);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text('DATOS PARA CONSIGNACIÓN', m + 4, y + 6);
+    doc.text(dt('cc.pdf.payment', 'DATOS PARA CONSIGNACIÓN'), m + 4, y + 6);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     let py = y + 12;
@@ -681,7 +734,7 @@
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.setTextColor(...NAVY);
-      doc.text('Observaciones', m, y);
+      doc.text(dt('cc.pdf.notes', 'Observaciones'), m, y);
       y += 5;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
@@ -707,8 +760,8 @@
     doc.line(m + sigW + 10, y + 12, pw - m, y + 12);
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);
-    doc.text('Firma cobrador', m + sigW / 2, y + 17, { align: 'center' });
-    doc.text('Firma cliente', m + sigW + 10 + sigW / 2, y + 17, { align: 'center' });
+    doc.text(dt('cc.pdf.sig_provider', 'Firma cobrador'), m + sigW / 2, y + 17, { align: 'center' });
+    doc.text(dt('cc.pdf.sig_customer', 'Firma cliente'), m + sigW + 10 + sigW / 2, y + 17, { align: 'center' });
     doc.setTextColor(30, 41, 59);
     doc.setFont('helvetica', 'bold');
     doc.text(d.cobrador.nombre || '—', m + sigW / 2, y + 22, { align: 'center' });
@@ -719,11 +772,13 @@
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
-    const arpaFooter = global.ArpaBrand?.GLOBAL_FOOTER_TEXT
+    // Con English el pie sale en inglés; con Español, el mismo de siempre.
+    const arpaFooter = (global.ArpaDocLang?.isEnglish?.() && dt('cc.pdf.footer', ''))
+      || global.ArpaBrand?.GLOBAL_FOOTER_TEXT
       || '© 2026 ARPA Technology Global · arpatechnologyglobal.com · Todos los derechos reservados.';
     doc.text(arpaFooter, pw / 2, ph - 5.5, { align: 'center' });
 
-    const filename = `CuentaCobro_${d.numero || 'CC'}_${sanitizeFilename(d.cliente.nombre)}.pdf`;
+    const filename = `${dt('file.cc', 'CuentaCobro')}_${d.numero || 'CC'}_${sanitizeFilename(d.cliente.nombre)}.pdf`;
     return { doc, filename };
   }
 
@@ -734,14 +789,14 @@
       alert(window.ArpaI18n.t('alert.pdf.jspdf_no_cargo'));
       return;
     }
+    if (!(await asegurarNumeroCc())) return;
 
     const d = getFormSnapshot();
     try {
       const { doc, filename } = await renderCcToPdf(d, jsPDF);
       doc.save(filename);
       global.ArpaHistorial?.captureFromCuentaCobro?.(d);
-        global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
-      clearCcDraft();
+      cerrarCcTerminada(d);
     } catch (e) {
       scheduleCcDraftSave(true);
       alert(window.ArpaI18n.t('alert.cuenta_cobro.pdf_no_generado'));
@@ -761,7 +816,8 @@
     const hadDraft = applyCcDraft();
     if (!hadDraft) {
       initFechas();
-      ensureCcNumero();
+      // No se pide número al abrir: se asigna al generar PDF o compartir
+      // (asegurarNumeroCc) o con "+ NUEVO N°"; el borrador trae el suyo si lo tiene.
     }
     global.ArpaBrand?.applyCuentaCobroFromSettings?.(undefined, {
       fillPago: hadDraft ? 'if-empty' : 'always'
@@ -813,6 +869,7 @@
     recalcularTotales,
     nuevoCcNumero,
     ensureCcNumero,
+    asegurarNumeroCc,
     limpiarFormulario,
     enviarWhatsApp,
     generarPDF,
