@@ -135,7 +135,7 @@ test('Configuración', () => {
   ok(X.CONFIG.TRIAL_UPGRADE_GUMROAD_URL === GUMROAD, 'link de pago = Gumroad plan Técnico');
   ok(X.TRIAL_SEQUENCE_.map((s) => s.day).join(',') === '0,2,5,6,7,10,20', 'días 0, 2, 5, 6, 7, 10 y 20');
   ok(X.TRIALS_HEADERS_.slice(0, 8).join('|') === 'Nombre|Oficio|Telefono|FechaInicio|FechaVencimiento|TrialId|Notificado|Convertido', 'columnas originales en el mismo orden');
-  ok(X.TRIALS_HEADERS_.includes('Secuencia') && X.TRIALS_HEADERS_.includes('Detener'), 'columnas nuevas Secuencia y Detener');
+  ok(X.TRIALS_HEADERS_.includes('Secuencia') && X.TRIALS_HEADERS_.includes('Detener') && X.TRIALS_HEADERS_.includes('Pais'), 'columnas nuevas Secuencia, Detener y Pais');
 
   // ─── Textos aprobados ────────────────────────────────────────────────────────
 });
@@ -227,7 +227,8 @@ test('Columnas nuevas en hojas existentes', () => {
   ok(col.secuencia === 8 && col.detener === 9 && col.notificado === 6, 'mapa de columnas correcto');
   ok(sh.data[1][0] === 'Ana' && sh.data[1][3] === iso(1), 'no toca los datos');
   S.ensureTrialsSheetHeaders_(sh);
-  ok(sh.data[0].length === 10, 'repetir no duplica columnas');
+  ok(sh.data[0][10] === 'Pais', 'agrega Pais al final');
+  ok(sh.data[0].length === 11, 'repetir no duplica columnas');
   sh = createFakeSheet([oldHeaders.concat(['Notas'])]);
   col = S.ensureTrialsSheetHeaders_(sh);
   ok(sh.data[0][8] === 'Notas' && sh.data[0][9] === 'Secuencia' && col.detener === 10, 'respeta columnas propias de Arlen');
@@ -282,4 +283,80 @@ test('Correo diario a Arlen (hoja y correo falsos)', () => {
   try { S.revisarSecuenciaPruebas(); } catch (e) { threw = true; }
   S.MailApp.sendEmail = savedSend;
   ok(threw && currentSheet.data[1][8] === '', 'si el correo falla no marca nada (se reintenta)');
+});
+
+// ─── Prefijo de país en los links (resolveTrialWaPhone_) ─────────────────────
+const tel = (n, pais) => S.resolveTrialWaPhone_(n, pais);
+
+test('Teléfono: Colombia', () => {
+  assert.strictEqual(tel('573001234567', 'CO').phone, '573001234567', 'como lo guarda la app');
+  assert.strictEqual(tel('573001234567', '').phone, '573001234567', 'registro viejo sin país');
+  assert.strictEqual(tel('+57 300 123 4567', '').phone, '573001234567', 'con + y espacios');
+  assert.strictEqual(tel('3001234567', '').phone, '573001234567', '10 dígitos que empiezan por 3 → 57');
+  assert.strictEqual(tel('3001234567', 'CO').phone, '573001234567', 'nacional con país CO');
+  assert.strictEqual(tel('576015551234', 'CO').phone, '576015551234', 'fijo 60x');
+  assert.strictEqual(tel(573001234567, '').phone, '573001234567', 'la hoja lo guardó como número');
+});
+
+test('Teléfono: México', () => {
+  assert.strictEqual(tel('525512345678', 'MX').phone, '525512345678', '52 + 10 dígitos');
+  assert.strictEqual(tel('525512345678', '').phone, '525512345678', '52 sin país guardado');
+  assert.strictEqual(tel('5215512345678', 'MX').phone, '5215512345678', 'formato viejo 521');
+  assert.strictEqual(tel('5512345678', 'MX').phone, '525512345678', 'nacional con país MX → 52');
+  assert.strictEqual(tel('3312345678', 'MX').phone, '523312345678', 'Guadalajara (empieza por 3) con país MX → 52, no 57');
+  assert.strictEqual(tel('+52 55 1234 5678', '').phone, '525512345678', 'con +52');
+});
+
+test('Teléfono: Estados Unidos', () => {
+  assert.strictEqual(tel('13055551234', 'US').phone, '13055551234', '1 + 10 dígitos');
+  assert.strictEqual(tel('13055551234', '').phone, '13055551234', '1 sin país guardado');
+  assert.strictEqual(tel('+1 (305) 555-1234', '').phone, '13055551234', 'con +1 y signos');
+  assert.strictEqual(tel('3055551234', 'US').phone, '13055551234', 'nacional con país US → 1, no 57');
+  assert.strictEqual(tel('001305555123 4', 'US').phone, '13055551234', 'prefijo internacional 00');
+});
+
+test('Teléfono: ambiguos → sin link y "revisar número"', () => {
+  const casos = [
+    ['5512345678', '', '10 dígitos de México sin país'],
+    ['575512345678', '', 'dejó el +57 y escribió un número de México'],
+    ['573055551234', 'US', 'dejó el +57 pero el país es EE. UU.'],
+    ['525512345678', 'CO', 'número de México con país Colombia'],
+    ['12345', 'CO', 'muy corto'],
+    ['30012345678', '', '11 dígitos que empiezan por 3'],
+    ['', 'CO', 'vacío']
+  ];
+  casos.forEach(([n, pais, nombre]) => {
+    const r = tel(n, pais);
+    assert.strictEqual(r.phone, '', nombre + ': sin número');
+    assert.strictEqual(r.revisar, true, nombre + ': revisar');
+    assert.ok(r.motivo, nombre + ': con motivo');
+  });
+  assert.strictEqual(S.normalizePhoneForWaMe_('5512345678'), '', 'normalizePhoneForWaMe_ ya no antepone 57 a ciegas');
+  assert.strictEqual(S.normalizePhoneForWaMe_('3055551234', 'US'), '13055551234', 'normalizePhoneForWaMe_ usa el país');
+});
+
+test('Secuencia con número dudoso: va al correo marcado, sin link', () => {
+  const base = { nombre: 'Juan', oficio: 'electricidad', trialId: 'T9', notificado: '', convertido: '', secuencia: '', detener: '' };
+  const fila = { ...base, fechaInicio: iso(2), telefono: '575512345678', pais: '' };
+  const plan = S.planTrialSequenceRow_(fila, today);
+  ok(plan && plan.day === 2, 'la fila igual entra (no se pierde el día)');
+  ok(plan.waLink === '' && plan.revisarNumero === true, 'sin link y marcada');
+  const html = S.buildTrialSequenceEmailHtml_([plan], '11/10/2026');
+  ok(html.includes('REVISAR NÚMERO') && !html.includes('wa.me'), 'el correo dice REVISAR NÚMERO y no trae link');
+  ok(html.includes(plan.message.slice(0, 20)), 'el correo trae el mensaje para copiarlo');
+  const mx = S.planTrialSequenceRow_({ ...base, fechaInicio: iso(2), telefono: '5512345678', pais: 'MX' }, today);
+  ok(mx.waLink.startsWith('https://wa.me/525512345678?text=') && !mx.revisarNumero, 'con país MX el link sale con 52');
+  ok(S.buildTrialSequenceEmailHtml_([mx], '').includes('(MX)'), 'el correo muestra el país');
+});
+
+test('Registro guarda el país (registerTrialUser_)', () => {
+  currentSheet = createFakeSheet([oldHeaders]);
+  let r = S.registerTrialUser_({ nombre: 'Ana', oficio: 'gas', telefono: '525512345678', fechaInicio: '2026-10-11', trialId: 'tMX', pais: 'mx' });
+  ok(r.ok, 'registro ok');
+  const h = currentSheet.data[0];
+  ok(currentSheet.data[1][h.indexOf('Pais')] === 'MX', 'guarda MX en la columna Pais');
+  S.registerTrialUser_({ nombre: 'B', oficio: '', telefono: '573001234567', fechaInicio: '2026-10-11', trialId: 'tX', pais: '<script>' });
+  ok((currentSheet.data[2][h.indexOf('Pais')] || '') === '', 'país desconocido no se guarda');
+  S.registerTrialUser_({ nombre: 'C', oficio: '', telefono: '573001234567', fechaInicio: '2026-10-11', trialId: 'tViejo' });
+  ok(currentSheet.data.length === 4, 'app vieja sin país sigue registrando');
 });

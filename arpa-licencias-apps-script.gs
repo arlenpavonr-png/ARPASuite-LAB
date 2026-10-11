@@ -57,9 +57,9 @@
 
  *
 
- * Pestaña Trials: Nombre | Oficio | Telefono | FechaInicio | FechaVencimiento | TrialId | Notificado | Convertido | Secuencia | Detener
+ * Pestaña Trials: Nombre | Oficio | Telefono | FechaInicio | FechaVencimiento | TrialId | Notificado | Convertido | Secuencia | Detener | Pais
 
- *   Secuencia y Detener se agregan solas al final si faltan. Trigger diario 8-9 a. m. → revisarSecuenciaPruebas
+ *   Secuencia, Detener y Pais se agregan solas al final si faltan. Trigger diario 8-9 a. m. → revisarSecuenciaPruebas
 
  *   (o el trigger viejo revisarTrialsDia6, que ahora llama a la misma función).
  *
@@ -1762,7 +1762,7 @@ function getHistorial_(licencia) {
 
 
 
-const TRIALS_HEADERS_ = ['Nombre', 'Oficio', 'Telefono', 'FechaInicio', 'FechaVencimiento', 'TrialId', 'Notificado', 'Convertido', 'Secuencia', 'Detener'];
+const TRIALS_HEADERS_ = ['Nombre', 'Oficio', 'Telefono', 'FechaInicio', 'FechaVencimiento', 'TrialId', 'Notificado', 'Convertido', 'Secuencia', 'Detener', 'Pais'];
 
 
 
@@ -1928,6 +1928,12 @@ function registerTrialUser_(body) {
 
   row[col.trialid != null ? col.trialid : 5] = trialId;
 
+  // País de la app (CO, MX, US, CL, PE) para armar bien el link de WhatsApp.
+
+  const pais = String(body.pais || '').trim().toUpperCase();
+
+  if (col.pais != null && TRIAL_PHONE_COUNTRIES_[pais]) row[col.pais] = pais;
+
   sheet.appendRow(row);
 
   return { ok: true };
@@ -1936,17 +1942,135 @@ function registerTrialUser_(body) {
 
 
 
-function normalizePhoneForWaMe_(telefono) {
+/**
 
-  let digits = String(telefono || '').replace(/\D/g, '');
+ * Países de la app (mismo listado que js/arpa-pricing.js): código de país y
 
-  if (!digits) return '';
+ * cuántos dígitos tiene el número nacional.
 
-  if (digits.length === 10) digits = '57' + digits;
+ */
 
-  if (digits.length === 11 && digits.charAt(0) === '3') digits = '57' + digits;
+const TRIAL_PHONE_COUNTRIES_ = {
 
-  return digits;
+  CO: { prefix: '57', national: 10 },
+
+  MX: { prefix: '52', national: 10 },
+
+  US: { prefix: '1', national: 10 },
+
+  CL: { prefix: '56', national: 9 },
+
+  PE: { prefix: '51', national: 9 }
+
+};
+
+
+
+/** ¿El número (ya con código) tiene la forma de un número de ese país? */
+
+function trialPhoneMatchesCountry_(digits, pais) {
+
+  const c = TRIAL_PHONE_COUNTRIES_[pais];
+
+  if (!c || digits.indexOf(c.prefix) !== 0) return false;
+
+  const rest = digits.slice(c.prefix.length);
+
+  if (pais === 'CO') return rest.length === 10 && (rest.charAt(0) === '3' || rest.indexOf('60') === 0);
+
+  if (pais === 'MX') return rest.length === 10 || (rest.length === 11 && rest.charAt(0) === '1');
+
+  if (pais === 'US') return rest.length === 10 && /^[2-9]/.test(rest);
+
+  return rest.length === c.national;
+
+}
+
+
+
+/**
+
+ * Número para wa.me. Nunca adivina: si no es claro, devuelve phone '' y revisar true.
+
+ * telefono: lo que guardó la app (solo dígitos; puede traer "+").
+
+ * pais: CO, MX, US, CL o PE si la app lo envió; vacío en registros viejos.
+
+ * → { phone: '573001234567' | '', revisar: bool, motivo: '' }
+
+ */
+
+function resolveTrialWaPhone_(telefono, pais) {
+
+  const raw = String(telefono == null ? '' : telefono).trim();
+
+  let digits = raw.replace(/\D/g, '');
+
+  const p = TRIAL_PHONE_COUNTRIES_[String(pais || '').trim().toUpperCase()] ? String(pais).trim().toUpperCase() : '';
+
+  if (!digits) return { phone: '', revisar: true, motivo: 'sin número' };
+
+  if (digits.indexOf('00') === 0) digits = digits.slice(2);
+
+
+
+  // 1. Ya trae código de país de la app (57, 52, 1, 56, 51) con el largo correcto.
+
+  const codes = Object.keys(TRIAL_PHONE_COUNTRIES_);
+
+  for (let i = 0; i < codes.length; i++) {
+
+    if (!trialPhoneMatchesCountry_(digits, codes[i])) continue;
+
+    if (p && p !== codes[i]) {
+
+      return { phone: '', revisar: true, motivo: 'el número parece de ' + codes[i] + ' pero el país de la app es ' + p };
+
+    }
+
+    return { phone: digits, revisar: false, motivo: '' };
+
+  }
+
+
+
+  // 2. Número nacional sin código.
+
+  if (p && digits.length === TRIAL_PHONE_COUNTRIES_[p].national) {
+
+    const full = TRIAL_PHONE_COUNTRIES_[p].prefix + digits;
+
+    if (trialPhoneMatchesCountry_(full, p)) return { phone: full, revisar: false, motivo: '' };
+
+  }
+
+  if (!p && digits.length === 10 && digits.charAt(0) === '3') {
+
+    return { phone: '57' + digits, revisar: false, motivo: '' }; // celular de Colombia
+
+  }
+
+
+
+  // 3. Escrito con "+" y largo internacional válido: se respeta tal cual.
+
+  if (raw.charAt(0) === '+' && digits.length >= 8 && digits.length <= 15) {
+
+    return { phone: digits, revisar: false, motivo: '' };
+
+  }
+
+  return { phone: '', revisar: true, motivo: 'no se sabe el código de país' };
+
+}
+
+
+
+/** Compatibilidad: devuelve '' cuando el número no es claro (antes anteponía 57 siempre). */
+
+function normalizePhoneForWaMe_(telefono, pais) {
+
+  return resolveTrialWaPhone_(telefono, pais).phone;
 
 }
 
@@ -2160,9 +2284,9 @@ function buildTrialDay6WhatsAppMessage_(nombre, oficio) {
 
 
 
-function buildTrialWhatsAppLink_(telefono, message) {
+function buildTrialWhatsAppLink_(telefono, message, pais) {
 
-  const phone = normalizePhoneForWaMe_(telefono);
+  const phone = normalizePhoneForWaMe_(telefono, pais);
 
   if (!phone) return '';
 
@@ -2242,7 +2366,7 @@ function pickTrialSequenceStep_(daysSinceStart, sentDays) {
 
  * Decide para una fila de la hoja Trials. Sin efectos: no escribe ni envía.
 
- * row: { nombre, oficio, telefono, fechaInicio, trialId, notificado, convertido, secuencia, detener }
+ * row: { nombre, oficio, telefono, fechaInicio, trialId, notificado, convertido, secuencia, detener, pais }
 
  */
 
@@ -2280,11 +2404,21 @@ function planTrialSequenceRow_(row, today) {
 
   const message = buildTrialSequenceMessage_(step.day, nombre, oficio);
 
-  const waLink = buildTrialWhatsAppLink_(telefono, message);
+  // Si el número no es claro no se adivina: va al correo sin link, marcado "revisar número".
 
-  if (!waLink) return null;
+  const pais = String(row.pais || '').trim().toUpperCase();
+
+  const tel = resolveTrialWaPhone_(telefono, pais);
+
+  const waLink = tel.phone ? buildTrialWhatsAppLink_(tel.phone, message) : '';
 
   return {
+
+    pais: pais,
+
+    revisarNumero: !waLink,
+
+    motivoNumero: waLink ? '' : (tel.motivo || 'número no claro'),
 
     day: step.day,
 
@@ -2324,7 +2458,17 @@ function buildTrialSequenceEmailHtml_(leads, fechaLabel) {
 
       (lead.oficioLabel ? ' · ' + escapeHtml_(lead.oficioLabel) : '') +
 
-      ' · ' + escapeHtml_(lead.telefono);
+      ' · ' + escapeHtml_(lead.telefono) +
+
+      (lead.pais ? ' (' + escapeHtml_(lead.pais) + ')' : '');
+
+    const accion = lead.waLink
+
+      ? '<a href="' + lead.waLink + '">Abrir WhatsApp con el mensaje listo</a>'
+
+      : '<strong style="color:#b00020;">REVISAR NÚMERO</strong> (' + escapeHtml_(lead.motivoNumero) +
+
+        '): no se armó el link para no escribirle a otra persona. Confirma el código de país y copia el mensaje.';
 
     return '<li style="margin-bottom:14px;">' +
 
@@ -2334,7 +2478,7 @@ function buildTrialSequenceEmailHtml_(leads, fechaLabel) {
 
       'Enviar: ' + escapeHtml_(lead.cuando) + ' (hora del técnico) — ' +
 
-      '<a href="' + lead.waLink + '">Abrir WhatsApp con el mensaje listo</a>' +
+      accion +
 
       '<blockquote style="border-left:3px solid #ccc;margin:6px 0;padding-left:12px;color:#444;">' +
 
@@ -2390,7 +2534,9 @@ function readTrialRow_(values, col) {
 
     secuencia: cell('secuencia', null),
 
-    detener: cell('detener', null)
+    detener: cell('detener', null),
+
+    pais: cell('pais', null)
 
   };
 
@@ -2436,7 +2582,7 @@ function runTrialSequence_(dryRun) {
 
     leads.forEach(function (l) {
 
-      Logger.log('Fila ' + l.rowNumber + ' · día ' + l.day + ' · ' + (l.nombre || 'Sin nombre') + ' · ' + l.telefono + '\n' + l.message);
+      Logger.log('Fila ' + l.rowNumber + ' · día ' + l.day + ' · ' + (l.nombre || 'Sin nombre') + ' · ' + l.telefono + (l.revisarNumero ? ' · REVISAR NÚMERO: ' + l.motivoNumero : '') + '\n' + l.message);
 
     });
 
