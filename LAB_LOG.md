@@ -1,5 +1,32 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-11 — Secuencia de seguimiento de pruebas gratis (`agent/secuencia-pruebas`)
+
+### Qué hace
+El aviso del día 6 pasa a ser una secuencia de 7 mensajes (días 0, 2, 5, 6, 7, 10 y 20 desde
+FechaInicio) con los textos aprobados del Manual de ventas. Cada mañana Arlen recibe UN correo
+con nombre, oficio, teléfono, día, hora sugerida y el link de WhatsApp con el mensaje listo; él
+los envía a mano (nada sale solo al cliente). Variante del día 2 para refrigeración, gas y
+mantenimiento. El link de pago pasa a Gumroad (plan Técnico).
+
+### Cómo se integra
+Solo `arpa-licencias-apps-script.gs` (protegido, tocado con autorización de Arlen):
+`revisarSecuenciaPruebas()` (trigger diario), `previsualizarSecuenciaPruebas()` (vista previa sin
+enviar ni escribir) y `revisarTrialsDia6()` ahora llama a la nueva función (el trigger viejo sigue
+sirviendo). Hoja Trials: columnas nuevas **Secuencia** (días ya preparados, p. ej. "0,2,5") y
+**Detener** (Arlen la marca si la persona responde o pide no recibir más); se agregan solas al final.
+Convertido o Detener con valor = fuera de la secuencia. Si el trigger no corrió, solo se prepara el
+mensaje más reciente y solo dentro de su plazo (días 6 y 7 únicamente en su día; el 20 hasta el 22).
+
+### Pruebas
+- `tests/secuencia-pruebas.test.js` (en `npm test`): textos exactos, variante, qué día toca,
+  columnas en hojas existentes y correo diario con hoja y correo simulados. Fence PASS.
+
+### Pendiente antes de producción
+- Pegar el .gs en el Apps Script, correr `previsualizarSecuenciaPruebas` y revisar el registro.
+- El día 0 llega en el correo de la mañana siguiente si la persona se registró después del correo.
+- Números de otros países: wa.me antepone 57 a números de 10 dígitos (comportamiento previo).
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace
