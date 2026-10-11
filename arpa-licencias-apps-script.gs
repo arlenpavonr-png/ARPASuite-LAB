@@ -54,6 +54,14 @@
  *   { accion: 'siguientenumero', licencia, tipo: 'formato'|'cot'|'cc', clienteUltimo }
  *
  * Pestaña Numeracion: Licencia | Tipo | UltimoNumero
+
+ *
+
+ * Pestaña Trials: Nombre | Oficio | Telefono | FechaInicio | FechaVencimiento | TrialId | Notificado | Convertido | Secuencia | Detener
+
+ *   Secuencia y Detener se agregan solas al final si faltan. Trigger diario 8-9 a. m. → revisarSecuenciaPruebas
+
+ *   (o el trigger viejo revisarTrialsDia6, que ahora llama a la misma función).
  *
  */
 
@@ -99,7 +107,7 @@ const CONFIG = {
   TRIAL_NOTIFY_EMAIL: 'support@arpatechnologyglobal.com',
 
   /** Link Gumroad plan Técnico Independiente ($83 USD) — actualizar si cambia */
-  TRIAL_UPGRADE_GUMROAD_URL: 'https://arpatechnologyglobal.com/',
+  TRIAL_UPGRADE_GUMROAD_URL: 'https://arpatech.gumroad.com/l/arpa-suite-tecnico',
 
 };
 
@@ -1754,7 +1762,7 @@ function getHistorial_(licencia) {
 
 
 
-const TRIALS_HEADERS_ = ['Nombre', 'Oficio', 'Telefono', 'FechaInicio', 'FechaVencimiento', 'TrialId', 'Notificado', 'Convertido'];
+const TRIALS_HEADERS_ = ['Nombre', 'Oficio', 'Telefono', 'FechaInicio', 'FechaVencimiento', 'TrialId', 'Notificado', 'Convertido', 'Secuencia', 'Detener'];
 
 
 
@@ -1784,11 +1792,41 @@ function ensureTrialsSheetHeaders_(sheet) {
 
   const first = String(row[0] || '').trim();
 
-  if (first === 'Nombre') return getTrialsColumnMap_(row);
+  if (first !== 'Nombre') {
 
-  sheet.getRange(1, 1, 1, TRIALS_HEADERS_.length).setValues([TRIALS_HEADERS_]);
+    sheet.getRange(1, 1, 1, TRIALS_HEADERS_.length).setValues([TRIALS_HEADERS_]);
 
-  return getTrialsColumnMap_(TRIALS_HEADERS_);
+    return getTrialsColumnMap_(TRIALS_HEADERS_);
+
+  }
+
+  // Hojas existentes: agrega al final las columnas que falten (p. ej. Secuencia, Detener) sin mover las demás.
+
+  const map = getTrialsColumnMap_(row);
+
+  let used = 0;
+
+  for (let i = 0; i < row.length; i++) {
+
+    if (String(row[i] || '').trim()) used = i + 1;
+
+  }
+
+  TRIALS_HEADERS_.forEach(function (h) {
+
+    const key = h.toLowerCase();
+
+    if (map[key] != null) return;
+
+    sheet.getRange(1, used + 1).setValue(h);
+
+    map[key] = used;
+
+    used += 1;
+
+  });
+
+  return map;
 
 }
 
@@ -1914,15 +1952,209 @@ function normalizePhoneForWaMe_(telefono) {
 
 
 
-function buildTrialDay6WhatsAppMessage_(nombre) {
+// ─── Secuencia de seguimiento de pruebas (días 0, 2, 5, 6, 7, 10 y 20) ─────────
 
-  const gumroad = CONFIG.TRIAL_UPGRADE_GUMROAD_URL || 'https://arpatechnologyglobal.com/';
+// Nada se envía solo al cliente: cada mañana Arlen recibe UN correo con los links
 
-  const first = String(nombre || '').trim().split(/\s+/)[0];
+// de WhatsApp listos y él los envía a mano.
 
-  const saludo = first ? ('Hola ' + first + '! ') : 'Hola! ';
+// day = día desde FechaInicio; hasta = último día en que todavía vale la pena
 
-  return saludo + 'Vi que llevas usando ARPA Suite estos días. ¿Cómo te ha ido con las cotizaciones? Mañana se vence tu prueba gratis. Si te sirvió, el plan Técnico Independiente queda en $83 USD pago único, de por vida. ¿Quieres que te ayude a activarlo? Aquí está el link: ' + gumroad;
+// mandarlo si el trigger no corrió (después de eso se salta, no se manda atrasado).
+
+
+
+const TRIAL_SEQUENCE_ = [
+
+  { day: 0, hasta: 1, objetivo: 'Bienvenida y poner el logo', cuando: 'lo antes posible (8 a. m. a 6 p. m.)' },
+
+  { day: 2, hasta: 4, objetivo: 'Primer documento real', cuando: '9 a 10 a. m.' },
+
+  { day: 5, hasta: 5, objetivo: 'Mostrar valor y resolver dudas', cuando: '9 a 10 a. m.' },
+
+  { day: 6, hasta: 6, objetivo: 'Vence mañana: ofrecer el plan', cuando: '8 a 9 a. m.' },
+
+  { day: 7, hasta: 7, objetivo: 'Último día de la prueba', cuando: '10 a 11 a. m.' },
+
+  { day: 10, hasta: 12, objetivo: 'Recuperar al que no compró', cuando: 'en la mañana' },
+
+  { day: 20, hasta: 22, objetivo: 'Último intento, puerta abierta', cuando: 'en la mañana' }
+
+];
+
+
+
+/** Nombre del oficio para los mensajes (la app guarda el id, p. ej. "linea_blanca"). */
+
+const TRIAL_OFICIO_LABELS_ = {
+
+  automatismos: 'automatismos',
+
+  electricidad: 'electricidad',
+
+  gas: 'gas',
+
+  refrigeracion: 'refrigeración y aire acondicionado',
+
+  cctv: 'cámaras y seguridad electrónica',
+
+  plomeria: 'plomería',
+
+  metalmecanica: 'metalmecánica y soldadura',
+
+  plagas: 'control de plagas',
+
+  linea_blanca: 'línea blanca',
+
+  solar: 'energía solar'
+
+};
+
+
+
+function trialNormalizeText_(s) {
+
+  return String(s || '').trim().toLowerCase()
+
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+}
+
+
+
+function trialFirstName_(nombre) {
+
+  const first = String(nombre || '').trim().split(/\s+/)[0] || '';
+
+  if (!first) return '';
+
+  return first.charAt(0).toUpperCase() + first.slice(1);
+
+}
+
+
+
+function trialOficioLabel_(oficio) {
+
+  const raw = String(oficio || '').trim();
+
+  if (!raw) return '';
+
+  const key = trialNormalizeText_(raw).replace(/\s+/g, '_');
+
+  if (TRIAL_OFICIO_LABELS_[key]) return TRIAL_OFICIO_LABELS_[key];
+
+  return raw.replace(/_/g, ' ');
+
+}
+
+
+
+/** Variante del día 2: refrigeración, gas y mantenimiento. */
+
+function isTrialOficioMantenimiento_(oficio) {
+
+  const n = trialNormalizeText_(oficio).replace(/_/g, ' ');
+
+  if (!n) return false;
+
+  return /refrigeracion|aire acondicionado|mantenimiento/.test(n) || /(^|\s)gas(\s|$)/.test(n);
+
+}
+
+
+
+/** "[Nombre], texto" → "Nombre, texto" o, sin nombre, "Texto" (con ¿ respetado). */
+
+function trialNameLead_(first, rest) {
+
+  if (first) return first + ', ' + rest;
+
+  const m = String(rest).match(/^(¿|¡)?(.)([\s\S]*)$/);
+
+  if (!m) return rest;
+
+  return (m[1] || '') + m[2].toUpperCase() + m[3];
+
+}
+
+
+
+/**
+
+ * Texto aprobado (Manual de ventas, 11 oct 2026) para el día de la secuencia.
+
+ * Devuelve '' si el día no es parte de la secuencia.
+
+ */
+
+function buildTrialSequenceMessage_(day, nombre, oficio) {
+
+  const first = trialFirstName_(nombre);
+
+  const of = trialOficioLabel_(oficio);
+
+  const gumroad = CONFIG.TRIAL_UPGRADE_GUMROAD_URL || 'https://arpatech.gumroad.com/l/arpa-suite-tecnico';
+
+  const hola = first ? ('¡Hola ' + first + '!') : '¡Hola!';
+
+  const holaComa = first ? ('Hola ' + first + ',') : 'Hola,';
+
+  switch (Number(day)) {
+
+    case 0:
+
+      return hola + ' Bienvenido a ARPA Suite. Primer paso: en Configuración sube tu logo y los datos de tu empresa; desde ahí todos tus PDF salen con tu marca. Cualquier duda, me escribes aquí mismo.';
+
+    case 2: {
+
+      const tip = of ? ('Tip para ' + of + ': ') : 'Tip: ';
+
+      if (isTrialOficioMantenimiento_(oficio)) {
+
+        return trialNameLead_(first, '¿ya hiciste tu primera cotización? ' + tip + 'después de cada mantenimiento haz el Formato de Servicio con fotos; queda en tu historial y la app te recuerda a los 6 meses.');
+
+      }
+
+      return trialNameLead_(first, '¿ya hiciste tu primera cotización? ' + tip + 'agrega al Catálogo los 10 productos que más usas y la cotización sale en 2 minutos. Hazla con un cliente real y mándasela por WhatsApp.');
+
+    }
+
+    case 5:
+
+      return trialNameLead_(first, 'ya llevas 5 días con ARPA Suite. ¿Algún cliente te ha dicho algo del PDF? Si algo no te ha funcionado, dime y te ayudo hoy mismo.');
+
+    case 6:
+
+      return hola + ' Mañana vence tu prueba de ARPA Suite. Si te sirvió para tus trabajos' + (of ? (' de ' + of) : '') + ', el plan Técnico Independiente es $83 USD pago único, sin mensualidades: ' + gumroad + ' ¿Te quedó alguna duda?';
+
+    case 7:
+
+      return trialNameLead_(first, 'hoy es el último día de tu prueba. Cuando actives tu código sigues donde ibas. $83 USD una sola vez: ' + gumroad + ' ¿Lo dejamos activo hoy?');
+
+    case 10:
+
+      return holaComa + ' tu prueba de ARPA Suite terminó hace unos días. ¿Qué te faltó para decidirte: el precio, la forma de pago o algo de la app? Si quieres, te doy 7 días más para probarla con un trabajo real. Respóndeme y te la activo.';
+
+    case 20:
+
+      return holaComa + ' último mensaje de mi parte, no te quiero llenar el WhatsApp. Si más adelante quieres mandar tus cotizaciones' + (of ? (' de ' + of) : '') + ' en PDF con tu logo, ARPA Suite sigue siendo pago único: https://arpatechnologyglobal.com ¡Éxitos con tus trabajos!';
+
+    default:
+
+      return '';
+
+  }
+
+}
+
+
+
+/** Compatibilidad: el mensaje del día 6 ahora es el texto aprobado de la secuencia. */
+
+function buildTrialDay6WhatsAppMessage_(nombre, oficio) {
+
+  return buildTrialSequenceMessage_(6, nombre, oficio);
 
 }
 
@@ -1942,145 +2174,349 @@ function buildTrialWhatsAppLink_(telefono, message) {
 
 
 
+/** "0,2,5" → [0, 2, 5] */
+
+function parseTrialSequenceDays_(value) {
+
+  return String(value == null ? '' : value).split(/[^0-9]+/)
+
+    .filter(function (s) { return s !== ''; })
+
+    .map(function (s) { return Number(s); });
+
+}
+
+
+
+function trialParseStartDate_(raw) {
+
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? null : stripTime_(raw);
+
+  const d = parseDateFromIsoString_(String(raw || ''));
+
+  return d ? stripTime_(d) : null;
+
+}
+
+
+
+function trialDaysSinceStart_(fechaInicio, today) {
+
+  return Math.round((stripTime_(today).getTime() - stripTime_(fechaInicio).getTime()) / 86400000);
+
+}
+
+
+
 /**
 
- * Revisar trials en día 6 (FechaInicio + 6 días). Marca Notificado y envía email con links WA.
+ * Qué mensaje toca hoy. Como máximo uno: el más reciente que ya llegó,
 
- * Configurar trigger: Time-driven → Day timer → 8am-9am → revisarTrialsDia6
+ * solo si no se ha preparado y todavía está dentro de su plazo ("hasta").
 
  */
 
-function revisarTrialsDia6() {
+function pickTrialSequenceStep_(daysSinceStart, sentDays) {
 
-  const sheet = getTrialsSheet_();
+  const n = Number(daysSinceStart);
 
-  const values = sheet.getDataRange().getValues();
+  if (!isFinite(n) || n < 0) return null;
 
-  if (values.length < 2) return;
+  let step = null;
 
+  TRIAL_SEQUENCE_.forEach(function (s) { if (s.day <= n) step = s; });
 
+  if (!step) return null;
 
-  const today = stripTime_(new Date());
+  if (n > step.hasta) return null;
 
-  const col = ensureTrialsSheetHeaders_(sheet);
+  if ((sentDays || []).indexOf(step.day) !== -1) return null;
 
-  const leads = [];
+  return step;
 
-
-
-  for (let i = 1; i < values.length; i++) {
-
-    const nombre = String(values[i][col.nombre != null ? col.nombre : 0] || '').trim();
-
-    const oficio = String(values[i][col.oficio != null ? col.oficio : 1] || '').trim();
-
-    const telefono = String(values[i][col.telefono != null ? col.telefono : 2] || '').trim();
-
-    const fechaInicioRaw = values[i][col.fechainicio != null ? col.fechainicio : 3];
-
-    const notificado = String(values[i][col.notificado != null ? col.notificado : 6] || '').trim();
-
-    if (!telefono || notificado) continue;
+}
 
 
 
-    let fechaInicio = null;
+/**
 
-    if (fechaInicioRaw instanceof Date) {
+ * Decide para una fila de la hoja Trials. Sin efectos: no escribe ni envía.
 
-      fechaInicio = stripTime_(fechaInicioRaw);
+ * row: { nombre, oficio, telefono, fechaInicio, trialId, notificado, convertido, secuencia, detener }
 
-    } else {
+ */
 
-      fechaInicio = parseDateFromIsoString_(String(fechaInicioRaw || ''));
+function planTrialSequenceRow_(row, today) {
 
-      if (fechaInicio) fechaInicio = stripTime_(fechaInicio);
+  if (!row) return null;
 
-    }
+  if (String(row.convertido || '').trim()) return null;
 
-    if (!fechaInicio) continue;
+  if (String(row.detener || '').trim()) return null;
+
+  const telefono = String(row.telefono || '').trim();
+
+  if (!telefono) return null;
+
+  const fechaInicio = trialParseStartDate_(row.fechaInicio);
+
+  if (!fechaInicio) return null;
+
+  const sent = parseTrialSequenceDays_(row.secuencia);
+
+  // Filas avisadas por el revisarTrialsDia6 anterior (Notificado) ya tuvieron su día 6.
+
+  if (String(row.notificado || '').trim() && sent.indexOf(6) === -1) sent.push(6);
+
+  const days = trialDaysSinceStart_(fechaInicio, today);
+
+  const step = pickTrialSequenceStep_(days, sent);
+
+  if (!step) return null;
+
+  const nombre = String(row.nombre || '').trim();
+
+  const oficio = String(row.oficio || '').trim();
+
+  const message = buildTrialSequenceMessage_(step.day, nombre, oficio);
+
+  const waLink = buildTrialWhatsAppLink_(telefono, message);
+
+  if (!waLink) return null;
+
+  return {
+
+    day: step.day,
+
+    objetivo: step.objetivo,
+
+    cuando: step.cuando,
+
+    nombre: nombre,
+
+    oficio: oficio,
+
+    oficioLabel: trialOficioLabel_(oficio),
+
+    telefono: telefono,
+
+    trialId: String(row.trialId || '').trim(),
+
+    message: message,
+
+    waLink: waLink,
+
+    secuenciaNueva: sent.filter(function (d) { return d !== step.day; })
+
+      .concat([step.day]).sort(function (a, b) { return a - b; }).join(',')
+
+  };
+
+}
 
 
 
-    const day6 = stripTime_(addDays_(fechaInicio, 6));
+function buildTrialSequenceEmailHtml_(leads, fechaLabel) {
 
-    if (day6.getTime() !== today.getTime()) continue;
+  const items = leads.map(function (lead, idx) {
 
+    const label = escapeHtml_(lead.nombre || 'Sin nombre') +
 
+      (lead.oficioLabel ? ' · ' + escapeHtml_(lead.oficioLabel) : '') +
 
-    const message = buildTrialDay6WhatsAppMessage_(nombre);
+      ' · ' + escapeHtml_(lead.telefono);
 
-    const waLink = buildTrialWhatsAppLink_(telefono, message);
+    return '<li style="margin-bottom:14px;">' +
 
-    sheet.getRange(i + 1, (col.notificado != null ? col.notificado : 6) + 1).setValue('Si');
+      '<strong>Día ' + lead.day + ' — ' + escapeHtml_(lead.objetivo) + '</strong><br>' +
 
-    leads.push({
+      (idx + 1) + '. ' + label + '<br>' +
 
-      nombre: nombre,
+      'Enviar: ' + escapeHtml_(lead.cuando) + ' (hora del técnico) — ' +
 
-      oficio: oficio,
+      '<a href="' + lead.waLink + '">Abrir WhatsApp con el mensaje listo</a>' +
 
-      telefono: telefono,
+      '<blockquote style="border-left:3px solid #ccc;margin:6px 0;padding-left:12px;color:#444;">' +
 
-      trialId: String(values[i][col.trialid != null ? col.trialid : 5] || ''),
-
-      waLink: waLink
-
-    });
-
-  }
-
-
-
-  if (!leads.length) return;
-
-
-
-  const lines = leads.map(function (lead, idx) {
-
-    const label = (lead.nombre || 'Sin nombre') +
-
-      (lead.oficio ? ' · ' + lead.oficio : '') +
-
-      ' · ' + lead.telefono +
-
-      (lead.trialId ? ' (' + lead.trialId + ')' : '');
-
-    return (idx + 1) + '. ' + label + ' — <a href="' + lead.waLink + '">Abrir WhatsApp</a>';
+      escapeHtml_(lead.message) + '</blockquote></li>';
 
   });
 
+  return '<p>Hola Arlen,</p>' +
+
+    '<p>Seguimiento de pruebas para hoy' + (fechaLabel ? ' (' + escapeHtml_(fechaLabel) + ')' : '') +
+
+    ': <strong>' + leads.length + (leads.length === 1 ? ' mensaje' : ' mensajes') + '</strong> para enviar por WhatsApp. ' +
+
+    'Toca cada link, revisa el texto y envíalo tú.</p>' +
+
+    '<ol style="padding-left:18px;">' + items.join('') + '</ol>' +
+
+    '<p style="color:#666;font-size:13px;">Si alguien responde o pide no recibir más mensajes, escribe algo en la columna ' +
+
+    '<strong>Detener</strong> de la hoja Trials. Si compra, marca <strong>Convertido</strong>. ' +
+
+    'La columna <strong>Secuencia</strong> guarda los días ya preparados.</p>';
+
+}
 
 
-  const htmlBody =
 
-    '<p>Hola,</p>' +
+function readTrialRow_(values, col) {
 
-    '<p>Estos usuarios de trial están en <strong>día 6</strong> (vence mañana). Contactar por WhatsApp:</p>' +
+  function cell(key, fallback) {
 
-    '<ul><li>' + lines.join('</li><li>') + '</li></ul>' +
+    const idx = col[key] != null ? col[key] : fallback;
 
-    '<p>Ejemplo de mensaje al cliente (personalizado con nombre):</p>' +
+    return idx == null ? '' : values[idx];
 
-    '<blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444;">' +
+  }
 
-    buildTrialDay6WhatsAppMessage_('Juan').replace(/</g, '&lt;') +
+  return {
 
-    '</blockquote>';
+    nombre: cell('nombre', 0),
+
+    oficio: cell('oficio', 1),
+
+    telefono: cell('telefono', 2),
+
+    fechaInicio: cell('fechainicio', 3),
+
+    trialId: cell('trialid', 5),
+
+    notificado: cell('notificado', 6),
+
+    convertido: cell('convertido', 7),
+
+    secuencia: cell('secuencia', null),
+
+    detener: cell('detener', null)
+
+  };
+
+}
 
 
+
+function runTrialSequence_(dryRun) {
+
+  const sheet = getTrialsSheet_();
+
+  const col = ensureTrialsSheetHeaders_(sheet);
+
+  const values = sheet.getDataRange().getValues();
+
+  if (values.length < 2) return [];
+
+  const today = stripTime_(new Date());
+
+  const leads = [];
+
+  for (let i = 1; i < values.length; i++) {
+
+    const plan = planTrialSequenceRow_(readTrialRow_(values[i], col), today);
+
+    if (!plan) continue;
+
+    plan.rowNumber = i + 1;
+
+    leads.push(plan);
+
+  }
+
+  if (!leads.length) {
+
+    Logger.log('Secuencia de pruebas: nada para hoy.');
+
+    return leads;
+
+  }
+
+  if (dryRun) {
+
+    leads.forEach(function (l) {
+
+      Logger.log('Fila ' + l.rowNumber + ' · día ' + l.day + ' · ' + (l.nombre || 'Sin nombre') + ' · ' + l.telefono + '\n' + l.message);
+
+    });
+
+    return leads;
+
+  }
+
+  // Primero el correo; si falla, no se marca nada y se reintenta al día siguiente (dentro del plazo).
 
   MailApp.sendEmail({
 
     to: CONFIG.TRIAL_NOTIFY_EMAIL,
 
-    subject: 'ARPA Suite — Leads para contactar hoy (día 6)',
+    subject: 'ARPA Suite — Seguimiento de pruebas: ' + leads.length + (leads.length === 1 ? ' mensaje' : ' mensajes') + ' para enviar hoy',
 
-    htmlBody: htmlBody
+    htmlBody: buildTrialSequenceEmailHtml_(leads, formatDateEs_(today))
 
   });
 
+  leads.forEach(function (l) {
+
+    sheet.getRange(l.rowNumber, col.secuencia + 1).setValue(l.secuenciaNueva);
+
+    if (l.day === 6) {
+
+      sheet.getRange(l.rowNumber, (col.notificado != null ? col.notificado : 6) + 1).setValue('Si');
+
+    }
+
+  });
+
+  return leads;
+
 }
+
+
+
+/**
+
+ * Revisión diaria de la secuencia de pruebas (días 0, 2, 5, 6, 7, 10 y 20).
+
+ * Envía UN correo a CONFIG.TRIAL_NOTIFY_EMAIL con los links de WhatsApp listos.
+
+ * Trigger: Time-driven → Day timer → 8am-9am → revisarSecuenciaPruebas
+
+ */
+
+function revisarSecuenciaPruebas() {
+
+  return runTrialSequence_(false);
+
+}
+
+
+
+/** Vista previa en el editor: muestra en el registro qué saldría hoy. No escribe ni envía nada. */
+
+function previsualizarSecuenciaPruebas() {
+
+  return runTrialSequence_(true);
+
+}
+
+
+
+/**
+
+ * Compatibilidad: el trigger existente "revisarTrialsDia6" sigue funcionando
+
+ * y ahora prepara toda la secuencia (incluido el día 6).
+
+ */
+
+function revisarTrialsDia6() {
+
+  return revisarSecuenciaPruebas();
+
+}
+
+
 
 
 
