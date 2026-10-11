@@ -1,5 +1,29 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-11 — Licencias a mano para pagos por Nequi / llave Bre-B (`agent/secuencia-pruebas`)
+
+### Qué hace
+Pestaña **VentasManuales** en el Sheet de licencias (Fecha | Nombre | Email | Telefono | Plan |
+MontoCOP | Medio | Referencia | Codigo | Estado). Arlen llena una fila por pago y usa el menú
+**ARPA → Crear licencias de pagos manuales**. Por cada fila sin Codigo: crea la licencia igual que
+una venta de Gumroad (mismos campos, ACTIVO SI, vence en los días del plan), envía el mismo correo
+de activación y escribe Codigo, Fecha y "Enviado <fecha>". Si falta algo, email no válido, plan Free
+o desconocido, o Referencia ya usada: "ERROR: motivo" y no crea nada. Nunca repite una fila con Codigo.
+
+### Cómo se integra
+Solo `arpa-licencias-apps-script.gs` (protegido, con autorización): `onOpen()` (menú; no existía
+otro), `procesarVentasManuales()`, helpers. Candado LockService durante el proceso; todo queda en Debug.
+Si el correo falla, el Codigo queda anotado (no se duplica) y el Estado lo dice.
+
+### Pruebas
+- `tests/ventas-manuales.test.js` (en `npm test`): PRO desde la fila, no duplica, rechazos, correo
+  con el código, misma fila que Gumroad, pestaña y columnas, menú, candado ocupado.
+
+### Pendiente antes de producción
+- Confirmar que el script está ligado al Sheet (Extensiones → Apps Script desde el Sheet).
+- `doPost` (Gumroad) no usa candado al numerar: una venta de Gumroad justo al mismo segundo que el
+  menú podría repetir número (previo, muy improbable).
+
 ## 2026-10-11 — Secuencia de seguimiento de pruebas gratis (`agent/secuencia-pruebas`)
 
 ### Qué hace
