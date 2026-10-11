@@ -62,6 +62,12 @@
  *   Secuencia, Detener y Pais se agregan solas al final si faltan. Trigger diario 8-9 a. m. → revisarSecuenciaPruebas
 
  *   (o el trigger viejo revisarTrialsDia6, que ahora llama a la misma función).
+
+ *
+
+ * Pestaña VentasManuales (pagos por Nequi / llave Bre-B): Fecha | Nombre | Email | Telefono | Plan | MontoCOP | Medio | Referencia | Codigo | Estado
+
+ *   Menú del Sheet ARPA → "Crear licencias de pagos manuales" (procesarVentasManuales). Se crea sola si falta.
  *
  */
 
@@ -2659,6 +2665,392 @@ function previsualizarSecuenciaPruebas() {
 function revisarTrialsDia6() {
 
   return revisarSecuenciaPruebas();
+
+}
+
+
+
+
+
+// ─── Ventas manuales (Nequi / llave Bre-B / otro) ─────────────────────────────
+
+// Arlen llena una fila en la pestaña VentasManuales y, desde el menú ARPA del Sheet,
+
+// "Crear licencias de pagos manuales". Se crea la licencia igual que una venta de
+
+// Gumroad y se envía el mismo correo de activación. Una fila con Codigo ya no se toca.
+
+
+
+const VENTAS_MANUALES_SHEET_NAME_ = 'VentasManuales';
+
+
+
+const VENTAS_MANUALES_HEADERS_ = ['Fecha', 'Nombre', 'Email', 'Telefono', 'Plan', 'MontoCOP', 'Medio', 'Referencia', 'Codigo', 'Estado'];
+
+
+
+/** Menú del Sheet (solo aparece si este script está ligado al Sheet de licencias). */
+
+function onOpen() {
+
+  try {
+
+    SpreadsheetApp.getUi()
+
+      .createMenu('ARPA')
+
+      .addItem('Crear licencias de pagos manuales', 'procesarVentasManuales')
+
+      .addToUi();
+
+  } catch (e) {
+
+    Logger.log('onOpen: ' + e.message);
+
+  }
+
+}
+
+
+
+function getVentasManualesSheet_() {
+
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+
+  let sheet = ss.getSheetByName(VENTAS_MANUALES_SHEET_NAME_);
+
+  if (!sheet) {
+
+    sheet = ss.insertSheet(VENTAS_MANUALES_SHEET_NAME_);
+
+    sheet.getRange(1, 1, 1, VENTAS_MANUALES_HEADERS_.length).setValues([VENTAS_MANUALES_HEADERS_]);
+
+    return { sheet: sheet, creada: true };
+
+  }
+
+  return { sheet: sheet, creada: false };
+
+}
+
+
+
+/** Columnas por nombre (sin importar mayúsculas); agrega al final las que falten. */
+
+function ensureVentasManualesHeaders_(sheet) {
+
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+
+  const row = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+
+  const map = {};
+
+  let used = 0;
+
+  row.forEach(function (h, i) {
+
+    const key = String(h || '').trim().toLowerCase();
+
+    if (key) {
+
+      map[key] = i;
+
+      used = i + 1;
+
+    }
+
+  });
+
+  VENTAS_MANUALES_HEADERS_.forEach(function (h) {
+
+    const key = h.toLowerCase();
+
+    if (map[key] != null) return;
+
+    sheet.getRange(1, used + 1).setValue(h);
+
+    map[key] = used;
+
+    used += 1;
+
+  });
+
+  return map;
+
+}
+
+
+
+function isValidEmail_(email) {
+
+  return /^[^\s@,;<>]+@[^\s@,;<>]+\.[A-Za-z]{2,}$/.test(String(email || '').trim());
+
+}
+
+
+
+/** "Técnico Independiente"/"Pro" → PRO, "PYME" → PYME, "White Label"/"WL" → WL. Free no se vende a mano. */
+
+function resolveManualPlan_(planRaw) {
+
+  const n = trialNormalizeText_(planRaw).replace(/\s+/g, ' ');
+
+  if (!n) return { error: 'falta el Plan' };
+
+  if (/free|gratis|prueba|trial/.test(n)) return { error: 'el plan Free no se vende a mano' };
+
+  if (n === 'pro' || n === 'plan pro' || n.indexOf('tecnico independiente') !== -1) return { plan: CONFIG.PLANS.PRO };
+
+  if (n === 'pyme' || n === 'plan pyme') return { plan: CONFIG.PLANS.PYME };
+
+  if (n === 'wl' || n === 'white label' || n === 'whitelabel' || n === 'plan white label') return { plan: CONFIG.PLANS.WL };
+
+  return { error: 'plan desconocido "' + String(planRaw).trim() + '" (usa Técnico Independiente, Pro, PYME o White Label)' };
+
+}
+
+
+
+/** Revisa una fila. Sin efectos. → { vacia } | { error } | { nombre, email, plan } */
+
+function validateVentaManual_(venta) {
+
+  const nombre = String(venta.nombre || '').trim();
+
+  const email = String(venta.email || '').trim().toLowerCase();
+
+  const planRaw = String(venta.plan || '').trim();
+
+  if (!nombre && !email && !planRaw) return { vacia: true };
+
+  if (!nombre) return { error: 'falta el Nombre' };
+
+  if (!email) return { error: 'falta el Email' };
+
+  if (!isValidEmail_(email)) return { error: 'email no válido "' + email + '"' };
+
+  const p = resolveManualPlan_(planRaw);
+
+  if (p.error) return { error: p.error };
+
+  return { nombre: nombre, email: email, plan: p.plan };
+
+}
+
+
+
+function showSheetAlert_(mensaje) {
+
+  try {
+
+    SpreadsheetApp.getUi().alert(mensaje);
+
+  } catch (e) {
+
+    Logger.log(mensaje);
+
+  }
+
+}
+
+
+
+/**
+
+ * Crea las licencias de la pestaña VentasManuales que todavía no tienen Codigo.
+
+ * Se usa desde el menú ARPA → "Crear licencias de pagos manuales" (o Ejecutar en el editor).
+
+ */
+
+function procesarVentasManuales() {
+
+  const resumen = { creadas: 0, errores: 0, codigos: [] };
+
+  const lock = LockService.getScriptLock();
+
+  if (!lock.tryLock(30000)) {
+
+    showSheetAlert_('Hay otro proceso creando licencias. Espera un minuto y vuelve a intentarlo.');
+
+    resumen.ocupado = true;
+
+    return resumen;
+
+  }
+
+  try {
+
+    const hoja = getVentasManualesSheet_();
+
+    const sheet = hoja.sheet;
+
+    if (hoja.creada) {
+
+      showSheetAlert_('Se creó la pestaña "VentasManuales". Llena una fila por pago (Nombre, Email, Plan, MontoCOP, Medio y Referencia) y vuelve a usar el menú.');
+
+      resumen.pestanaCreada = true;
+
+      return resumen;
+
+    }
+
+    const col = ensureVentasManualesHeaders_(sheet);
+
+    const values = sheet.getDataRange().getValues();
+
+    function cell(row, key) {
+
+      return col[key] != null && row[col[key]] != null ? row[col[key]] : '';
+
+    }
+
+    function setCell(rowNumber, key, value) {
+
+      sheet.getRange(rowNumber, col[key] + 1).setValue(value);
+
+    }
+
+    // Referencias que ya generaron licencia (para no pagar dos veces el mismo comprobante).
+
+    const refsUsadas = {};
+
+    for (let i = 1; i < values.length; i++) {
+
+      const ref = String(cell(values[i], 'referencia') || '').trim().toLowerCase();
+
+      if (ref && String(cell(values[i], 'codigo') || '').trim()) refsUsadas[ref] = true;
+
+    }
+
+
+
+    for (let i = 1; i < values.length; i++) {
+
+      const row = values[i];
+
+      const rowNumber = i + 1;
+
+      if (String(cell(row, 'codigo') || '').trim()) continue; // ya procesada: nunca se repite
+
+      const v = validateVentaManual_({ nombre: cell(row, 'nombre'), email: cell(row, 'email'), plan: cell(row, 'plan') });
+
+      if (v.vacia) continue;
+
+      const ref = String(cell(row, 'referencia') || '').trim();
+
+      let error = v.error;
+
+      if (!error && ref && refsUsadas[ref.toLowerCase()]) error = 'la Referencia ' + ref + ' ya tiene una licencia en otra fila';
+
+      if (error) {
+
+        setCell(rowNumber, 'estado', 'ERROR: ' + error);
+
+        resumen.errores += 1;
+
+        debugLog_('venta_manual_error', { fila: rowNumber, motivo: error });
+
+        continue;
+
+      }
+
+
+
+      const hoy = new Date();
+
+      const codigo = generateCode_(v.plan.prefix);
+
+      const vencimiento = addDays_(hoy, v.plan.days);
+
+      appendLicenseRow_({
+
+        CODIGO: codigo,
+
+        PLAN: v.plan.planLabel,
+
+        CLIENTE: v.nombre,
+
+        EMAIL: v.email,
+
+        VENCIMIENTO: vencimiento,
+
+        ACTIVO: 'SI',
+
+      });
+
+      // El Codigo se escribe apenas existe la licencia: aunque el correo falle, la fila no se repite.
+
+      setCell(rowNumber, 'codigo', codigo);
+
+      if (!cell(row, 'fecha')) setCell(rowNumber, 'fecha', hoy);
+
+      setCell(rowNumber, 'estado', 'Licencia creada, enviando correo…');
+
+      if (ref) refsUsadas[ref.toLowerCase()] = true;
+
+      SpreadsheetApp.flush();
+
+      debugLog_('venta_manual_licencia', {
+
+        fila: rowNumber, codigo: codigo, plan: v.plan.planLabel, email: v.email,
+
+        montoCOP: cell(row, 'montocop'), medio: cell(row, 'medio'), referencia: ref
+
+      });
+
+
+
+      try {
+
+        sendActivationEmail_(v.email, v.nombre, v.plan, codigo, vencimiento);
+
+        setCell(rowNumber, 'estado', 'Enviado ' + formatDateEs_(hoy));
+
+        resumen.creadas += 1;
+
+        resumen.codigos.push(codigo);
+
+      } catch (err) {
+
+        setCell(rowNumber, 'estado', 'ERROR: licencia ' + codigo + ' creada pero el correo falló (' + err.message + '). Envíale el código a mano.');
+
+        resumen.errores += 1;
+
+        debugLog_('venta_manual_correo_error', { fila: rowNumber, codigo: codigo, mensaje: err.message });
+
+      }
+
+    }
+
+  } finally {
+
+    lock.releaseLock();
+
+  }
+
+
+
+  let msg;
+
+  if (!resumen.creadas && !resumen.errores) {
+
+    msg = 'No hay ventas nuevas para procesar. (Las filas con Codigo ya fueron procesadas.)';
+
+  } else {
+
+    msg = 'Listo: ' + resumen.creadas + (resumen.creadas === 1 ? ' licencia creada y enviada' : ' licencias creadas y enviadas') + '.' +
+
+      (resumen.errores ? ' ' + resumen.errores + (resumen.errores === 1 ? ' fila con error' : ' filas con error') + ': mira la columna Estado.' : '');
+
+  }
+
+  resumen.mensaje = msg;
+
+  showSheetAlert_(msg);
+
+  return resumen;
 
 }
 
