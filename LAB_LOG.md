@@ -25,7 +25,20 @@ mensaje más reciente y solo dentro de su plazo (días 6 y 7 únicamente en su d
 ### Pendiente antes de producción
 - Pegar el .gs en el Apps Script, correr `previsualizarSecuenciaPruebas` y revisar el registro.
 - El día 0 llega en el correo de la mañana siguiente si la persona se registró después del correo.
-- Números de otros países: wa.me antepone 57 a números de 10 dígitos (comportamiento previo).
+- ~~Números de otros países: wa.me antepone 57 a números de 10 dígitos~~ → arreglado abajo.
+
+### 2026-10-11 (2) — Prefijo de país en los links de la secuencia
+- Qué llegaba: la app guarda el WhatsApp solo con dígitos (sin "+"), con "+57 " ya escrito en el
+  campo y anteponiendo 57 a cualquier número de 10 dígitos. No enviaba el país.
+- App (`js/arpa-trial-capture.js`, protegido, con autorización): el campo arranca con el prefijo del
+  país configurado (CO 57, MX 52, US 1, CL 56, PE 51; si no hay, Colombia); 10 dígitos → ese prefijo;
+  el registro envía `pais` (clave `arpa_trial_pais`).
+- Apps Script: columna nueva **Pais** en Trials; `resolveTrialWaPhone_` respeta el número si ya trae
+  código (57/52/1/56/51 con el largo correcto), usa el país para números nacionales y solo asume 57
+  sin país si son 10 dígitos que empiezan por 3. Si no es claro (o el número no cuadra con el país)
+  no arma link: el correo lo marca **REVISAR NÚMERO** con el mensaje para copiar.
+- Pruebas: `tests/secuencia-pruebas.test.js` (CO, MX, US, ambiguos) y `tests/trial-pais.test.js`
+  (app) en `npm test`.
 
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
