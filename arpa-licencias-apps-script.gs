@@ -67,9 +67,9 @@ const CONFIG = {
 
   MANUAL_URL: 'https://arlenpavonr-png.github.io/Formato-Arlenpav/manual.html',
 
-  SUPPORT_WHATSAPP: '573005683914',
+  SUPPORT_WHATSAPP: '573016092542',
 
-  SUPPORT_WHATSAPP_DISPLAY: '+57 300-568-3914',
+  SUPPORT_WHATSAPP_DISPLAY: '+57 301-609-2542',
 
   EMAIL_FROM_NAME: 'ARPA Technology Global',
 
