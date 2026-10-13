@@ -12,6 +12,7 @@
   const TRIAL_WHATSAPP_KEY = 'arpa_trial_whatsapp';
   const TRIAL_NOMBRE_KEY = 'arpa_trial_nombre';
   const TRIAL_OFICIO_KEY = 'arpa_trial_oficio';
+  const TRIAL_PAIS_KEY = 'arpa_trial_pais';
   const TRIAL_ID_KEY = 'arpa_trial_id';
   const TRIAL_SYNCED_KEY = 'arpa_trial_synced';
   const TRIAL_DOC_SAVED_KEY = 'arpa_trial_doc_saved';
@@ -111,10 +112,28 @@
     }
   }
 
+  /** País configurado en la app (CO, MX, US, CL, PE) y su prefijo; Colombia si no se sabe. */
+  function trialCountry() {
+    try {
+      return global.ArpaPricing?.getCountryProfile?.()?.code || 'CO';
+    } catch (e) {
+      return 'CO';
+    }
+  }
+
+  function trialPhonePrefix() {
+    try {
+      return global.ArpaPricing?.getCountryProfile?.()?.phonePrefix || '57';
+    } catch (e) {
+      return '57';
+    }
+  }
+
   function normalizePhone(raw) {
     let digits = String(raw || '').replace(/\D/g, '');
     if (!digits) return '';
-    if (digits.length === 10) digits = '57' + digits;
+    // Número nacional de 10 dígitos → prefijo del país configurado (CO 57, MX 52, US 1).
+    if (digits.length === 10) digits = trialPhonePrefix() + digits;
     if (digits.length === 11 && digits.startsWith('3')) digits = '57' + digits;
     return digits;
   }
@@ -245,7 +264,8 @@
         fechaInicio: localStorage.getItem(TRIAL_START_KEY) || '',
         trialId: localStorage.getItem(TRIAL_ID_KEY) || '',
         nombre: localStorage.getItem(TRIAL_NOMBRE_KEY) || '',
-        oficio: localStorage.getItem(TRIAL_OFICIO_KEY) || ''
+        oficio: localStorage.getItem(TRIAL_OFICIO_KEY) || '',
+        pais: localStorage.getItem(TRIAL_PAIS_KEY) || ''
       };
     } catch (e) {
       return null;
@@ -305,7 +325,7 @@
     setCaptureActive(mode === 'fullscreen');
     showCaptureError('');
     populateOficioSelect(oficioSelect);
-    if (phoneInput && !phoneInput.value.trim()) phoneInput.value = '+57 ';
+    if (phoneInput && !phoneInput.value.trim()) phoneInput.value = '+' + trialPhonePrefix() + ' ';
 
     function finish() {
       hideCapture();
@@ -350,6 +370,7 @@
         localStorage.setItem(TRIAL_WHATSAPP_KEY, phone);
         localStorage.setItem(TRIAL_NOMBRE_KEY, nombre);
         localStorage.setItem(TRIAL_OFICIO_KEY, oficio);
+        localStorage.setItem(TRIAL_PAIS_KEY, trialCountry());
         localStorage.setItem(TRIAL_CAPTURED_KEY, 'true');
         localStorage.setItem(ACTIVE_OFICIOS_KEY, JSON.stringify([oficio]));
         localStorage.removeItem(TRIAL_SYNCED_KEY);
@@ -447,6 +468,7 @@
     TRIAL_WHATSAPP_KEY,
     TRIAL_NOMBRE_KEY,
     TRIAL_OFICIO_KEY,
+    TRIAL_PAIS_KEY,
     TRIAL_ID_KEY,
     TRIAL_DOC_SAVED_KEY,
     TRIAL_CAPTURED_KEY,
@@ -458,7 +480,8 @@
     maybeShowBackupCaptureOnLoad,
     showCapture,
     retryPendingRegistration,
-    registerTrialUserSilent
+    registerTrialUserSilent,
+    normalizePhone
   };
 
   if (document.readyState === 'loading') {

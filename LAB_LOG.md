@@ -1,5 +1,69 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-11 — Licencias a mano para pagos por Nequi / llave Bre-B (`agent/secuencia-pruebas`)
+
+### Qué hace
+Pestaña **VentasManuales** en el Sheet de licencias (Fecha | Nombre | Email | Telefono | Plan |
+MontoCOP | Medio | Referencia | Codigo | Estado). Arlen llena una fila por pago y usa el menú
+**ARPA → Crear licencias de pagos manuales**. Por cada fila sin Codigo: crea la licencia igual que
+una venta de Gumroad (mismos campos, ACTIVO SI, vence en los días del plan), envía el mismo correo
+de activación y escribe Codigo, Fecha y "Enviado <fecha>". Si falta algo, email no válido, plan Free
+o desconocido, o Referencia ya usada: "ERROR: motivo" y no crea nada. Nunca repite una fila con Codigo.
+
+### Cómo se integra
+Solo `arpa-licencias-apps-script.gs` (protegido, con autorización): `onOpen()` (menú; no existía
+otro), `procesarVentasManuales()`, helpers. Candado LockService durante el proceso; todo queda en Debug.
+Si el correo falla, el Codigo queda anotado (no se duplica) y el Estado lo dice.
+
+### Pruebas
+- `tests/ventas-manuales.test.js` (en `npm test`): PRO desde la fila, no duplica, rechazos, correo
+  con el código, misma fila que Gumroad, pestaña y columnas, menú, candado ocupado.
+
+### Pendiente antes de producción
+- Confirmar que el script está ligado al Sheet (Extensiones → Apps Script desde el Sheet).
+- `doPost` (Gumroad) no usa candado al numerar: una venta de Gumroad justo al mismo segundo que el
+  menú podría repetir número (previo, muy improbable).
+
+## 2026-10-11 — Secuencia de seguimiento de pruebas gratis (`agent/secuencia-pruebas`)
+
+### Qué hace
+El aviso del día 6 pasa a ser una secuencia de 7 mensajes (días 0, 2, 5, 6, 7, 10 y 20 desde
+FechaInicio) con los textos aprobados del Manual de ventas. Cada mañana Arlen recibe UN correo
+con nombre, oficio, teléfono, día, hora sugerida y el link de WhatsApp con el mensaje listo; él
+los envía a mano (nada sale solo al cliente). Variante del día 2 para refrigeración, gas y
+mantenimiento. El link de pago pasa a Gumroad (plan Técnico).
+
+### Cómo se integra
+Solo `arpa-licencias-apps-script.gs` (protegido, tocado con autorización de Arlen):
+`revisarSecuenciaPruebas()` (trigger diario), `previsualizarSecuenciaPruebas()` (vista previa sin
+enviar ni escribir) y `revisarTrialsDia6()` ahora llama a la nueva función (el trigger viejo sigue
+sirviendo). Hoja Trials: columnas nuevas **Secuencia** (días ya preparados, p. ej. "0,2,5") y
+**Detener** (Arlen la marca si la persona responde o pide no recibir más); se agregan solas al final.
+Convertido o Detener con valor = fuera de la secuencia. Si el trigger no corrió, solo se prepara el
+mensaje más reciente y solo dentro de su plazo (días 6 y 7 únicamente en su día; el 20 hasta el 22).
+
+### Pruebas
+- `tests/secuencia-pruebas.test.js` (en `npm test`): textos exactos, variante, qué día toca,
+  columnas en hojas existentes y correo diario con hoja y correo simulados. Fence PASS.
+
+### Pendiente antes de producción
+- Pegar el .gs en el Apps Script, correr `previsualizarSecuenciaPruebas` y revisar el registro.
+- El día 0 llega en el correo de la mañana siguiente si la persona se registró después del correo.
+- ~~Números de otros países: wa.me antepone 57 a números de 10 dígitos~~ → arreglado abajo.
+
+### 2026-10-11 (2) — Prefijo de país en los links de la secuencia
+- Qué llegaba: la app guarda el WhatsApp solo con dígitos (sin "+"), con "+57 " ya escrito en el
+  campo y anteponiendo 57 a cualquier número de 10 dígitos. No enviaba el país.
+- App (`js/arpa-trial-capture.js`, protegido, con autorización): el campo arranca con el prefijo del
+  país configurado (CO 57, MX 52, US 1, CL 56, PE 51; si no hay, Colombia); 10 dígitos → ese prefijo;
+  el registro envía `pais` (clave `arpa_trial_pais`).
+- Apps Script: columna nueva **Pais** en Trials; `resolveTrialWaPhone_` respeta el número si ya trae
+  código (57/52/1/56/51 con el largo correcto), usa el país para números nacionales y solo asume 57
+  sin país si son 10 dígitos que empiezan por 3. Si no es claro (o el número no cuadra con el país)
+  no arma link: el correo lo marca **REVISAR NÚMERO** con el mensaje para copiar.
+- Pruebas: `tests/secuencia-pruebas.test.js` (CO, MX, US, ambiguos) y `tests/trial-pais.test.js`
+  (app) en `npm test`.
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace
