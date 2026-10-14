@@ -45,7 +45,7 @@
       global.ArpaCobros?.seedFromPriceList('cot');
       global.ArpaCotizacion?.refreshCobros?.();
       global.ArpaCotizacion?.renderTablaCot?.();
-      global.ArpaCotizacion?.ensureCotNumero?.();
+      // No se asigna número al entrar: se asigna al guardar, generar PDF o compartir.
       global.ArpaCotizacion?.updateCatalogHint?.();
       global.ArpaCotizacion?.syncTaxLabels?.();
     }
