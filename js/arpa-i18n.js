@@ -587,6 +587,8 @@
     'settings.label.country': 'Country',
     'settings.label.country_hint': 'Automatically sets currency and tax for your documents',
     'settings.label.currency': 'Currency for your documents',
+    'settings.label.doc_lang': 'Language of the PDF for your customer',
+    'settings.label.doc_lang_hint': 'Estimates, work orders and invoices are generated in this language. The app stays in your language.',
     'currency.cop': '🇨🇴 COP — Colombian peso',
     'currency.usd': '🇺🇸 USD — US dollar',
     'currency.mxn': '🇲🇽 MXN — Mexican peso',
@@ -598,6 +600,82 @@
     'currency.name.pen': 'Peruvian soles',
     'currency.name.clp': 'Chilean pesos',
     'cat.aviso.precios_convertidos': 'Reference prices converted from Colombia. Review them before quoting.'
+  };
+
+  // ── Idioma del documento para el cliente ──────────────────────────────────
+  // Ajuste independiente del idioma de la app: el técnico trabaja en español y el
+  // PDF (y el mensaje de WhatsApp) que recibe el cliente puede salir en inglés.
+  // Por defecto 'es' = exactamente el comportamiento de siempre.
+  var DOC_LANG_KEY = 'arpa_doc_lang';
+
+  // Términos del documento para un cliente en EE. UU. Tienen prioridad sobre I18N_EN
+  // solo mientras se arma el PDF en inglés (la interfaz en inglés no cambia).
+  var PDF_EN = {
+    'formato.section.datos_cliente': 'Customer Information',
+    'cot.section.datos_cliente': 'Customer Information',
+    'formato.label.nit_cedula': 'Tax ID',
+    'formato.label.direccion_instalacion': 'Service address',
+    'formato.section.tecnico': 'Technician',
+    'formato.firma.cliente': 'Customer signature',
+    'formato.firma.tecnico': 'Technician signature',
+    'formato.firma.tecnico_named': 'Technician signature – {name}',
+    'formato.nota.body': 'The customer must provide an electrical outlet (110V–220V) with ground for installation, including wiring and conduit for sensors if required.',
+    'cot.section.productos': 'Products and Services',
+    'cot.section.resumen': 'Estimate Summary',
+    'cot.firma.aprobado_cliente': 'Approved by (Customer)',
+    'cot.label.valida_hasta': 'Valid until',
+    'cot.nota_legal': '<strong>Note:</strong> This estimate is valid for <strong>15 calendar days</strong>. Prices in {moneda_nombre} ({moneda_codigo}).'
+  };
+
+  // Título del documento en el PDF (chip del encabezado).
+  var PDF_DOC_TITLES_EN = {
+    formato: 'Work Order',
+    cotizacion: 'Estimate',
+    'cuenta-cobro': 'Invoice'
+  };
+
+  // Textos del PDF de Cuenta de Cobro (jsPDF), nombres de archivo y mensajes de WhatsApp.
+  var DOC_TEXT_EN = {
+    'cc.pdf.title': 'INVOICE',
+    'cc.pdf.tax_id': 'Tax ID',
+    'cc.pdf.tel': 'Phone',
+    'cc.pdf.from': 'FROM',
+    'cc.pdf.bill_to': 'BILL TO',
+    'cc.pdf.name': 'Name',
+    'cc.pdf.id_tax': 'ID / Tax ID',
+    'cc.pdf.company': 'Company',
+    'cc.pdf.address': 'Address',
+    'cc.pdf.web': 'Website',
+    'cc.pdf.issued': 'Issued',
+    'cc.pdf.due': 'Due',
+    'cc.pdf.col_desc': 'Description',
+    'cc.pdf.col_qty': 'Qty',
+    'cc.pdf.col_unit': 'Unit Price',
+    'cc.pdf.col_total': 'Amount',
+    'cc.pdf.subtotal': 'Subtotal',
+    'cc.pdf.withholding': 'Withholding',
+    'cc.pdf.total': 'TOTAL DUE',
+    'cc.pdf.payment': 'PAYMENT DETAILS',
+    'cc.pdf.bank': 'Bank',
+    'cc.pdf.account_type': 'Account type',
+    'cc.pdf.account_no': 'Account No.',
+    'cc.pdf.holder': 'Account holder',
+    'cc.pdf.holder_doc': 'Tax ID',
+    'cc.pdf.notes': 'Notes',
+    'cc.pdf.sig_provider': 'Technician signature',
+    'cc.pdf.sig_customer': 'Customer signature',
+    'cc.pdf.footer': 'Generated with ARPA Suite · Try it free at arpatechnologyglobal.com · © 2026',
+    'cc.pdf.account.Ahorros': 'Savings',
+    'cc.pdf.account.Corriente': 'Checking',
+    'file.cot': 'Estimate',
+    'file.cc': 'Invoice',
+    'file.formato': 'WorkOrder',
+    'msg.cot': 'Hi {nombre}, here is Estimate #{numero} from {company}. Please review it and let us know if you have any questions.',
+    'msg.formato': 'Hi {nombre}, here is Work Order #{numero} dated {fecha} from {company}. Please review it and let us know if you have any questions.',
+    'msg.cc': 'Hi {nombre}, here is Invoice {numero} from {company} for {total}. Please let us know if you have any questions.\n{company} 📞 {tel}',
+    'msg.attach_note': ' (PDF attached.)',
+    'msg.default_name': 'there',
+    'msg.default_company': 'our company'
   };
 
   var DOC_TYPE_KEYS = {
@@ -623,11 +701,29 @@
     });
   }
 
+  // 'en' solo mientras se arma un PDF con idioma de documento inglés; null el resto del tiempo.
+  var pdfDocLang = null;
+
+  function activeLang() {
+    return pdfDocLang || currentLang;
+  }
+
   function getLang() {
-    return currentLang;
+    // Durante un PDF en inglés los módulos que preguntan el idioma (impuesto, tabla) renderizan en inglés.
+    return activeLang();
+  }
+
+  function pdfTextEn(key) {
+    var overrides = getCountryOverrides('en');
+    if (overrides && overrides[key] != null) return overrides[key];
+    if (PDF_EN[key] != null) return PDF_EN[key];
+    if (I18N_EN[key] != null) return I18N_EN[key];
+    if (I18N_ES[key] != null) return I18N_ES[key];
+    return key;
   }
 
   function t(key, vars) {
+    if (pdfDocLang === 'en') return interpolate(pdfTextEn(key), vars);
     var overrides = getCountryOverrides(currentLang);
     var text = overrides && overrides[key];
     if (text == null) {
@@ -1110,6 +1206,12 @@
   }
 
   function apply(lang) {
+    // Mientras se arma un PDF en inglés, otros módulos llaman apply() (p. ej. arpa-formato-tipo):
+    // se re-aplica el inglés del documento y NO se cambia ni se guarda el idioma de la app.
+    if (pdfDocLang === 'en') {
+      applyPdfEnglishPass();
+      return;
+    }
     lang = lang === 'en' ? 'en' : 'es';
     currentLang = lang;
     try {
@@ -1284,7 +1386,218 @@
     }
   }
 
+  // ── PDF en inglés (idioma del documento = English) ─────────────────────────
+  function getDocLang() {
+    try {
+      return localStorage.getItem(DOC_LANG_KEY) === 'en' ? 'en' : 'es';
+    } catch (e) { return 'es'; }
+  }
+
+  function setDocLang(lang) {
+    var value = lang === 'en' ? 'en' : 'es';
+    try { localStorage.setItem(DOC_LANG_KEY, value); } catch (e) { /* ignore */ }
+    var sel = document.getElementById('settings-doc-lang');
+    if (sel && sel.value !== value) sel.value = value;
+    return value;
+  }
+
+  function isEnglishDoc() {
+    return getDocLang() === 'en';
+  }
+
+  /** Texto del documento: con Español devuelve `esText` tal cual (cero cambios). */
+  function docText(key, esText, vars) {
+    if (!isEnglishDoc()) return esText;
+    var en = DOC_TEXT_EN[key] != null ? DOC_TEXT_EN[key] : (PDF_EN[key] != null ? PDF_EN[key] : I18N_EN[key]);
+    return interpolate(en != null ? en : esText, vars);
+  }
+
+  /** Fecha del documento: con English 'YYYY-MM-DD' → 'MM/DD/YYYY'; con Español sin cambios. */
+  function docDate(value) {
+    if (!isEnglishDoc()) return value;
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || '').trim());
+    return m ? (m[2] + '/' + m[3] + '/' + m[1]) : value;
+  }
+
+  /** Etiqueta del impuesto ("Sales tax 0%") en el idioma del documento, o null con Español. */
+  function docTaxLabel() {
+    if (!isEnglishDoc()) return null;
+    var prev = pdfDocLang;
+    pdfDocLang = 'en';
+    try {
+      return global.ArpaPricing?.getTaxLabelText?.()?.full || null;
+    } finally {
+      pdfDocLang = prev;
+    }
+  }
+
+  /** Mensaje de WhatsApp para el cliente en inglés, o null con Español (el llamador usa su texto de siempre). */
+  function docShareMessage(kind, vars) {
+    if (!isEnglishDoc() || !DOC_TEXT_EN['msg.' + kind]) return null;
+    var v = Object.assign({}, vars || {});
+    if (!v.nombre) v.nombre = DOC_TEXT_EN['msg.default_name'];
+    if (!v.company) v.company = DOC_TEXT_EN['msg.default_company'];
+    return interpolate(DOC_TEXT_EN['msg.' + kind], v).replace(/ 📞 $/, '');
+  }
+
+  var pdfEnglishState = null;
+
+  function getPdfRoots(viewId) {
+    var page = document.querySelector('.page');
+    return [
+      document.getElementById(viewId),
+      page ? page.querySelector('.header') : null,
+      document.getElementById('formato-video-qr-print'),
+      document.getElementById('suite-footer')
+    ].filter(Boolean);
+  }
+
+  function applyEnglishInRoot(root, vars) {
+    root.querySelectorAll('[data-i18n]').forEach(function (el) {
+      if (el.id === 'doc-type-label') return;
+      var key = el.getAttribute('data-i18n');
+      if (key) el.textContent = interpolate(pdfTextEn(key), vars);
+    });
+    [
+      ['[data-i18n-placeholder]', 'data-i18n-placeholder', 'placeholder'],
+      ['[data-i18n-title]', 'data-i18n-title', 'title'],
+      ['[data-i18n-aria-label]', 'data-i18n-aria-label', 'aria-label']
+    ].forEach(function (set) {
+      root.querySelectorAll(set[0]).forEach(function (el) {
+        var key = el.getAttribute(set[1]);
+        if (key) el.setAttribute(set[2], interpolate(pdfTextEn(key), vars));
+      });
+    });
+    root.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-html');
+      if (key) el.innerHTML = interpolate(pdfTextEn(key), vars);
+    });
+  }
+
+  function backupHtml(el) {
+    if (!el || !pdfEnglishState) return;
+    if (pdfEnglishState.html.some(function (b) { return b.el === el; })) return;
+    pdfEnglishState.html.push({ el: el, value: el.innerHTML });
+  }
+
+  /** Aplica el inglés a todo lo que sale en el PDF. Se puede repetir (otros módulos llaman apply()). */
+  function applyPdfEnglishPass() {
+    if (!pdfEnglishState) return;
+    var vars = { company: getCompanyName(), name: getTechnicianName() };
+    pdfEnglishState.roots.forEach(function (root) {
+      applyEnglishInRoot(root, vars);
+      applyCountryLabels(root);
+    });
+    refreshBrandTexts();
+    refreshDocTypeLabel();
+    global.ArpaBrand?.syncBankBlocksForPrint?.();
+    global.ArpaCotizacion?.syncTaxLabels?.();
+
+    // Pie "Generado con ARPA Suite…" (se respeta el vacío de White Label).
+    var footerEn = pdfTextEn('brand.footer.global');
+    ['cot-print-footer-global'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && el.textContent.trim()) el.textContent = footerEn;
+    });
+    var sealText = document.querySelector('#arpa-global-seal .suite-footer-global-text');
+    if (sealText && sealText.textContent.trim()) sealText.textContent = footerEn;
+
+    // Orden de trabajo: estado ("Draft") y unidades de materiales (solo el texto visible; el valor no cambia).
+    var badge = document.getElementById('formato-ot-badge');
+    if (badge && global.ArpaOT?.estadoLabel) {
+      backupHtml(badge);
+      badge.textContent = global.ArpaOT.estadoLabel(badge.getAttribute('data-estado'));
+    }
+    var UNITS_EN = { Unidad: 'Unit', Metro: 'Meter', Servicio: 'Service', Hora: 'Hour' };
+    document.querySelectorAll('.ot-mat-unidad option').forEach(function (opt) {
+      var en = UNITS_EN[opt.getAttribute('value')];
+      if (!en) return;
+      backupHtml(opt);
+      opt.textContent = en;
+    });
+
+    // "NIT" no significa nada para un cliente en EE. UU.: se muestra "Tax ID" (México conserva RFC).
+    var taxId = global.ArpaPricing?.getTaxIdLabel?.() || 'NIT';
+    if (taxId === 'NIT') {
+      ['brand-company-contact', 'cot-print-footer-local', 'brand-screen-footer'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el || !/\bNIT\b/.test(el.innerHTML)) return;
+        backupHtml(el);
+        el.innerHTML = el.innerHTML.replace(/\bNIT\b/g, 'Tax ID');
+      });
+    }
+  }
+
+  /** Fechas: el PDF copia el valor del input; se muestra MM/DD/YYYY y se restaura al terminar. */
+  function swapDateInputsForPdf(roots) {
+    roots.forEach(function (root) {
+      root.querySelectorAll('input[type="date"]').forEach(function (el) {
+        var value = el.value;
+        if (!value) return;
+        pdfEnglishState.dates.push({ el: el, value: value });
+        el.type = 'text';
+        el.value = docDate(value);
+      });
+    });
+  }
+
+  function preparePdfEnglish(viewId) {
+    captureDefaults();
+    captureBrandDefaultsIfNeeded();
+    pdfEnglishState = {
+      viewKey: String(viewId || '').replace('view-', ''),
+      roots: getPdfRoots(viewId),
+      dates: [],
+      html: [],
+      htmlLang: document.documentElement.lang
+    };
+    pdfDocLang = 'en';
+    // arpa-brand decide el texto de "requisitos del cliente" según <html lang>.
+    document.documentElement.lang = 'en';
+    applyPdfEnglishPass();
+    swapDateInputsForPdf(pdfEnglishState.roots);
+  }
+
+  function restorePdfEnglish() {
+    var state = pdfEnglishState;
+    pdfDocLang = null;
+    pdfEnglishState = null;
+    if (!state) return;
+    state.dates.forEach(function (d) {
+      try {
+        d.el.type = 'date';
+        d.el.value = d.value;
+      } catch (e) { /* ignore */ }
+    });
+    state.html.forEach(function (b) { b.el.innerHTML = b.value; });
+    document.documentElement.lang = state.htmlLang || currentLang;
+    // Vuelve a pintar la app en su idioma (lo mismo que hace el botón ES/EN).
+    apply(currentLang);
+  }
+
+  /** Prepara el PDF en el idioma del documento (usado por el envío del formato por WhatsApp). */
+  function preparePdfDocument(viewId) {
+    preparePdfSpanish(viewId);
+  }
+
+  function restorePdfDocument() {
+    restorePdfSpanish();
+  }
+
+  function bindDocLangSetting() {
+    var sel = document.getElementById('settings-doc-lang');
+    if (!sel || sel.__arpaDocLangBound) return;
+    sel.__arpaDocLangBound = true;
+    sel.value = getDocLang();
+    sel.addEventListener('change', function () { setDocLang(sel.value); });
+  }
+
   function preparePdfSpanish(viewId) {
+    // Idioma del documento = English → PDF en inglés. Con Español (por defecto) sigue igual que siempre.
+    if (isEnglishDoc()) {
+      preparePdfEnglish(viewId);
+      return;
+    }
     captureDefaults();
     captureBrandDefaultsIfNeeded();
     pdfBackup = { items: [] };
@@ -1308,6 +1621,10 @@
   }
 
   function restorePdfSpanish() {
+    if (pdfEnglishState) {
+      restorePdfEnglish();
+      return;
+    }
     if (!pdfBackup) return;
     pdfBackup.items.forEach(function (item) {
       if (!item.el) return;
@@ -1329,7 +1646,7 @@
 
   function refreshBrandTexts() {
     captureBrandDefaultsIfNeeded();
-    var lang = currentLang;
+    var lang = activeLang();
     var company = getCompanyName();
     var techName = getTechnicianName();
 
@@ -1498,7 +1815,7 @@
   function applyCountryLabels(root) {
     var scope = root || document;
     if (!scope.querySelectorAll) return;
-    var overrides = getCountryOverrides(currentLang);
+    var overrides = getCountryOverrides(activeLang());
     scope.querySelectorAll('[data-i18n]').forEach(function (el) {
       if (el.id === 'doc-type-label') return;
       var key = el.getAttribute('data-i18n');
@@ -1518,6 +1835,10 @@
     var el = document.getElementById('doc-type-label');
     if (!el) return;
     var view = resolveCurrentView(preferredView);
+    if (pdfDocLang === 'en' && pdfEnglishState && PDF_DOC_TITLES_EN[pdfEnglishState.viewKey]) {
+      el.textContent = PDF_DOC_TITLES_EN[pdfEnglishState.viewKey];
+      return;
+    }
     var key = DOC_TYPE_KEYS[view] || DOC_TYPE_KEYS.formato;
     el.setAttribute('data-i18n', key);
     el.textContent = chipDocTypeText(t(key));
@@ -1575,6 +1896,7 @@
     supplementLabKeys();
     currentLang = readStoredLang();
     bindLangSwitch();
+    bindDocLangSetting();
     apply(currentLang);
     setTimeout(function () {
       wrapExternalFunctions();
@@ -1600,7 +1922,22 @@
     preparePdfSpanish: preparePdfSpanish,
     restorePdfSpanish: restorePdfSpanish,
     applyCountryLabels: applyCountryLabels,
+    preparePdfDocument: preparePdfDocument,
+    restorePdfDocument: restorePdfDocument,
+    getDocLang: getDocLang,
+    setDocLang: setDocLang,
     KEY_COUNT: Object.keys(I18N_EN).length
+  };
+
+  // Idioma del documento para el cliente (PDF + mensaje de WhatsApp). Ver bloque "PDF en inglés".
+  global.ArpaDocLang = {
+    get: getDocLang,
+    set: setDocLang,
+    isEnglish: isEnglishDoc,
+    text: docText,
+    date: docDate,
+    taxLabel: docTaxLabel,
+    shareMessage: docShareMessage
   };
 
   if (document.readyState === 'loading') {
