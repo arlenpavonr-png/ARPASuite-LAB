@@ -1,5 +1,100 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-10-10 — WhatsApp al cliente con el prefijo del país (`agent/whatsapp-prefijo-pais`)
+
+`buildWaMeUrl` (`js/arpa-whatsapp.js`) anteponía siempre +57 a números de 10 dígitos: con país
+Estados Unidos el mensaje al cliente iba a un número de Colombia. Ahora usa el prefijo del país
+configurado (`ArpaPricing.getCountryProfile().phonePrefix`: CO 57, MX 52, CL 56, PE 51, US 1).
+Número de 9–10 dígitos → prefijo del país; más de 10 → ya trae código de país, se usa tal cual.
+Colombia queda igual. Chile y Perú (9 dígitos) ahora sí abren el chat del cliente.
+
+- Pruebas: `tests/whatsapp-prefijo.test.js` (4). `npm test` 81/81. Sin archivos protegidos.
+
+## 2026-10-10 — PDF en inglés para clientes en EE. UU. (`agent/pdf-ingles`)
+
+### Qué hace
+Ajuste en Configuración "Idioma del PDF para tu cliente" (Español por defecto / English),
+independiente del idioma de la app (clave `arpa_doc_lang`). Con English: Cotización →
+**Estimate**, Formato → **Work Order**, Cuenta de Cobro → **Invoice**; encabezados, totales,
+"Sales tax", firmas ("Customer signature"), validez, notas, pie, nombre del archivo y mensaje
+de WhatsApp en inglés; fechas MM/DD/YYYY. La app sigue en español. Con Español nada cambia.
+
+### Cómo se integra
+Lógica en `js/arpa-i18n.js` (`ArpaDocLang`, modo PDF en inglés dentro de
+`preparePdfSpanish`/`restorePdfSpanish`). Sin archivos JS nuevos → no hay pendiente de caché offline.
+Protegidos tocados con autorización (mínimo): `index.html` (selector) y `js/arpa-cotizacion.js`
+(mensaje de WhatsApp y nombre de archivo).
+
+### Pruebas
+- `tests/pdf-idioma-documento.test.js` en `npm test`; Fence PASS; regresión 8/8.
+- PDFs de ejemplo generados en local (Chrome sin red, datos ficticios): Estimate (impresión y
+  WhatsApp), Work Order e Invoice.
+
+### Pendiente antes de producción
+- Ítems precargados con nombre por defecto (p. ej. "Instalación") salen como estén escritos.
+- WhatsApp antepone +57 a números de 10 dígitos aunque el país sea US (`arpa-whatsapp.js`, previo).
+- El panel "ARPA IA — Cotizador" sale en el PDF de WhatsApp de la cotización en el LAB (también en español; previo).
+
+## 2026-10-10 — Cuenta de Cobro: número al generar PDF/compartir (`agent/cuenta-cobro-numero-al-guardar`)
+
+Mismo arreglo que Cotización. Entrar a Cuenta de Cobro o abrir la app ya no gasta
+número CC-XXX: se asigna al generar el PDF o compartir por WhatsApp (o con
+"+ NUEVO N°") y queda guardado al instante en el borrador. Si el borrador ya tiene
+número se conserva; un número reservado se reutiliza. Sin licencia: aviso, no hay
+PDF ni Historial.
+
+- Archivos: `js/arpa-cuenta-cobro.js`, `js/arpa-views.js`, `tests/cuenta-cobro-numero.test.js`, `package.json`.
+- Pruebas: `npm test` 86/86, Fence PASS, regresión 8/8. Solo camino local (sin nube).
+- Al terminar (PDF guardado o compartido con éxito) el campo de número queda vacío
+  (decisión de Arlen): la siguiente cuenta no sale con el número repetido. En el camino
+  "adjunte el PDF a mano" el número se conserva, por si hay que generar el PDF.
+- Pendiente: probar en la app LAB con licencia.
+
+## 2026-10-10 — Cotización: el número se asigna al guardar/PDF/compartir (`agent/cotizacion-numero-al-guardar`)
+
+### Qué hace
+Entrar a Cotización ya no gasta número. El COT-XXX se asigna justo antes de generar el
+PDF o compartir por WhatsApp (que es cuando pasa al Historial). Si el borrador ya tiene
+número, se conserva; si hay uno reservado, se reutiliza; si no, se pide (nube o local)
+y se guarda de inmediato en el borrador. Sin número no se genera PDF ni Historial.
+"+ NUEVO N°" sigue igual (y ahora también guarda el número en el borrador al instante).
+
+### Archivos
+`js/arpa-views.js`, `js/arpa-cotizacion.js` (protegido, autorizado por Arlen para este
+punto), prueba nueva `tests/cotizacion-numero.test.js` (en `npm test`).
+
+### Pruebas
+- `npm test` verde (incluye la nueva prueba, camino local sin nube).
+- Fence PASS, regresión 8/8.
+
+### Pendiente
+- Probar en la app LAB completa (imprimir PDF y WhatsApp) y con licencia real.
+- Cuenta de Cobro tiene el mismo problema (pide número al entrar y al abrir sin
+  borrador); no se tocó.
+
+## 2026-10-10 — El LAB ya no llama a producción al abrirse (`agent/lab-sin-produccion`)
+
+### Qué
+Resuelve el CRÍTICO del 2026-09-27. Licencia y trial (`index.html`), datos de empresa
+(`arpa-brand.js`), respaldo y numeración en la nube (`arpa-cloud-sync.js`), registro de trial
+(`arpa-trial-capture.js`) y Google Analytics solo se usan en `arpa.arpatechnologyglobal.com`.
+En cualquier otra dirección la llamada se rechaza como "sin red" antes de salir.
+`LICENSE_API` no se tocó. Archivos protegidos modificados con autorización de Arlen.
+
+### Pruebas
+- Fence: marcó solo los 4 archivos autorizados antes del commit; PASS después. Regresión 8/8.
+- `npm test`: 77/77.
+- Navegador en 127.0.0.1: cero peticiones a `script.google.com` y a Google Analytics.
+  Sin licencia muestra "No se pudo verificar la licencia" (igual que sin internet);
+  con `?labdemo=1` entra al demo.
+
+### Ojo
+- Para probar en el LAB el camino con licencia real (numeración en la nube) hará falta
+  un Apps Script de pruebas y permitir su dirección; hoy el LAB no habla con ningún servidor.
+- Error de consola en `arpa-cuenta-cobro.js:804` al cargar: es el que producción arregló en
+  el PR #36 (Formato-Arlenpav); llega al LAB con la próxima sincronización.
+- Al pasar este cambio a producción no cambia nada allí (el dominio coincide).
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace

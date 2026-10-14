@@ -2966,13 +2966,20 @@
 <script>
 document.documentElement.classList.add('license-checking');
 </script>
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-G4JSR6JWER"></script>
+<!-- Google Analytics: solo en el dominio de producción (el LAB, localhost y la red local no envían datos) -->
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-G4JSR6JWER');
+  if (location.hostname === 'arpa.arpatechnologyglobal.com') {
+    (function () {
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-G4JSR6JWER';
+      document.head.appendChild(s);
+    })();
+    gtag('js', new Date());
+    gtag('config', 'G-G4JSR6JWER');
+  }
 </script>
 </head>
 <body>
@@ -4155,6 +4162,15 @@ document.documentElement.classList.add('license-checking');
           <option value="CLP" data-i18n="currency.clp">🇨🇱 CLP — Peso chileno</option>
         </select>
       </div>
+      <!-- Idioma del PDF para el cliente (independiente del idioma de la app). Lo guarda js/arpa-i18n.js (arpa_doc_lang). -->
+      <div class="field">
+        <label for="settings-doc-lang" data-i18n="settings.label.doc_lang">Idioma del PDF para tu cliente</label>
+        <select id="settings-doc-lang">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+        <small data-i18n="settings.label.doc_lang_hint">Cotizaciones, formatos y cuentas de cobro salen en este idioma. La app sigue en tu idioma.</small>
+      </div>
       <div class="settings-section-title" data-i18n="settings.section.bank">Datos Bancarios</div>
       <div class="field">
         <label for="settings-bank"><span data-i18n="settings.label.bank">Banco</span> <span class="req">*</span></label>
@@ -5171,6 +5187,12 @@ if ('serviceWorker' in navigator) {
 
   function licenseApiJsonp(params) {
     return new Promise(function (resolve, reject) {
+      // Fuera del dominio de producción (LAB, localhost, red local) no se llama al servidor
+      // de licencias: la app sigue igual que sin internet (licencia guardada o ?labdemo=1).
+      if (location.hostname !== 'arpa.arpatechnologyglobal.com') {
+        reject(new Error('network'));
+        return;
+      }
       removeJsonpScript();
       jsonpCounter += 1;
       var cbName = 'arpaLicenseCb' + jsonpCounter + '_' + Date.now();
