@@ -2966,13 +2966,20 @@
 <script>
 document.documentElement.classList.add('license-checking');
 </script>
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-G4JSR6JWER"></script>
+<!-- Google Analytics: solo en el dominio de producción (el LAB, localhost y la red local no envían datos) -->
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-G4JSR6JWER');
+  if (location.hostname === 'arpa.arpatechnologyglobal.com') {
+    (function () {
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-G4JSR6JWER';
+      document.head.appendChild(s);
+    })();
+    gtag('js', new Date());
+    gtag('config', 'G-G4JSR6JWER');
+  }
 </script>
 </head>
 <body>
@@ -5171,6 +5178,12 @@ if ('serviceWorker' in navigator) {
 
   function licenseApiJsonp(params) {
     return new Promise(function (resolve, reject) {
+      // Fuera del dominio de producción (LAB, localhost, red local) no se llama al servidor
+      // de licencias: la app sigue igual que sin internet (licencia guardada o ?labdemo=1).
+      if (location.hostname !== 'arpa.arpatechnologyglobal.com') {
+        reject(new Error('network'));
+        return;
+      }
       removeJsonpScript();
       jsonpCounter += 1;
       var cbName = 'arpaLicenseCb' + jsonpCounter + '_' + Date.now();
