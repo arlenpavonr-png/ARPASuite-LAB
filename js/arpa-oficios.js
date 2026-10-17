@@ -596,10 +596,19 @@
     return global.ArpaLicense?.isFounderLicense?.() === true;
   }
 
+  function isDemoMode() {
+    return global.ArpaBrand?.isDemoMode?.() === true;
+  }
+
+  /** Varios oficios a la vez: solo Founder y fuera del modo demo (la demo muestra un solo oficio, el del cliente). */
+  function allowsMultipleOficios() {
+    return isFounderLicense() && !isDemoMode();
+  }
+
   function normalizeActiveOficiosList(raw) {
     if (!Array.isArray(raw) || !raw.length) return [];
     const ids = raw.map(normalizeOficioId).filter((id, i, arr) => arr.indexOf(id) === i);
-    if (isFounderLicense()) return ids;
+    if (allowsMultipleOficios()) return ids;
     return ids.length ? [ids[0]] : [];
   }
 
@@ -890,7 +899,7 @@
     if (!container) return;
     const active = getActiveOficiosFromSettings();
     const activeSet = new Set(active);
-    const founder = isFounderLicense();
+    const founder = allowsMultipleOficios();
     const inputType = founder ? 'checkbox' : 'radio';
     const singleActive = active[0] || null;
 
@@ -921,7 +930,7 @@
     const activeSet = new Set(activeIds);
     const single = activeIds[0] || null;
     container.querySelectorAll('input[name="settings-oficio"]').forEach((el) => {
-      if (isFounderLicense()) {
+      if (allowsMultipleOficios()) {
         el.checked = activeSet.has(normalizeOficioId(el.value));
       } else {
         el.checked = normalizeOficioId(el.value) === single;
@@ -936,7 +945,8 @@
 
     if (previousSingle === nextId) return true;
 
-    if (previousSingle) {
+    // En modo demo se cambia sin preguntar y sin borrar el catálogo de la empresa real.
+    if (previousSingle && !isDemoMode()) {
       const msg = window.ArpaI18n.t('confirm.oficios.cambiar_oficio', {
         from: getOficioLabel(previousSingle),
         to: getOficioLabel(nextId)
@@ -975,7 +985,7 @@
       input.dataset.oficioBound = '1';
       input.addEventListener('change', (e) => {
         const target = e.target;
-        if (isFounderLicense()) {
+        if (allowsMultipleOficios()) {
           applyOficiosFromSettingsUI(container);
           return;
         }
