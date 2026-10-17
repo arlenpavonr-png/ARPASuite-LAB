@@ -66,8 +66,24 @@ describe('nextNumberAsync — sin saltos de numeración', () => {
       N.nextNumberAsync('cot', ''),
       N.nextNumberAsync('cot', '')
     ]);
-    assert.equal(a.value, 'AP-159');
-    assert.equal(b.value, 'AP-159');
+    assert.equal(a.value, 'AP-COT-159');
+    assert.equal(b.value, 'AP-COT-159');
+  });
+
+  it('con prefijo de técnico cada documento se distingue: AP-180, AP-COT-180, AP-CC-012', () => {
+    store.arpa_suite_user_settings = JSON.stringify({ technicianCode: 'AP' });
+    assert.equal(N.formatFormNumber(180), 'AP-180');
+    assert.equal(N.formatCotNumber(180), 'AP-COT-180');
+    assert.equal(N.formatCcNumber(12), 'AP-CC-012');
+  });
+
+  it('la secuencia sigue igual al pasar de AP-180 a AP-COT-181', async () => {
+    store.arpa_suite_user_settings = JSON.stringify({ technicianCode: 'AP' });
+    store.arpa_ultimo_cot = '180';
+    cloud.cot = 180;
+    assert.equal(N.parseSequenceNumber('AP-COT-180'), 180);
+    const r = await N.nextNumberAsync('cot', 'AP-180');
+    assert.equal(r.value, 'AP-COT-181');
   });
 
   it('sin nube (offline) sigue dando número local sin saltar', async () => {
