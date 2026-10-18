@@ -164,6 +164,28 @@
     },
   };
 
+  // Cabezales (puertas automáticas de vidrio): referencias para la opción del formato de servicio.
+  CATALOGO_MARCAS.Accessmatic.Cabezal = [
+    { cod: 'AUACKAN4275', nom: 'Avalon 4200 – kit puerta automática 4.2 m, 2 hojas', pvp: 7099900 },
+    { cod: 'AUACKAT42M', nom: 'Avanti 4200 – kit puerta automática 4.2 m, 2 hojas', pvp: 8549900 },
+    { cod: 'AUACKAT63M', nom: 'Avanti 6300 – kit puerta automática 6.3 m, 2 hojas', pvp: 9699900 },
+    { cod: 'AUACKAVANTI6000Z', nom: 'Telescópica 6 m – kit puerta automática', pvp: 15990000 },
+  ];
+  CATALOGO_MARCAS.BFT.Cabezal = [
+    { cod: 'KVISTASLKA100R-SMART-3', nom: 'Vista SLK A100R Smart 3.00 m – 1 hoja hasta 100 kg', pvp: 6912900 },
+    { cod: 'KVISTASLKA100R-SMART-2', nom: 'Vista SLK A100R Smart 4.40 m – 2 hojas hasta 80 kg', pvp: 7690900 },
+    { cod: 'KVISTASLKA150R-SMART-1', nom: 'Vista SL A150R Smart – 2 hojas 120 kg', pvp: 15532000 },
+    { cod: 'KVISTATL226', nom: 'Vista TL-226 telescópica – 2 hojas 120 kg', pvp: 31514000 },
+    { cod: 'KVISTATL440', nom: 'Vista TL-440 telescópica – 4 hojas 80 kg', pvp: 34940000 },
+  ];
+  CATALOGO_MARCAS.NAS.Cabezal = [
+    { cod: 'KMBS90', nom: 'MBS90 – 2 hojas 100 kg o 1 hoja 130 kg, 2.1 m', pvp: 5366000 },
+    { cod: 'KMBS90-2', nom: 'MBS90 con sensores OPTEX – 2 hojas 100 kg', pvp: 6248000 },
+  ];
+  CATALOGO_MARCAS.Elite.Cabezal = [
+    { cod: 'AUELKPA42', nom: 'Zoom – kit puerta automática 4.2 m', pvp: 5299900 },
+  ];
+
   /** Precios de venta (PVP) por código — misma fuente para Cotización */
   const PRECIOS_PVP = {
     AUACSC901: 999900,
@@ -383,6 +405,7 @@
     'Batiente 1 hoja': 'Motores Batientes',
     'Cortina enrollable': 'Cortinas Enrollables',
     'Barrera vehicular': 'Barreras',
+    Cabezal: 'Cabezales',
     Accesorios: 'Accesorios',
   };
 
