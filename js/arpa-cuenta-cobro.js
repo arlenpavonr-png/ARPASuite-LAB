@@ -12,6 +12,16 @@
   let servicios = [{ desc: '', cant: 1, unit: 0 }];
   let draftSaveTimer = null;
 
+  // Idioma del documento para el cliente (ArpaDocLang en arpa-i18n.js). Con Español devuelven el texto
+  // y la fecha exactamente como antes; con English, el PDF y el mensaje salen en inglés.
+  function dt(key, esText) {
+    return global.ArpaDocLang?.text?.(key, esText) ?? esText;
+  }
+
+  function fd(value) {
+    return global.ArpaDocLang?.date?.(value) ?? value;
+  }
+
   function getJsPDF() {
     return global.jspdf?.jsPDF || global.jsPDF || null;
   }
@@ -33,7 +43,7 @@
       pago: getPaymentData(),
       servicios: servicios.map((s) => ({
         desc: s.desc || '',
-        cant: parseInt(s.cant, 10) || 1,
+        cant: parseCant(s.cant),
         unit: parseNum(s.unit)
       })),
       firmaCobrador: global.ArpaSignature?.getDataUrl?.('canvas-cc-cobrador') || '',
@@ -76,7 +86,7 @@
       if (Array.isArray(d.servicios) && d.servicios.length) {
         servicios = d.servicios.map((s) => ({
           desc: s.desc || '',
-          cant: parseInt(s.cant, 10) || 1,
+          cant: parseCant(s.cant),
           unit: parseNum(s.unit)
         }));
       }
@@ -87,6 +97,17 @@
     } catch (e) {
       return false;
     }
+  }
+
+  /**
+   * La cuenta de cobro quedó terminada (PDF guardado o compartido y en el Historial):
+   * se libera el número y se vacía el campo, para que la siguiente no salga repetida.
+   */
+  function cerrarCcTerminada(d) {
+    global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
+    const el = document.getElementById('cc-numero');
+    if (el) el.value = '';
+    clearCcDraft();
   }
 
   function clearCcDraft() {
@@ -102,6 +123,15 @@
         localStorage.setItem(DRAFT_KEY, JSON.stringify(collectCcDraft()));
       } catch (e) { /* quota */ }
     }, delay);
+  }
+
+  /** Guarda el borrador ya (sin esperar el temporizador). */
+  function saveCcDraftNow() {
+    if (draftSaveTimer) clearTimeout(draftSaveTimer);
+    draftSaveTimer = null;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(collectCcDraft()));
+    } catch (e) { /* quota */ }
   }
 
   function bindCcDraftListeners() {
@@ -152,6 +182,19 @@
     return global.ArpaPricing?.formatoPesos(n) || ('$ ' + (Number(n) || 0).toLocaleString('es-CO'));
   }
 
+  function roundMoney(n) {
+    if (typeof global.ArpaPricing?.roundMoney === 'function') return global.ArpaPricing.roundMoney(n);
+    return Number(n) || 0;
+  }
+
+
+  // Cantidades con decimales (7,5 m²); antes parseInt truncaba a 7.
+  function parseCant(value) {
+    if (global.ArpaPricing?.parseCantidad) return global.ArpaPricing.parseCantidad(value);
+    const n = Number(String(value == null ? '' : value).trim().replace(',', '.'));
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 1;
+  }
+
   function parseNum(v) {
     const n = Number(String(v).replace(/[^\d.-]/g, ''));
     return Number.isFinite(n) ? n : 0;
@@ -168,11 +211,15 @@
   }
 
   async function nuevoCcNumero() {
-    if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return;
-    const { value, sincronizado } = await global.ArpaNumeracion.nextNumberAsync('cc', document.getElementById('cc-numero')?.value);
+    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return false;
+    if (!global.ArpaNumeracion?.blockIfPymeMissingCode?.()) return false;
+    const result = await global.ArpaNumeracion.nextNumberAsync('cc', document.getElementById('cc-numero')?.value);
+    if (!result || result.blocked || !result.value) return false;
+    const { value, sincronizado } = result;
     if (!sincronizado) console.warn('[ARPA] Número de cuenta de cobro generado offline, no sincronizado con la nube todavía.');
     const badge = document.getElementById('sync-status-cc');
-    if (badge) {
+    // LAB: en modo demo el aviso lo pinta ArpaLabDemo (no muestra licencia real).
+    if (badge && !global.ArpaLabDemo?.paintLocalBadge?.(badge)) {
       badge.style.display = 'inline-block';
       const licActiva = (localStorage.getItem('arpa_suite_license_code') || '(vacio)').trim();
       badge.title = 'Licencia activa: ' + licActiva;
@@ -188,11 +235,37 @@
     }
     const el = document.getElementById('cc-numero');
     if (el) el.value = value;
+    global.ArpaNumeracion?.setReserved?.('cc', value);
+    // Guardar el número de inmediato en el borrador: al reabrir no se pide otro.
+    saveCcDraftNow();
+    return true;
   }
 
+  /** Pone número si falta (reusa el reservado si hay). Devuelve true si queda con número. */
   async function ensureCcNumero() {
     const el = document.getElementById('cc-numero');
-    if (el && !el.value.trim()) await nuevoCcNumero();
+    if (!el) return false;
+    if (el.value.trim()) return true;
+    if (!global.ArpaNumeracion?.hasActiveLicenseCode?.()) return false;
+    const reservado = global.ArpaNumeracion?.getReserved?.('cc');
+    if (reservado) {
+      el.value = reservado;
+      saveCcDraftNow();
+      return true;
+    }
+    return (await nuevoCcNumero()) === true && !!el.value.trim();
+  }
+
+  /**
+   * El número se asigna al generar el PDF o compartir, no al entrar a Cuenta
+   * de Cobro ni al abrir la app: así no se gastan números en cuentas que no se
+   * terminan. Si ya tiene número, se conserva. Sin número no se genera nada.
+   */
+  async function asegurarNumeroCc() {
+    const el = document.getElementById('cc-numero');
+    if (el?.value.trim()) return true;
+    if (!global.ArpaNumeracion?.blockIfNoLicense?.()) return false;
+    return ensureCcNumero();
   }
 
   function renderCobrador() {
@@ -206,7 +279,7 @@
     tbody.innerHTML = servicios.map((row, idx) => `
       <tr class="cc-row" data-idx="${idx}">
         <td class="td-desc"><input type="text" class="cc-svc-desc" value="${escAttr(row.desc)}" placeholder="Descripción del servicio"></td>
-        <td class="td-cant"><input type="number" class="cc-svc-cant" min="1" value="${row.cant}" inputmode="numeric"></td>
+        <td class="td-cant"><input type="number" class="cc-svc-cant" min="0.01" step="0.01" value="${row.cant}" inputmode="decimal"></td>
         <td class="td-precio"><input type="number" class="cc-svc-unit" min="0" step="1000" value="${row.unit || ''}" inputmode="numeric" placeholder="0"></td>
         <td class="td-total cc-svc-total">${formatoPesos(row.cant * row.unit)}</td>
         <td class="td-action">${servicios.length > 1 ? `<button type="button" class="btn-quitar cc-svc-remove" data-idx="${idx}">✕</button>` : ''}</td>
@@ -238,7 +311,7 @@
     const row = servicios[idx];
     if (!row) return;
     row.desc = tr.querySelector('.cc-svc-desc')?.value || '';
-    row.cant = parseInt(tr.querySelector('.cc-svc-cant')?.value, 10) || 1;
+    row.cant = parseCant(tr.querySelector('.cc-svc-cant')?.value);
     row.unit = parseNum(tr.querySelector('.cc-svc-unit')?.value);
     const totalCell = tr.querySelector('.cc-svc-total');
     if (totalCell) totalCell.textContent = formatoPesos(row.cant * row.unit);
@@ -247,17 +320,40 @@
   }
 
   function getSubtotal() {
-    return servicios.reduce((s, r) => s + (parseInt(r.cant, 10) || 1) * parseNum(r.unit), 0);
+    return servicios.reduce((s, r) => s + parseCant(r.cant) * parseNum(r.unit), 0);
+  }
+
+  function getTaxRate() {
+    const rate = Number(global.ArpaPricing?.getTaxRate?.());
+    return Number.isFinite(rate) ? rate : 0;
+  }
+
+  function getTaxLabelInfo() {
+    return global.ArpaPricing?.getTaxLabelText?.() || { labelWord: 'IVA', pct: 0, full: 'IVA (0%)' };
+  }
+
+  function applyTaxLabels() {
+    const tax = getTaxLabelInfo();
+    const lang = global.ArpaI18n?.getLang?.() || 'es';
+    const toggleText = lang === 'en'
+      ? ('Include ' + tax.labelWord + ' ' + tax.pct + '%')
+      : ('Incluir ' + tax.labelWord + ' ' + tax.pct + '%');
+    const ivaCheck = document.getElementById('cc-iva-check');
+    const toggleSpan = ivaCheck?.parentElement?.querySelector('span');
+    if (toggleSpan) toggleSpan.textContent = toggleText;
+    const ivaLabel = document.querySelector('#cc-iva-row .total-label');
+    if (ivaLabel) ivaLabel.textContent = tax.full;
   }
 
   function recalcularTotales() {
+    applyTaxLabels();
     const subtotal = getSubtotal();
     const conIva = document.getElementById('cc-iva-check')?.checked;
     const conRet = document.getElementById('cc-ret-check')?.checked;
     const retPct = parseNum(document.getElementById('cc-ret-pct')?.value) || 0;
-    const iva = conIva ? subtotal * 0.19 : 0;
-    const retencion = conRet ? subtotal * (retPct / 100) : 0;
-    const total = subtotal + iva - retencion;
+    const iva = conIva ? roundMoney(subtotal * getTaxRate()) : 0;
+    const retencion = conRet ? roundMoney(subtotal * (retPct / 100)) : 0;
+    const total = roundMoney(subtotal + iva - retencion);
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     set('cc-subtotal-val', formatoPesos(subtotal));
@@ -288,9 +384,9 @@
     const conIva = document.getElementById('cc-iva-check')?.checked;
     const conRet = document.getElementById('cc-ret-check')?.checked;
     const retPct = parseNum(document.getElementById('cc-ret-pct')?.value) || 0;
-    const iva = conIva ? subtotal * 0.19 : 0;
-    const retencion = conRet ? subtotal * (retPct / 100) : 0;
-    const total = subtotal + iva - retencion;
+    const iva = conIva ? roundMoney(subtotal * getTaxRate()) : 0;
+    const retencion = conRet ? roundMoney(subtotal * (retPct / 100)) : 0;
+    const total = roundMoney(subtotal + iva - retencion);
     const r = global.ArpaBrand?.getSettings?.() || getRawSettings();
     const clienteNombre = document.getElementById('cc-cliente-nombre')?.value.trim() || '';
 
@@ -304,7 +400,7 @@
         doc: (r.technicianDocument || '').trim(),
         empresa: (r.companyName || '').trim(),
         nit: (r.nit || '').trim(),
-        tel: (r.phone || '').trim(),
+        tel: global.ArpaPricing?.formatCompanyPhone?.(r.phone) || (r.phone || '').trim(),
         dir: (r.address || '').trim(),
         web: (r.website || '').trim()
       },
@@ -316,9 +412,9 @@
       },
       servicios: servicios.map((s) => ({
         desc: s.desc,
-        cant: parseInt(s.cant, 10) || 1,
+        cant: parseCant(s.cant),
         unit: parseNum(s.unit),
-        total: (parseInt(s.cant, 10) || 1) * parseNum(s.unit)
+        total: (parseCant(s.cant)) * parseNum(s.unit)
       })),
       subtotal,
       iva,
@@ -357,11 +453,11 @@
     const hoy = new Date();
     const em = document.getElementById('cc-fecha-emision');
     const ven = document.getElementById('cc-fecha-vencimiento');
-    if (em) em.value = hoy.toISOString().split('T')[0];
+    const toLocal = global.fechaLocalISO;
+    if (em) em.value = toLocal(hoy);
     if (ven) {
-      const v = new Date(hoy);
-      v.setDate(v.getDate() + 15);
-      ven.value = v.toISOString().split('T')[0];
+      const v = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 15);
+      ven.value = toLocal(v);
     }
   }
 
@@ -376,6 +472,11 @@
   }
 
   function buildCcShareMessage(d) {
+    const enMsg = global.ArpaDocLang?.shareMessage?.('cc', {
+      nombre: d.cliente.nombre, numero: d.numero, company: d.cobrador.empresa,
+      total: formatoPesos(d.total), tel: d.cobrador.tel || ''
+    });
+    if (enMsg) return enMsg;
     const empresa = d.cobrador.empresa || 'nuestra empresa';
     const telEmp = d.cobrador.tel || '';
     return `Hola ${d.cliente.nombre || 'cliente'}, le compartimos la ${d.numero} de ${empresa} por un valor de ${formatoPesos(d.total)}. Quedamos atentos para cualquier consulta.\n${empresa} 📞 ${telEmp}`;
@@ -388,6 +489,7 @@
       alert(window.ArpaI18n.t('alert.pdf.jspdf_no_cargo'));
       return;
     }
+    if (!(await asegurarNumeroCc())) return;
 
     const d = getFormSnapshot();
     const msg = buildCcShareMessage(d);
@@ -402,7 +504,7 @@
           text: msg
         });
         global.ArpaHistorial?.captureFromCuentaCobro?.(d);
-        clearCcDraft();
+        cerrarCcTerminada(d);
         return;
       }
     } catch (err) {
@@ -413,9 +515,10 @@
     alert(window.ArpaI18n.t('alert.pdf.adjuntar_manual'));
     global.ArpaWhatsApp?.openWhatsAppWithMessage?.(
       d.cliente.tel,
-      msg + ' (Adjunte el PDF desde su dispositivo.)'
+      msg + dt('msg.attach_note', ' (Adjunte el PDF desde su dispositivo.)')
     );
     global.ArpaHistorial?.captureFromCuentaCobro?.(d);
+    global.ArpaNumeracion?.clearReserved?.('cc', d && d.numero);
   }
 
   function loadImageDataUrl(src) {
@@ -440,6 +543,10 @@
   }
 
   async function renderCcToPdf(d, jsPDF) {
+    // En México el documento fiscal es el RFC; en los demás países, NIT / C.C.
+    const taxLabel = global.ArpaPricing?.getTaxIdLabel?.() || 'NIT';
+    const idLabel = taxLabel === 'NIT' ? 'C.C. / NIT' : taxLabel;
+    const clientIdLabel = taxLabel === 'NIT' ? 'NIT / C.C.' : taxLabel;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
@@ -464,8 +571,8 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     let hy = 20;
-    if (d.cobrador.nit) { doc.text(`NIT: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
-    if (d.cobrador.tel) { doc.text(`Tel: ${d.cobrador.tel}`, m + (logoData ? 26 : 0), hy); }
+    if (d.cobrador.nit) { doc.text(`${dt('cc.pdf.tax_id', taxLabel)}: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
+    if (d.cobrador.tel) { doc.text(`${dt('cc.pdf.tel', 'Tel')}: ${d.cobrador.tel}`, m + (logoData ? 26 : 0), hy); }
 
     doc.setFillColor(...GOLD);
     doc.rect(0, 38, pw, 1.2, 'F');
@@ -474,7 +581,7 @@
     doc.setTextColor(...NAVY);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('CUENTA DE COBRO', pw / 2, y, { align: 'center' });
+    doc.text(dt('cc.pdf.title', 'CUENTA DE COBRO'), pw / 2, y, { align: 'center' });
     y += 8;
     doc.setFontSize(14);
     doc.setTextColor(...GOLD);
@@ -510,31 +617,31 @@
       return by;
     }
 
-    blockTitle(leftX, y, 'COBRADOR');
-    blockTitle(rightX, y, 'CLIENTE');
+    blockTitle(leftX, y, dt('cc.pdf.from', 'COBRADOR'));
+    blockTitle(rightX, y, dt('cc.pdf.bill_to', 'CLIENTE'));
     let yL = y + 6;
     let yR = y + 6;
     yL = blockLines(leftX, yL, [
-      ['Nombre', d.cobrador.nombre],
-      ['C.C. / NIT', d.cobrador.doc],
-      ['Empresa', d.cobrador.empresa],
-      ['NIT', d.cobrador.nit],
-      ['Tel', d.cobrador.tel],
-      ['Dir', d.cobrador.dir],
-      ['Web', d.cobrador.web]
+      [dt('cc.pdf.name', 'Nombre'), d.cobrador.nombre],
+      [dt('cc.pdf.id_tax', idLabel), d.cobrador.doc],
+      [dt('cc.pdf.company', 'Empresa'), d.cobrador.empresa],
+      [dt('cc.pdf.tax_id', taxLabel), d.cobrador.nit],
+      [dt('cc.pdf.tel', 'Tel'), d.cobrador.tel],
+      [dt('cc.pdf.address', 'Dir'), d.cobrador.dir],
+      [dt('cc.pdf.web', 'Web'), d.cobrador.web]
     ]);
     yR = blockLines(rightX, yR, [
-      ['Nombre', d.cliente.nombre],
-      ['NIT / C.C.', d.cliente.doc],
-      ['Dir', d.cliente.dir],
-      ['Tel', d.cliente.tel]
+      [dt('cc.pdf.name', 'Nombre'), d.cliente.nombre],
+      [dt('cc.pdf.id_tax', clientIdLabel), d.cliente.doc],
+      [dt('cc.pdf.address', 'Dir'), d.cliente.dir],
+      [dt('cc.pdf.tel', 'Tel'), d.cliente.tel]
     ]);
     y = Math.max(yL, yR) + 6;
 
     if (d.ciudad || d.fechaEmision) {
       doc.setFontSize(8);
       doc.setTextColor(...MUTED);
-      const meta = [d.ciudad, d.fechaEmision ? `Emisión: ${d.fechaEmision}` : '', d.fechaVencimiento ? `Vence: ${d.fechaVencimiento}` : ''].filter(Boolean).join('  ·  ');
+      const meta = [d.ciudad, d.fechaEmision ? `${dt('cc.pdf.issued', 'Emisión')}: ${fd(d.fechaEmision)}` : '', d.fechaVencimiento ? `${dt('cc.pdf.due', 'Vence')}: ${fd(d.fechaVencimiento)}` : ''].filter(Boolean).join('  ·  ');
       doc.text(meta, m, y);
       y += 6;
     }
@@ -545,7 +652,7 @@
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    ['Descripción', 'Cant.', 'V. Unit.', 'Total'].forEach((h, i) => {
+    [dt('cc.pdf.col_desc', 'Descripción'), dt('cc.pdf.col_qty', 'Cant.'), dt('cc.pdf.col_unit', 'V. Unit.'), dt('cc.pdf.col_total', 'Total')].forEach((h, i) => {
       const x = [cols[0] + 2, cols[1] + 2, cols[2] + 2, cols[3] + 2][i];
       doc.text(h, x, y + 4.5);
     });
@@ -566,7 +673,7 @@
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.text(descLines, cols[0] + 2, y + 4.5);
-      doc.text(String(row.cant), cols[1] + 2, y + 4.5);
+      doc.text(global.ArpaPricing?.formatoCantidad ? global.ArpaPricing.formatoCantidad(row.cant) : String(row.cant), cols[1] + 2, y + 4.5);
       doc.text(formatoPesos(row.unit), cols[2] + 2, y + 4.5);
       doc.text(formatoPesos(row.total), cols[3] + 2, y + 4.5);
       y += rowHeight;
@@ -576,9 +683,9 @@
     const totX = pw - m - 62;
     doc.setFontSize(9);
     const totales = [
-      ['Subtotal', formatoPesos(d.subtotal)],
-      ...(d.conIva ? [['IVA (19%)', formatoPesos(d.iva)]] : []),
-      ...(d.conRet ? [[`Retención (${d.retPct}%)`, '- ' + formatoPesos(d.retencion)]] : [])
+      [dt('cc.pdf.subtotal', 'Subtotal'), formatoPesos(d.subtotal)],
+      ...(d.conIva ? [[(global.ArpaDocLang?.taxLabel?.() || global.ArpaPricing?.getTaxLabelText?.()?.full || 'IVA (0%)'), formatoPesos(d.iva)]] : []),
+      ...(d.conRet ? [[`${dt('cc.pdf.withholding', 'Retención')} (${d.retPct}%)`, '- ' + formatoPesos(d.retencion)]] : [])
     ];
     totales.forEach(([label, val]) => {
       doc.setTextColor(...MUTED);
@@ -595,16 +702,16 @@
     y += 5;
     doc.setFontSize(11);
     doc.setTextColor(...NAVY);
-    doc.text('TOTAL A COBRAR', totX, y);
+    doc.text(dt('cc.pdf.total', 'TOTAL A COBRAR'), totX, y);
     doc.text(formatoPesos(d.total), pw - m, y, { align: 'right' });
     y += 10;
 
     const consigLines = [
-      d.pago.bankName && `Banco: ${d.pago.bankName}`,
-      d.pago.accountType && `Tipo: ${d.pago.accountType}`,
-      d.pago.accountNumber && `Cuenta N°: ${d.pago.accountNumber}`,
-      d.pago.accountHolder && `Titular: ${d.pago.accountHolder}`,
-      d.pago.accountHolderDocument && `NIT/C.C.: ${d.pago.accountHolderDocument}`
+      d.pago.bankName && `${dt('cc.pdf.bank', 'Banco')}: ${d.pago.bankName}`,
+      d.pago.accountType && `${dt('cc.pdf.account_type', 'Tipo')}: ${dt('cc.pdf.account.' + d.pago.accountType, d.pago.accountType)}`,
+      d.pago.accountNumber && `${dt('cc.pdf.account_no', 'Cuenta N°')}: ${d.pago.accountNumber}`,
+      d.pago.accountHolder && `${dt('cc.pdf.holder', 'Titular')}: ${d.pago.accountHolder}`,
+      d.pago.accountHolderDocument && `${dt('cc.pdf.holder_doc', taxLabel === 'NIT' ? 'NIT/C.C.' : taxLabel)}: ${d.pago.accountHolderDocument}`
     ].filter(Boolean);
     const consigBoxH = 10 + consigLines.length * 4.5 + 4;
     if (y > ph - (consigBoxH + 15)) { doc.addPage(); y = m; }
@@ -614,7 +721,7 @@
     doc.setTextColor(21, 128, 61);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text('DATOS PARA CONSIGNACIÓN', m + 4, y + 6);
+    doc.text(dt('cc.pdf.payment', 'DATOS PARA CONSIGNACIÓN'), m + 4, y + 6);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     let py = y + 12;
@@ -631,7 +738,7 @@
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.setTextColor(...NAVY);
-      doc.text('Observaciones', m, y);
+      doc.text(dt('cc.pdf.notes', 'Observaciones'), m, y);
       y += 5;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
@@ -657,8 +764,8 @@
     doc.line(m + sigW + 10, y + 12, pw - m, y + 12);
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);
-    doc.text('Firma cobrador', m + sigW / 2, y + 17, { align: 'center' });
-    doc.text('Firma cliente', m + sigW + 10 + sigW / 2, y + 17, { align: 'center' });
+    doc.text(dt('cc.pdf.sig_provider', 'Firma cobrador'), m + sigW / 2, y + 17, { align: 'center' });
+    doc.text(dt('cc.pdf.sig_customer', 'Firma cliente'), m + sigW + 10 + sigW / 2, y + 17, { align: 'center' });
     doc.setTextColor(30, 41, 59);
     doc.setFont('helvetica', 'bold');
     doc.text(d.cobrador.nombre || '—', m + sigW / 2, y + 22, { align: 'center' });
@@ -669,11 +776,13 @@
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
-    const arpaFooter = global.ArpaBrand?.GLOBAL_FOOTER_TEXT
+    // Con English el pie sale en inglés; con Español, el mismo de siempre.
+    const arpaFooter = (global.ArpaDocLang?.isEnglish?.() && dt('cc.pdf.footer', ''))
+      || global.ArpaBrand?.GLOBAL_FOOTER_TEXT
       || '© 2026 ARPA Technology Global · arpatechnologyglobal.com · Todos los derechos reservados.';
     doc.text(arpaFooter, pw / 2, ph - 5.5, { align: 'center' });
 
-    const filename = `CuentaCobro_${d.numero || 'CC'}_${sanitizeFilename(d.cliente.nombre)}.pdf`;
+    const filename = `${dt('file.cc', 'CuentaCobro')}_${d.numero || 'CC'}_${sanitizeFilename(d.cliente.nombre)}.pdf`;
     return { doc, filename };
   }
 
@@ -684,13 +793,14 @@
       alert(window.ArpaI18n.t('alert.pdf.jspdf_no_cargo'));
       return;
     }
+    if (!(await asegurarNumeroCc())) return;
 
     const d = getFormSnapshot();
     try {
       const { doc, filename } = await renderCcToPdf(d, jsPDF);
       doc.save(filename);
       global.ArpaHistorial?.captureFromCuentaCobro?.(d);
-      clearCcDraft();
+      cerrarCcTerminada(d);
     } catch (e) {
       scheduleCcDraftSave(true);
       alert(window.ArpaI18n.t('alert.cuenta_cobro.pdf_no_generado'));
@@ -710,7 +820,8 @@
     const hadDraft = applyCcDraft();
     if (!hadDraft) {
       initFechas();
-      ensureCcNumero();
+      // No se pide número al abrir: se asigna al generar PDF o compartir
+      // (asegurarNumeroCc) o con "+ NUEVO N°"; el borrador trae el suyo si lo tiene.
     }
     global.ArpaBrand?.applyCuentaCobroFromSettings?.(undefined, {
       fillPago: hadDraft ? 'if-empty' : 'always'
@@ -750,7 +861,7 @@
       if (nombreEl && !nombreEl.textContent.trim()) {
         nombreEl.textContent = settings.companyName || '';
       }
-      if (telEl && !telEl.value.trim()) {
+      if (telEl && typeof telEl.value === 'string' && !telEl.value.trim()) {
         telEl.value = settings.phone || '';
       }
     })();
@@ -759,8 +870,10 @@
   global.ArpaCuentaCobro = {
     initCuentaCobro,
     refreshView,
+    recalcularTotales,
     nuevoCcNumero,
     ensureCcNumero,
+    asegurarNumeroCc,
     limpiarFormulario,
     enviarWhatsApp,
     generarPDF,

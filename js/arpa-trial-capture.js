@@ -5,13 +5,14 @@
 (function (global) {
   'use strict';
 
-  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbzKBeyDVWVqPG1R47EZTVKmCpa3SOwxs8LXrW4ipvRtiyyRV4trJKg7D4i89_cUTcH2/exec';
+  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbw9wGLhbqFUt6FxRs0iLu_4xDntE8l2a4Vpd3BsXZyddPbII03BtFG6TpH7IpEe5Z3F/exec';
   const LICENSE_CODE_KEY = 'arpa_suite_license_code';
   const ACTIVE_OFICIOS_KEY = 'arpa_active_oficios';
   const TRIAL_START_KEY = 'arpa_trial_fecha_inicio';
   const TRIAL_WHATSAPP_KEY = 'arpa_trial_whatsapp';
   const TRIAL_NOMBRE_KEY = 'arpa_trial_nombre';
   const TRIAL_OFICIO_KEY = 'arpa_trial_oficio';
+  const TRIAL_PAIS_KEY = 'arpa_trial_pais';
   const TRIAL_ID_KEY = 'arpa_trial_id';
   const TRIAL_SYNCED_KEY = 'arpa_trial_synced';
   const TRIAL_DOC_SAVED_KEY = 'arpa_trial_doc_saved';
@@ -24,10 +25,11 @@
     { id: 'refrigeracion', label: 'Refrigeración y Aire Acondicionado' },
     { id: 'cctv', label: 'Cámaras y CCTV / Seguridad Electrónica' },
     { id: 'plomeria', label: 'Plomería y Fontanería' },
-    { id: 'metalmecanica', label: 'Metalmecánica y Soldadura' },
+    { id: 'metalmecanica', label: 'Cerrajería y Metalmecánica' },
     { id: 'plagas', label: 'Control de Plagas / Fumigación' },
     { id: 'linea_blanca', label: 'Línea Blanca / Electrodomésticos' },
-    { id: 'solar', label: 'Energía Solar' }
+    { id: 'solar', label: 'Energía Solar' },
+    { id: 'construccion', label: 'Construcción y Acabados' }
   ];
 
   function t(key, fallback) {
@@ -111,10 +113,28 @@
     }
   }
 
+  /** País configurado en la app (CO, MX, US, CL, PE) y su prefijo; Colombia si no se sabe. */
+  function trialCountry() {
+    try {
+      return global.ArpaPricing?.getCountryProfile?.()?.code || 'CO';
+    } catch (e) {
+      return 'CO';
+    }
+  }
+
+  function trialPhonePrefix() {
+    try {
+      return global.ArpaPricing?.getCountryProfile?.()?.phonePrefix || '57';
+    } catch (e) {
+      return '57';
+    }
+  }
+
   function normalizePhone(raw) {
     let digits = String(raw || '').replace(/\D/g, '');
     if (!digits) return '';
-    if (digits.length === 10) digits = '57' + digits;
+    // Número nacional de 10 dígitos → prefijo del país configurado (CO 57, MX 52, US 1).
+    if (digits.length === 10) digits = trialPhonePrefix() + digits;
     if (digits.length === 11 && digits.startsWith('3')) digits = '57' + digits;
     return digits;
   }
@@ -147,7 +167,8 @@
   function populateOficioSelect(select) {
     if (!select) return;
     select.innerHTML = '<option value="">' + t('trial_capture.oficio_placeholder', 'Seleccione su oficio principal…') + '</option>' +
-      OFICIO_OPTIONS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('');
+      // Nombre del oficio según idioma y país (p. ej. Cerrajería en Colombia, Herrería en otros países)
+      OFICIO_OPTIONS.map((o) => `<option value="${o.id}">${t('oficio.' + o.id, o.label)}</option>`).join('');
     const preferred = getPreferredOficioId();
     if (preferred) {
       select.value = preferred;
@@ -162,7 +183,6 @@
     }
     const code = getSavedLicenseCode().toUpperCase();
     if (!code) return false;
-    if (code === 'ARPA-FOUNDER-001') return false;
     if (code.indexOf('ARPA-WL-') === 0) return false;
     if (code.indexOf('ARPA-PYME-') === 0) return false;
     if (code.indexOf('ARPA-PRO-') === 0) return false;
@@ -231,6 +251,10 @@
   }
 
   function postRegisterTrial(payload) {
+    // Fuera del dominio de producción (LAB, localhost, red local) no se llama al servidor.
+    if (global.location?.hostname !== 'arpa.arpatechnologyglobal.com') {
+      return Promise.reject(new Error('network'));
+    }
     return fetch(LICENSE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -245,7 +269,8 @@
         fechaInicio: localStorage.getItem(TRIAL_START_KEY) || '',
         trialId: localStorage.getItem(TRIAL_ID_KEY) || '',
         nombre: localStorage.getItem(TRIAL_NOMBRE_KEY) || '',
-        oficio: localStorage.getItem(TRIAL_OFICIO_KEY) || ''
+        oficio: localStorage.getItem(TRIAL_OFICIO_KEY) || '',
+        pais: localStorage.getItem(TRIAL_PAIS_KEY) || ''
       };
     } catch (e) {
       return null;
@@ -305,7 +330,7 @@
     setCaptureActive(mode === 'fullscreen');
     showCaptureError('');
     populateOficioSelect(oficioSelect);
-    if (phoneInput && !phoneInput.value.trim()) phoneInput.value = '+57 ';
+    if (phoneInput && !phoneInput.value.trim()) phoneInput.value = '+' + trialPhonePrefix() + ' ';
 
     function finish() {
       hideCapture();
@@ -350,6 +375,7 @@
         localStorage.setItem(TRIAL_WHATSAPP_KEY, phone);
         localStorage.setItem(TRIAL_NOMBRE_KEY, nombre);
         localStorage.setItem(TRIAL_OFICIO_KEY, oficio);
+        localStorage.setItem(TRIAL_PAIS_KEY, trialCountry());
         localStorage.setItem(TRIAL_CAPTURED_KEY, 'true');
         localStorage.setItem(ACTIVE_OFICIOS_KEY, JSON.stringify([oficio]));
         localStorage.removeItem(TRIAL_SYNCED_KEY);
@@ -447,6 +473,7 @@
     TRIAL_WHATSAPP_KEY,
     TRIAL_NOMBRE_KEY,
     TRIAL_OFICIO_KEY,
+    TRIAL_PAIS_KEY,
     TRIAL_ID_KEY,
     TRIAL_DOC_SAVED_KEY,
     TRIAL_CAPTURED_KEY,
@@ -458,7 +485,8 @@
     maybeShowBackupCaptureOnLoad,
     showCapture,
     retryPendingRegistration,
-    registerTrialUserSilent
+    registerTrialUserSilent,
+    normalizePhone
   };
 
   if (document.readyState === 'loading') {

@@ -208,7 +208,7 @@
     let pdfText = '';
     const input = document.getElementById('formato-tipo-otra-texto');
     if (input && shouldIncludePdfField(input)) {
-      pdfText = input.value || input.placeholder || '';
+      pdfText = input.value || '';
     }
     return {
       oficioId,
@@ -255,7 +255,7 @@
       fields.push({
         id: el.id || el.name || '',
         label,
-        valor: valor || (inObs ? '' : (el.placeholder || ''))
+        valor: valor || ''
       });
     });
 

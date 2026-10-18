@@ -37,3 +37,11 @@ yarn-error.log*
 dist/
 build/
 out/
+tmp-pdf-verify/
+
+# Salidas locales de Claude (no versionar)
+Claude outputs/
+test-results/
+playwright-report/
+pdf-test-out/
+pdf-test-out-mobile/

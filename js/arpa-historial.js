@@ -33,8 +33,44 @@
       return [];
     }
   }
+  function isQuotaError(e) {
+    return !!(e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014));
+  }
+  function stripFotosFromSnapshot(record) {
+    if (!record || !record.fullSnapshot || typeof record.fullSnapshot !== 'object') return record;
+    const next = Object.assign({}, record, {
+      fullSnapshot: Object.assign({}, record.fullSnapshot)
+    });
+    delete next.fullSnapshot.fotosAntes;
+    delete next.fullSnapshot.fotosDespues;
+    return next;
+  }
   function saveRecords(records) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records.slice(0, MAX_RECORDS)));
+    var list = records.slice(0, MAX_RECORDS);
+    while (list.length) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        return true;
+      } catch (e) {
+        if (!isQuotaError(e)) {
+          console.warn('[arpa-historial] saveRecords', e);
+          return false;
+        }
+        if (list.length > 1) {
+          list.pop();
+          continue;
+        }
+        list[0] = stripFotosFromSnapshot(list[0]);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+          return true;
+        } catch (e2) {
+          console.warn('[arpa-historial] saveRecords quota', e2);
+          return false;
+        }
+      }
+    }
+    return false;
   }
   function newRecordId() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -135,13 +171,15 @@
     if (!record) return 'formato';
     if (record.modulo === 'cuenta-cobro') return 'cuenta-cobro';
     if (record.modulo === 'cotizacion')   return 'cotizacion';
+    if (record.modulo === 'formato')      return 'formato';
     var num = (record.numero || record.numeroServicio || '')
                 .toString().toUpperCase();
     var doc = (record.documento || '').toLowerCase().trim();
     var tipo = (record.tipo || '').toLowerCase().trim();
-    if (num.startsWith('CC-') || doc === 'cuenta de cobro'
+    // CC-012 / COT-180, o con código de técnico AP-CC-012 / AP-COT-180.
+    if (/(^|-)CC-/.test(num) || doc === 'cuenta de cobro'
         || tipo === 'cuenta de cobro') return 'cuenta-cobro';
-    if (num.startsWith('AP-') || num.startsWith('COT-')
+    if (/(^|-)COT-/.test(num)
         || doc === 'cotización' || doc === 'cotizacion'
         || tipo === 'cotización' || tipo === 'cotizacion')
       return 'cotizacion';
@@ -215,7 +253,7 @@
       || 'automatismos';
     const equipo = global.ArpaFormatoTipo?.getFormatoEquipoValues?.(oficioId);
     const materiales = [];
-    document.querySelectorAll('#view-formato .mat-row input[type="text"]').forEach((input) => {
+    document.querySelectorAll('#view-formato .ot-mat-desc').forEach((input) => {
       const v = (input.value || '').trim();
       if (v) materiales.push(v);
     });
@@ -307,7 +345,12 @@
     const snap = readFormSnapshot();
     var fullSnapshot = null;
     try { fullSnapshot = global.collectFormatoDraft?.() || null; } catch(e) {}
-    saveCliente({ nombre: snap.cliente, ciudad: snap.ciudad });
+    var ot = {};
+    try { ot = global.ArpaOT?.collectOtFields?.() || {}; } catch (e) { ot = {}; }
+    var nit = document.getElementById('formato-cliente-nit')?.value || '';
+    var tel = document.getElementById('formato-cliente-tel')?.value || '';
+    var dir = document.getElementById('formato-cliente-direccion')?.value || '';
+    saveCliente({ nombre: snap.cliente, ciudad: snap.ciudad, nit: nit, tel: tel, dir: dir });
     return addRecord({
       id: newRecordId(),
       modulo: 'formato',
@@ -316,11 +359,17 @@
       tipo: snap.subtipo,
       numero: snap.numero,
       numeroServicio: snap.numeroServicio,
+      numeroOt: snap.numero,
       cliente: snap.cliente,
       ciudad: snap.ciudad,
       fecha: snap.fecha,
       concepto: buildFormatoConcepto(),
       formatoOficio: global.ArpaFormatoTipo?.getDocumentFormatoOficio?.() || 'automatismos',
+      estado: ot.estado || 'BORRADOR',
+      fechaHoraProgramada: ot.fechaHoraProgramada || '',
+      fechaHoraInicio: ot.fechaHoraInicio || '',
+      fechaHoraFinalizacion: ot.fechaHoraFinalizacion || '',
+      materiales: Array.isArray(ot.materiales) ? ot.materiales : [],
       fullSnapshot: fullSnapshot,
       savedAt: new Date().toISOString()
     });
@@ -436,6 +485,7 @@
           <div class="historial-row historial-row-concepto"><span>${escapeHtml(window.ArpaI18n.t('ui.historial.concepto'))}</span><strong>${escapeHtml(getConceptoDisplay(r))}</strong></div>
           <div class="historial-row"><span>${escapeHtml(window.ArpaI18n.t('ui.historial.ciudad'))}</span><strong>${escapeHtml(r.ciudad || '—')}</strong></div>
           <div class="historial-row"><span>${escapeHtml(window.ArpaI18n.t('ui.historial.fecha'))}</span><strong>${escapeHtml(formatFechaLegible(r.fecha))}</strong></div>
+          ${r.estado ? `<div class="historial-row"><span>${escapeHtml(window.ArpaI18n.t('ui.historial.estado'))}</span><strong>${escapeHtml(global.ArpaOT?.estadoLabel?.(r.estado) || r.estado)}</strong></div>` : ''}
           ${showTotal ? `<div class="historial-row"><span>${escapeHtml(window.ArpaI18n.t('ui.historial.total'))}</span><strong>${escapeHtml(formatoPesos(r.total))}</strong></div>` : ''}
         </div>
         <button type="button" class="historial-delete" data-id="${escapeHtml(r.id)}" aria-label="${escapeHtml(window.ArpaI18n.t('aria.historial.eliminar_registro'))}">${escapeHtml(window.ArpaI18n.t('ui.historial.eliminar'))}</button>
@@ -460,6 +510,14 @@
             var draftKey = global.ArpaBrand?.FORMATO_DRAFT_KEY || 'arpa_formato_borrador';
             localStorage.setItem(draftKey, JSON.stringify(r.fullSnapshot));
             global.applyFormatoDraft();
+            global.ArpaOT?.restoreFromDraft?.({
+              ...(r.fullSnapshot || {}),
+              _estado: (r.fullSnapshot && r.fullSnapshot._estado) || r.estado,
+              _fechaHoraProgramada: (r.fullSnapshot && r.fullSnapshot._fechaHoraProgramada) || r.fechaHoraProgramada,
+              _fechaHoraInicio: (r.fullSnapshot && r.fullSnapshot._fechaHoraInicio) || r.fechaHoraInicio,
+              _fechaHoraFinalizacion: (r.fullSnapshot && r.fullSnapshot._fechaHoraFinalizacion) || r.fechaHoraFinalizacion,
+              _materiales: (r.fullSnapshot && r.fullSnapshot._materiales) || r.materiales
+            });
           } catch(e) {
             if (r.cliente) { var el = document.getElementById('formato-cliente-nombre'); if (el) el.value = r.cliente; }
             if (r.ciudad)  { var el2 = document.getElementById('formato-cliente-ciudad'); if (el2) el2.value = r.ciudad; }
@@ -469,6 +527,13 @@
           if (r.cliente) { const el = document.getElementById('formato-cliente-nombre'); if (el) el.value = r.cliente; }
           if (r.ciudad)  { const el = document.getElementById('formato-cliente-ciudad'); if (el) el.value = r.ciudad; }
           if (r.fecha)   { const el = document.getElementById('formato-fecha'); if (el) el.value = r.fecha; }
+          global.ArpaOT?.restoreFromDraft?.({
+            _estado: r.estado,
+            _fechaHoraProgramada: r.fechaHoraProgramada,
+            _fechaHoraInicio: r.fechaHoraInicio,
+            _fechaHoraFinalizacion: r.fechaHoraFinalizacion,
+            _materiales: r.materiales
+          });
         }
         window.scrollTo(0, 0);
         alert(window.ArpaI18n.t('alert.historial.documento_restaurado'));
@@ -620,17 +685,26 @@
       alert(window.ArpaI18n.t('alert.historial.no_hay_registros'));
       return;
     }
-    const header = ['Documento', 'Subtipo', 'Numero', 'Cliente', 'Concepto', 'Ciudad', 'Fecha', 'Total', 'Guardado'];
+    const header = ['Documento', 'Subtipo', 'Numero', 'Cliente', 'Concepto', 'Ciudad', 'Fecha', 'Total', 'Guardado', 'Estado', 'FechaProgramada', 'Inicio', 'Finalizacion', 'Materiales'];
     const rows = records.map((r) => [
       getDocumentoLabel(r),
       getSubtipoLabel(r),
-      r.numeroServicio || r.numero,
+      r.numeroServicio || r.numero || r.numeroOt,
       r.cliente,
       getConceptoDisplay(r, { full: true }),
       r.ciudad,
       r.fecha,
       shouldShowTotal(r) && r.total != null ? r.total : '',
-      r.savedAt
+      r.savedAt,
+      r.estado || '',
+      r.fechaHoraProgramada || '',
+      r.fechaHoraInicio || '',
+      r.fechaHoraFinalizacion || '',
+      Array.isArray(r.materiales)
+        ? r.materiales.map(function (m) {
+            return [m.desc, m.cant, m.unidad, m.obs].filter(Boolean).join(' ');
+          }).join('; ')
+        : ''
     ]);
     const csv = [header, ...rows]
       .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))

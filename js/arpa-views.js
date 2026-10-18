@@ -13,14 +13,14 @@
     const pdfCot = document.getElementById('pdf-actions-cot');
 
     if (window.ArpaI18n?.refreshDocTypeLabel) {
-      window.ArpaI18n.refreshDocTypeLabel();
+      window.ArpaI18n.refreshDocTypeLabel(view);
     } else {
       const labels = {
-        formato: 'Formato de Servicio',
-        cotizacion: '💰 Cotización',
-        catalogo: '📦 Mi Catálogo',
-        'cuenta-cobro': '🧾 Cuenta de Cobro',
-        historial: '📋 Historial de Servicios'
+        formato: 'Orden de Trabajo',
+        cotizacion: 'Cotización',
+        catalogo: 'Mi Catálogo',
+        'cuenta-cobro': 'Cuenta de Cobro',
+        historial: 'Historial de Servicios'
       };
       if (docType) docType.textContent = labels[view] || labels.formato;
     }
@@ -45,13 +45,14 @@
       global.ArpaCobros?.seedFromPriceList('cot');
       global.ArpaCotizacion?.refreshCobros?.();
       global.ArpaCotizacion?.renderTablaCot?.();
-      global.ArpaCotizacion?.ensureCotNumero?.();
+      // No se asigna número al entrar: se asigna al guardar, generar PDF o compartir.
       global.ArpaCotizacion?.updateCatalogHint?.();
+      global.ArpaCotizacion?.syncTaxLabels?.();
     }
     if (view === 'cuenta-cobro') {
       global.applyUserSettingsToUI?.();
       global.ArpaCuentaCobro?.refreshView?.();
-      global.ArpaCuentaCobro?.ensureCcNumero?.();
+      // No se asigna número al entrar: se asigna al generar PDF o compartir.
     }
     if (view === 'catalogo') {
       global.ArpaMiCatalogo?.refreshView?.();
@@ -86,6 +87,7 @@
     menuBtn?.classList.add('active');
     setHeaderActions('historial');
     global.ArpaHistorial?.render?.();
+    global.ArpaIaComercialUi?.refresh?.();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
