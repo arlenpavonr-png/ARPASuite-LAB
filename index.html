@@ -600,6 +600,8 @@
   .firma-name { border: none; border-bottom: 1px solid var(--border); font-size: 12px; font-family: 'DM Sans', sans-serif; background: transparent; outline: none; padding: 4px 2px; color: var(--text); width: 100%; }
 
   /* ── VIDEO ENTREGA + QR ── */
+  /* Avisos flotantes (p. ej. "Próximo mantenimiento") no salen en el PDF impreso. */
+  @media print { .no-print { display: none !important; } }
   .formato-video-qr-print {
     display: none;
     margin-top: 20px;
@@ -3412,15 +3414,15 @@ document.documentElement.classList.add('license-checking');
         <div class="garantia-body" data-arpa-warranty-items>
           <div class="garantia-item">
             <div class="gi-icon gi-ok">✅</div>
-            <div><strong data-i18n="formato.garantia.tiempo.label">Tiempo de garantía:</strong> <span data-i18n-html="formato.garantia.tiempo.body">La garantía de mano de obra es de 1 año a partir de la fecha del servicio. Los equipos tienen garantía de 2 años contra defectos de fabricación.</span></div>
+            <div><strong data-i18n="formato.garantia.tiempo.label">Tiempo de garantía:</strong> <span data-i18n-html="formato.garantia.tiempo.body" data-arpa-warranty-part="formato.garantia.tiempo.body">La garantía de mano de obra es de 1 año a partir de la fecha del servicio. Los equipos tienen garantía de 2 años contra defectos de fabricación.</span></div>
           </div>
           <div class="garantia-item">
             <div class="gi-icon gi-cal">📅</div>
-            <div><strong data-i18n="formato.garantia.mantenimiento.label">Mantenimiento preventivo:</strong> <span data-i18n-html="formato.garantia.mantenimiento.body">Recomendamos realizar mantenimiento cada 6 meses con nuestro equipo técnico. Esto permite prolongar la vida útil del equipo, prevenir fallas y conservar las condiciones óptimas de funcionamiento.</span></div>
+            <div><strong data-i18n="formato.garantia.mantenimiento.label">Mantenimiento preventivo:</strong> <span data-i18n-html="formato.garantia.mantenimiento.body" data-arpa-warranty-part="formato.garantia.mantenimiento.body">Recomendamos realizar mantenimiento cada 6 meses con nuestro equipo técnico. Esto permite prolongar la vida útil del equipo, prevenir fallas y conservar las condiciones óptimas de funcionamiento.</span></div>
           </div>
           <div class="garantia-item">
             <div class="gi-icon gi-warn">⚠️</div>
-            <div id="brand-warranty-exclusion"><strong data-i18n="formato.garantia.exclusiones.label">Exclusiones de garantía:</strong> <span data-i18n-html="formato.garantia.exclusiones.body_static">La garantía no aplica sobre daños por causas externas, descargas eléctricas o intervención de personal no autorizado.</span></div>
+            <div id="brand-warranty-exclusion"><strong data-i18n="formato.garantia.exclusiones.label">Exclusiones de garantía:</strong> <span data-i18n-html="formato.garantia.exclusiones.body_static" data-arpa-warranty-part="formato.garantia.exclusiones.body_static">La garantía no aplica sobre daños por causas externas, descargas eléctricas o intervención de personal no autorizado.</span></div>
           </div>
         </div>
         <div class="garantia-custom" data-arpa-warranty-custom hidden></div>
@@ -3599,15 +3601,15 @@ document.documentElement.classList.add('license-checking');
         <div class="garantia-body" data-arpa-warranty-items>
           <div class="garantia-item">
             <div class="gi-icon gi-ok">✅</div>
-            <div><strong data-i18n="formato.garantia.tiempo.label">Tiempo de garantía:</strong> <span data-i18n-html="formato.garantia.tiempo.body">La garantía de mano de obra es de 1 año a partir de la fecha del servicio. Los equipos tienen garantía de 2 años contra defectos de fabricación.</span></div>
+            <div><strong data-i18n="formato.garantia.tiempo.label">Tiempo de garantía:</strong> <span data-i18n-html="formato.garantia.tiempo.body" data-arpa-warranty-part="formato.garantia.tiempo.body">La garantía de mano de obra es de 1 año a partir de la fecha del servicio. Los equipos tienen garantía de 2 años contra defectos de fabricación.</span></div>
           </div>
           <div class="garantia-item">
             <div class="gi-icon gi-cal">📅</div>
-            <div><strong data-i18n="formato.garantia.mantenimiento.label">Mantenimiento preventivo:</strong> <span data-i18n-html="formato.garantia.mantenimiento.body">Recomendamos realizar mantenimiento cada 6 meses con nuestro equipo técnico. Esto permite prolongar la vida útil del equipo, prevenir fallas y conservar las condiciones óptimas de funcionamiento.</span></div>
+            <div><strong data-i18n="formato.garantia.mantenimiento.label">Mantenimiento preventivo:</strong> <span data-i18n-html="formato.garantia.mantenimiento.body" data-arpa-warranty-part="formato.garantia.mantenimiento.body">Recomendamos realizar mantenimiento cada 6 meses con nuestro equipo técnico. Esto permite prolongar la vida útil del equipo, prevenir fallas y conservar las condiciones óptimas de funcionamiento.</span></div>
           </div>
           <div class="garantia-item">
             <div class="gi-icon gi-warn">⚠️</div>
-            <div><strong data-i18n="formato.garantia.exclusiones.label">Exclusiones de garantía:</strong> <span data-i18n-html="formato.garantia.exclusiones.body_static">La garantía no aplica sobre daños por causas externas, descargas eléctricas o intervención de personal no autorizado.</span></div>
+            <div><strong data-i18n="formato.garantia.exclusiones.label">Exclusiones de garantía:</strong> <span data-i18n-html="formato.garantia.exclusiones.body_static" data-arpa-warranty-part="formato.garantia.exclusiones.body_static">La garantía no aplica sobre daños por causas externas, descargas eléctricas o intervención de personal no autorizado.</span></div>
           </div>
         </div>
         <div class="garantia-custom" data-arpa-warranty-custom hidden></div>
@@ -5646,7 +5648,7 @@ document.addEventListener('arpa:sync-complete', updateSyncStatusText);
     var active = window.ArpaBrand && window.ArpaBrand.isDemoMode && window.ArpaBrand.isDemoMode();
     if (active) {
       container.innerHTML =
-        '<p class="logo-upload-hint" style="color:#2e7d32;font-weight:600;margin:0 0 8px;">✓ Modo demo activo. Ingresa los datos del cliente abajo y genera los documentos.</p>' +
+        '<p class="logo-upload-hint" style="color:#2e7d32;font-weight:600;margin:0 0 8px;">✓ Modo demo activo. Ingresa los datos del cliente abajo y elige su oficio en «Tu oficio principal» para que el catálogo y los textos sean los de su negocio.</p>' +
         '<button type="button" class="settings-save-btn" id="settings-demo-restore-btn" style="background:#c0392b;">↩ Restaurar mi empresa</button>';
       var restoreBtn = document.getElementById('settings-demo-restore-btn');
       if (restoreBtn) restoreBtn.onclick = function () { window.ArpaBrand.exitDemoMode(); };

@@ -211,6 +211,22 @@
         { label: 'Frenos/llantas', i18nKey: 'formato.taller_motos.frenos' },
         { label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
       ])
+    },
+    {
+      id: 'construccion',
+      i18nKey: 'oficio.construccion',
+      formatoTitulo: 'Tipo de Trabajo de Construcción',
+      formatoTituloI18nKey: 'formato.titulo.construccion',
+      formatoOpciones: buildFormatoOpciones('fcon', [
+        { label: 'Muros en drywall / tablaroca', i18nKey: 'formato.construccion.drywall' },
+        { label: 'Cielo raso / plafón', i18nKey: 'formato.construccion.cielo' },
+        { label: 'Fibrocemento / Durock', i18nKey: 'formato.construccion.fibrocemento' },
+        { label: 'Pintura y acabados', i18nKey: 'formato.construccion.pintura' },
+        { label: 'Impermeabilización', i18nKey: 'formato.construccion.impermeabilizacion' },
+        { label: 'Pisos y enchapes', i18nKey: 'formato.construccion.pisos' },
+        { label: 'Resanes y reparaciones', i18nKey: 'formato.construccion.resanes' },
+        { label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
+      ])
     }
   ];
 
@@ -470,6 +486,32 @@
     ];
   }
 
+  /** Catálogo base Construcción y acabados — 20 productos (COP). Drywall = tablaroca en México. */
+  function seedCatalog_construccion() {
+    return [
+      { cod: 'CON-001', nom: 'Muro en drywall / tablaroca, ambas caras (m²)', categoria: 'Drywall / Tablaroca', pvp: 85000, unidad: 'm2' },
+      { cod: 'CON-002', nom: 'Muro en drywall / tablaroca, una cara (m²)', categoria: 'Drywall / Tablaroca', pvp: 60000, unidad: 'm2' },
+      { cod: 'CON-003', nom: 'Cielo raso / plafón corrido en drywall (m²)', categoria: 'Drywall / Tablaroca', pvp: 78000, unidad: 'm2' },
+      { cod: 'CON-004', nom: 'Muro en fibrocemento / Durock para baño o exterior (m²)', categoria: 'Fibrocemento', pvp: 135000, unidad: 'm2' },
+      { cod: 'CON-005', nom: 'Placa drywall / tablaroca estándar 1.22 x 2.44 m', categoria: 'Materiales', pvp: 32000, unidad: 'un' },
+      { cod: 'CON-006', nom: 'Placa resistente a la humedad 1.22 x 2.44 m', categoria: 'Materiales', pvp: 45000, unidad: 'un' },
+      { cod: 'CON-007', nom: 'Placa de fibrocemento / Durock 1.22 x 2.44 m', categoria: 'Materiales', pvp: 95000, unidad: 'un' },
+      { cod: 'CON-008', nom: 'Perfil parral / canal galvanizado (3 m)', categoria: 'Materiales', pvp: 12000, unidad: 'un' },
+      { cod: 'CON-009', nom: 'Masilla / redimix para juntas (cuñete)', categoria: 'Materiales', pvp: 65000, unidad: 'un' },
+      { cod: 'CON-010', nom: 'Cinta para juntas (rollo)', categoria: 'Materiales', pvp: 9000, unidad: 'un' },
+      { cod: 'CON-011', nom: 'Tornillo para drywall (caja x 1000)', categoria: 'Materiales', pvp: 38000, unidad: 'un' },
+      { cod: 'CON-012', nom: 'Pintura vinílica para interiores (galón)', categoria: 'Pintura', pvp: 75000, unidad: 'un' },
+      { cod: 'CON-013', nom: 'Pintura y acabado de muros (m²)', categoria: 'Pintura', pvp: 18000, unidad: 'm2' },
+      { cod: 'CON-014', nom: 'Estuco y resane de muros (m²)', categoria: 'Acabados', pvp: 15000, unidad: 'm2' },
+      { cod: 'CON-015', nom: 'Impermeabilización de cubierta / azotea (m²)', categoria: 'Impermeabilización', pvp: 45000, unidad: 'm2' },
+      { cod: 'CON-016', nom: 'Instalación de piso cerámico (m²)', categoria: 'Pisos', pvp: 38000, unidad: 'm2' },
+      { cod: 'CON-017', nom: 'Hueco para lámpara empotrada en cielo raso / plafón', categoria: 'Servicios', pvp: 25000, unidad: 'servicio' },
+      { cod: 'CON-018', nom: 'Retiro de escombro (viaje)', categoria: 'Servicios', pvp: 150000, unidad: 'servicio' },
+      { cod: 'CON-019', nom: 'Mano de obra por día (oficial)', categoria: 'Servicios', pvp: 120000, unidad: 'servicio' },
+      { cod: 'CON-020', nom: 'Visita técnica y toma de medidas', categoria: 'Servicios', pvp: 50000, unidad: 'servicio' }
+    ];
+  }
+
   const SEED_CATALOG_BUILDERS = {
     gas: seedCatalog_gas,
     refrigeracion: seedCatalog_refrigeracion,
@@ -479,7 +521,8 @@
     plagas: seedCatalog_plagas,
     linea_blanca: seedCatalog_linea_blanca,
     solar: seedCatalog_solar,
-    taller_motos: seedCatalog_taller_motos
+    taller_motos: seedCatalog_taller_motos,
+    construccion: seedCatalog_construccion
   };
 
   /**
@@ -596,10 +639,19 @@
     return global.ArpaLicense?.isFounderLicense?.() === true;
   }
 
+  function isDemoMode() {
+    return global.ArpaBrand?.isDemoMode?.() === true;
+  }
+
+  /** Varios oficios a la vez: solo Founder y fuera del modo demo (la demo muestra un solo oficio, el del cliente). */
+  function allowsMultipleOficios() {
+    return isFounderLicense() && !isDemoMode();
+  }
+
   function normalizeActiveOficiosList(raw) {
     if (!Array.isArray(raw) || !raw.length) return [];
     const ids = raw.map(normalizeOficioId).filter((id, i, arr) => arr.indexOf(id) === i);
-    if (isFounderLicense()) return ids;
+    if (allowsMultipleOficios()) return ids;
     return ids.length ? [ids[0]] : [];
   }
 
@@ -659,7 +711,8 @@
       plagas: 'Control de Plagas / Fumigación',
       linea_blanca: 'Línea Blanca / Electrodomésticos',
       solar: 'Energía Solar',
-      taller_motos: 'Taller de motos'
+      taller_motos: 'Taller de motos',
+      construccion: 'Construcción y Acabados'
     };
     return fallbacks[normalizeOficioId(oficioId)] || oficioId;
   }
@@ -890,7 +943,7 @@
     if (!container) return;
     const active = getActiveOficiosFromSettings();
     const activeSet = new Set(active);
-    const founder = isFounderLicense();
+    const founder = allowsMultipleOficios();
     const inputType = founder ? 'checkbox' : 'radio';
     const singleActive = active[0] || null;
 
@@ -921,7 +974,7 @@
     const activeSet = new Set(activeIds);
     const single = activeIds[0] || null;
     container.querySelectorAll('input[name="settings-oficio"]').forEach((el) => {
-      if (isFounderLicense()) {
+      if (allowsMultipleOficios()) {
         el.checked = activeSet.has(normalizeOficioId(el.value));
       } else {
         el.checked = normalizeOficioId(el.value) === single;
@@ -936,7 +989,8 @@
 
     if (previousSingle === nextId) return true;
 
-    if (previousSingle) {
+    // En modo demo se cambia sin preguntar y sin borrar el catálogo de la empresa real.
+    if (previousSingle && !isDemoMode()) {
       const msg = window.ArpaI18n.t('confirm.oficios.cambiar_oficio', {
         from: getOficioLabel(previousSingle),
         to: getOficioLabel(nextId)
@@ -975,7 +1029,7 @@
       input.dataset.oficioBound = '1';
       input.addEventListener('change', (e) => {
         const target = e.target;
-        if (isFounderLicense()) {
+        if (allowsMultipleOficios()) {
           applyOficiosFromSettingsUI(container);
           return;
         }
@@ -1004,6 +1058,7 @@
     seedCatalog_linea_blanca,
     seedCatalog_solar,
     seedCatalog_taller_motos,
+    seedCatalog_construccion,
     ACTIVE_OFICIOS_KEY,
     normalizeOficioId,
     normalizeActiveOficiosList,

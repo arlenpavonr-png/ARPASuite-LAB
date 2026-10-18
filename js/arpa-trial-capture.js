@@ -28,7 +28,8 @@
     { id: 'metalmecanica', label: 'Cerrajería y Metalmecánica' },
     { id: 'plagas', label: 'Control de Plagas / Fumigación' },
     { id: 'linea_blanca', label: 'Línea Blanca / Electrodomésticos' },
-    { id: 'solar', label: 'Energía Solar' }
+    { id: 'solar', label: 'Energía Solar' },
+    { id: 'construccion', label: 'Construcción y Acabados' }
   ];
 
   function t(key, fallback) {
