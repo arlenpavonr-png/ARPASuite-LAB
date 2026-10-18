@@ -543,6 +543,10 @@
   }
 
   async function renderCcToPdf(d, jsPDF) {
+    // En México el documento fiscal es el RFC; en los demás países, NIT / C.C.
+    const taxLabel = global.ArpaPricing?.getTaxIdLabel?.() || 'NIT';
+    const idLabel = taxLabel === 'NIT' ? 'C.C. / NIT' : taxLabel;
+    const clientIdLabel = taxLabel === 'NIT' ? 'NIT / C.C.' : taxLabel;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
@@ -567,7 +571,7 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     let hy = 20;
-    if (d.cobrador.nit) { doc.text(`${dt('cc.pdf.tax_id', 'NIT')}: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
+    if (d.cobrador.nit) { doc.text(`${dt('cc.pdf.tax_id', taxLabel)}: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
     if (d.cobrador.tel) { doc.text(`${dt('cc.pdf.tel', 'Tel')}: ${d.cobrador.tel}`, m + (logoData ? 26 : 0), hy); }
 
     doc.setFillColor(...GOLD);
@@ -619,16 +623,16 @@
     let yR = y + 6;
     yL = blockLines(leftX, yL, [
       [dt('cc.pdf.name', 'Nombre'), d.cobrador.nombre],
-      [dt('cc.pdf.id_tax', 'C.C. / NIT'), d.cobrador.doc],
+      [dt('cc.pdf.id_tax', idLabel), d.cobrador.doc],
       [dt('cc.pdf.company', 'Empresa'), d.cobrador.empresa],
-      [dt('cc.pdf.tax_id', 'NIT'), d.cobrador.nit],
+      [dt('cc.pdf.tax_id', taxLabel), d.cobrador.nit],
       [dt('cc.pdf.tel', 'Tel'), d.cobrador.tel],
       [dt('cc.pdf.address', 'Dir'), d.cobrador.dir],
       [dt('cc.pdf.web', 'Web'), d.cobrador.web]
     ]);
     yR = blockLines(rightX, yR, [
       [dt('cc.pdf.name', 'Nombre'), d.cliente.nombre],
-      [dt('cc.pdf.id_tax', 'NIT / C.C.'), d.cliente.doc],
+      [dt('cc.pdf.id_tax', clientIdLabel), d.cliente.doc],
       [dt('cc.pdf.address', 'Dir'), d.cliente.dir],
       [dt('cc.pdf.tel', 'Tel'), d.cliente.tel]
     ]);
@@ -707,7 +711,7 @@
       d.pago.accountType && `${dt('cc.pdf.account_type', 'Tipo')}: ${dt('cc.pdf.account.' + d.pago.accountType, d.pago.accountType)}`,
       d.pago.accountNumber && `${dt('cc.pdf.account_no', 'Cuenta N°')}: ${d.pago.accountNumber}`,
       d.pago.accountHolder && `${dt('cc.pdf.holder', 'Titular')}: ${d.pago.accountHolder}`,
-      d.pago.accountHolderDocument && `${dt('cc.pdf.holder_doc', 'NIT/C.C.')}: ${d.pago.accountHolderDocument}`
+      d.pago.accountHolderDocument && `${dt('cc.pdf.holder_doc', taxLabel === 'NIT' ? 'NIT/C.C.' : taxLabel)}: ${d.pago.accountHolderDocument}`
     ].filter(Boolean);
     const consigBoxH = 10 + consigLines.length * 4.5 + 4;
     if (y > ph - (consigBoxH + 15)) { doc.addPage(); y = m; }
@@ -857,7 +861,7 @@
       if (nombreEl && !nombreEl.textContent.trim()) {
         nombreEl.textContent = settings.companyName || '';
       }
-      if (telEl && !telEl.value.trim()) {
+      if (telEl && typeof telEl.value === 'string' && !telEl.value.trim()) {
         telEl.value = settings.phone || '';
       }
     })();

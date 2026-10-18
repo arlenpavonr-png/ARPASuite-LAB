@@ -136,6 +136,14 @@
     'formato.titulo.refrigeracion': 'Equipment Type',
     'formato.titulo.cctv': 'Security System Type',
     'formato.titulo.plomeria': 'Plumbing Work Type',
+    'formato.titulo.construccion': 'Construction Work Type',
+    'formato.construccion.drywall': 'Drywall walls',
+    'formato.construccion.cielo': 'Drywall ceiling',
+    'formato.construccion.fibrocemento': 'Cement board',
+    'formato.construccion.pintura': 'Painting & finishes',
+    'formato.construccion.impermeabilizacion': 'Waterproofing',
+    'formato.construccion.pisos': 'Flooring & tiling',
+    'formato.construccion.resanes': 'Patching & repairs',
     'formato.titulo.gas': 'Gas Work Type',
     'formato.titulo.plagas': 'Service Type',
     'formato.titulo.linea_blanca': 'Appliance Type',
@@ -344,6 +352,7 @@
     'oficio.plagas': 'Pest Control / Fumigation',
     'oficio.linea_blanca': 'White Goods / Appliances',
     'oficio.solar': 'Solar Energy',
+    'oficio.construccion': 'Construction & Finishes',
 
     'settings.section.oficios': 'Your main trade',
     'settings.oficios.hint': 'Choose your line of business. Only one trade can be active (Founder license excepted). Each trade includes an editable starter catalog in My Catalog.',
@@ -1181,6 +1190,141 @@
     return I18N_ES[key] != null ? I18N_ES[key] : key;
   }
 
+  // ── Garantía por oficio ─────────────────────────────────────────────────────
+  // Automatismos usa los textos de siempre (los del HTML). Los demás oficios usan los suyos,
+  // salvo que la empresa haya escrito su propia garantía en Configuración (eso lo maneja arpa-brand).
+  var WARRANTY_BY_OFICIO = {
+    metalmecanica: {
+      es: ['La garantía de soldadura y mano de obra es de 1 año a partir de la fecha del servicio. Chapas y cerraduras tienen la garantía del fabricante.',
+        'Recomendamos lubricar bisagras, rieles y chapas cada 6 meses, y repintar si aparece óxido.',
+        'golpes, forzamiento, óxido por falta de mantenimiento o modificaciones hechas por terceros'],
+      en: ['Welding and labor are warranted for 1 year from the service date. Locks carry the manufacturer\'s warranty.',
+        'We recommend lubricating hinges, rails and locks every 6 months, and repainting if rust appears.',
+        'impacts, forced entry, rust from lack of maintenance, or modifications made by third parties']
+    },
+    electricidad: {
+      es: ['La garantía de mano de obra es de 1 año a partir de la fecha del servicio. Los materiales tienen la garantía del fabricante.',
+        'Recomendamos revisar el tablero y las conexiones una vez al año.',
+        'sobrecargas, descargas eléctricas o rayos, o conexiones hechas por terceros'],
+      en: ['Labor is warranted for 1 year from the service date. Materials carry the manufacturer\'s warranty.',
+        'We recommend inspecting the electrical panel and connections once a year.',
+        'overloads, electrical surges or lightning, or connections made by third parties']
+    },
+    gas: {
+      es: ['La garantía de mano de obra es de 1 año a partir de la fecha del servicio. Los gasodomésticos tienen la garantía del fabricante.',
+        'Recomendamos revisar fugas y combustión una vez al año.',
+        'manipulación por personal no certificado, golpes o cambios de presión en la red de gas'],
+      en: ['Labor is warranted for 1 year from the service date. Gas appliances carry the manufacturer\'s warranty.',
+        'We recommend a leak and combustion check once a year.',
+        'handling by non-certified personnel, impacts, or pressure changes in the gas supply']
+    },
+    refrigeracion: {
+      es: ['La garantía de instalación es de 1 año a partir de la fecha del servicio. El compresor y el equipo tienen la garantía del fabricante.',
+        'Recomendamos limpiar los filtros cada mes y hacer mantenimiento cada 6 meses.',
+        'falta de mantenimiento, voltaje inestable o recargas de gas hechas por terceros'],
+      en: ['Installation is warranted for 1 year from the service date. The compressor and unit carry the manufacturer\'s warranty.',
+        'We recommend cleaning the filters monthly and a maintenance service every 6 months.',
+        'lack of maintenance, unstable voltage, or refrigerant recharges by third parties']
+    },
+    cctv: {
+      es: ['La garantía de instalación es de 1 año a partir de la fecha del servicio. Cámaras, DVR y equipos tienen la garantía del fabricante (normalmente de 1 a 2 años).',
+        'Recomendamos revisar grabación, disco y conexiones cada 6 meses.',
+        'descargas eléctricas, vandalismo, o cambios de claves o configuración hechos por terceros'],
+      en: ['Installation is warranted for 1 year from the service date. Cameras, DVRs and equipment carry the manufacturer\'s warranty (usually 1 to 2 years).',
+        'We recommend checking recording, hard drive and connections every 6 months.',
+        'electrical surges, vandalism, or password or configuration changes made by third parties']
+    },
+    plomeria: {
+      es: ['La garantía de mano de obra es de 6 meses a partir de la fecha del servicio. Grifería y accesorios tienen la garantía del fabricante.',
+        'Recomendamos revisar fugas y desagües cada 6 meses.',
+        'obstrucciones por mal uso, presión excesiva o daños en tubería que no fue intervenida'],
+      en: ['Labor is warranted for 6 months from the service date. Faucets and fittings carry the manufacturer\'s warranty.',
+        'We recommend checking for leaks and drain flow every 6 months.',
+        'clogs caused by misuse, excessive pressure, or damage to piping that was not serviced']
+    },
+    plagas: {
+      es: ['La efectividad del servicio está garantizada por 30 días. Si la plaga reaparece en ese tiempo, el refuerzo no tiene costo.',
+        'Recomendamos un servicio preventivo cada 3 meses.',
+        'no seguir las recomendaciones de limpieza o reinfestación desde predios vecinos'],
+      en: ['Treatment effectiveness is guaranteed for 30 days. If the pest returns within that time, the follow-up treatment is free of charge.',
+        'We recommend a preventive service every 3 months.',
+        'not following the cleaning recommendations, or reinfestation from neighboring properties']
+    },
+    linea_blanca: {
+      es: ['La garantía de la reparación es de 3 meses sobre la pieza cambiada y la falla atendida.',
+        'Recomendamos mantenimiento una vez al año.',
+        'fallas distintas a la reparada, voltaje inestable, golpes o humedad'],
+      en: ['The repair is warranted for 3 months on the replaced part and the fault that was fixed.',
+        'We recommend a maintenance service once a year.',
+        'faults other than the one repaired, unstable voltage, impacts, or moisture']
+    },
+    solar: {
+      es: ['La garantía de instalación es de 1 año a partir de la fecha del servicio. Paneles, inversor y baterías tienen la garantía del fabricante.',
+        'Recomendamos limpiar los paneles y revisar las conexiones cada 6 meses.',
+        'sombra nueva sobre los paneles, granizo o caída de objetos, o baterías descargadas por mal uso'],
+      en: ['Installation is warranted for 1 year from the service date. Panels, inverter and batteries carry the manufacturer\'s warranty.',
+        'We recommend cleaning the panels and checking connections every 6 months.',
+        'new shading on the panels, hail or falling objects, or batteries drained by misuse']
+    },
+    // Solo LAB: borrador pendiente de aprobación de Arlen.
+    taller_motos: {
+      es: ['La garantía de mano de obra es de 3 meses o 3.000 km, lo que ocurra primero. Los repuestos tienen la garantía del fabricante.',
+        'Recomendamos cambio de aceite y revisión general cada 3.000 km o según el manual de la moto.',
+        'mal uso, caídas o accidentes, falta de mantenimiento o reparaciones hechas por terceros'],
+      en: ['Labor is warranted for 3 months or 3,000 km, whichever comes first. Parts carry the manufacturer\'s warranty.',
+        'We recommend an oil change and general check every 3,000 km or as the motorcycle manual indicates.',
+        'misuse, falls or accidents, lack of maintenance, or repairs made by third parties']
+    },
+    construccion: {
+      es: ['La garantía de mano de obra es de 1 año a partir de la entrega del trabajo: fisuras en juntas, desprendimientos o fallas por mala instalación. Los materiales tienen la garantía del fabricante.',
+        'Recomendamos revisar juntas, pintura e impermeabilización una vez al año.',
+        'humedad o filtraciones de origen externo, golpes, asentamientos de la construcción o modificaciones hechas por terceros'],
+      en: ['Labor is warranted for 1 year from completion: joint cracks, detachment or failures caused by faulty installation. Materials carry the manufacturer\'s warranty.',
+        'We recommend checking joints, paint and waterproofing once a year.',
+        'external moisture or leaks, impacts, building settlement, or modifications made by third parties']
+    }
+  };
+
+  function registerWarrantyKeys() {
+    Object.keys(WARRANTY_BY_OFICIO).forEach(function (id) {
+      var es = WARRANTY_BY_OFICIO[id].es;
+      var en = WARRANTY_BY_OFICIO[id].en;
+      I18N_ES['formato.garantia.tiempo.body.' + id] = es[0];
+      I18N_ES['formato.garantia.mantenimiento.body.' + id] = es[1];
+      I18N_ES['formato.garantia.exclusiones.body_static.' + id] = 'La garantía no aplica sobre daños por ' + es[2] + '.';
+      I18N_ES['formato.garantia.exclusiones.body.' + id] = '<strong>Exclusiones de garantía:</strong> La garantía no aplica sobre daños por ' + es[2] +
+        '. Tampoco aplica cuando el trabajo ha sido intervenido por <strong>personal no autorizado por {company}</strong>.';
+      I18N_EN['formato.garantia.tiempo.body.' + id] = en[0];
+      I18N_EN['formato.garantia.mantenimiento.body.' + id] = en[1];
+      I18N_EN['formato.garantia.exclusiones.body_static.' + id] = 'The warranty does not cover damage from ' + en[2] + '.';
+      I18N_EN['formato.garantia.exclusiones.body.' + id] = '<strong>Warranty exclusions:</strong> The warranty does not cover damage from ' + en[2] +
+        '. It also does not apply when the work has been serviced by <strong>personnel not authorized by {company}</strong>.';
+    });
+  }
+
+  function warrantyOficioId() {
+    var id = global.ArpaOficios?.getActiveFormatoOficioId?.() || 'automatismos';
+    return WARRANTY_BY_OFICIO[id] ? id : null;
+  }
+
+  function warrantyKey(base) {
+    var id = warrantyOficioId();
+    return id ? base + '.' + id : base;
+  }
+
+  /** Cambia la llave de los textos de garantía al oficio activo; así pantalla y PDF (ES/EN) usan la misma. */
+  function syncWarrantyKeys() {
+    document.querySelectorAll('[data-arpa-warranty-part]').forEach(function (el) {
+      var base = el.getAttribute('data-arpa-warranty-part');
+      if (!el.hasAttribute('data-arpa-warranty-default')) {
+        el.setAttribute('data-arpa-warranty-default', el.getAttribute('data-i18n-default-html') || el.innerHTML);
+      }
+      var key = warrantyKey(base);
+      el.setAttribute('data-i18n-html', key);
+      el.setAttribute('data-i18n-default-html', key === base ? el.getAttribute('data-arpa-warranty-default') : I18N_ES[key]);
+    });
+  }
+
   function applyAttributeSet(selector, attr, defaultAttr, lang) {
     document.querySelectorAll(selector).forEach(function (el) {
       var key = el.getAttribute(attr);
@@ -1218,6 +1362,7 @@
       localStorage.setItem(STORAGE_KEY, lang);
     } catch (e) { /* ignore */ }
     document.documentElement.lang = lang;
+    syncWarrantyKeys();
     applyAttributeSet('[data-i18n]', 'data-i18n', 'data-i18n-default', lang);
     applyAttributeSet('[data-i18n-placeholder]', 'data-i18n-placeholder', 'data-i18n-default-placeholder', lang);
     applyAttributeSet('[data-i18n-title]', 'data-i18n-title', 'data-i18n-default-title', lang);
@@ -1358,7 +1503,7 @@
     var warrantyExclusion = document.getElementById('brand-warranty-exclusion');
     if (warrantyExclusion) {
       pushBackup(items, warrantyExclusion, 'innerHTML', warrantyExclusion.innerHTML);
-      warrantyExclusion.innerHTML = interpolate(resolveText('formato.garantia.exclusiones.body', 'es'), { company: company });
+      warrantyExclusion.innerHTML = interpolate(resolveText(warrantyKey('formato.garantia.exclusiones.body'), 'es'), { company: company });
     }
     var verificationCompany = document.getElementById('brand-verification-company');
     if (verificationCompany && verificationCompany.parentElement) {
@@ -1600,6 +1745,7 @@
     }
     captureDefaults();
     captureBrandDefaultsIfNeeded();
+    syncWarrantyKeys();
     pdfBackup = { items: [] };
     var viewRoot = document.getElementById(viewId);
     var page = document.querySelector('.page');
@@ -1660,7 +1806,9 @@
         cotHeader.innerHTML = brandDefaults['cot-warranty-header'];
       }
       var exclusion = document.getElementById('brand-warranty-exclusion');
-      if (exclusion && brandDefaults['brand-warranty-exclusion'] != null) {
+      if (exclusion && warrantyOficioId()) {
+        exclusion.innerHTML = interpolate(resolveText(warrantyKey('formato.garantia.exclusiones.body'), 'es'), { company: company });
+      } else if (exclusion && brandDefaults['brand-warranty-exclusion'] != null) {
         exclusion.innerHTML = brandDefaults['brand-warranty-exclusion'];
       }
       var companyEl = document.getElementById('brand-verification-company');
@@ -1696,7 +1844,7 @@
     }
     var warrantyExclusion = document.getElementById('brand-warranty-exclusion');
     if (warrantyExclusion) {
-      warrantyExclusion.innerHTML = t('formato.garantia.exclusiones.body', { company: company });
+      warrantyExclusion.innerHTML = t(warrantyKey('formato.garantia.exclusiones.body'), { company: company });
     }
     var verificationCompany = document.getElementById('brand-verification-company');
     if (verificationCompany && verificationCompany.parentElement) {
@@ -1894,6 +2042,11 @@
     captureDefaults();
     supplementSpanishKeys();
     supplementLabKeys();
+    registerWarrantyKeys();
+    // La garantía depende del oficio: al cambiarlo se vuelven a pintar los textos.
+    global.addEventListener('arpa-active-oficio-changed', function () {
+      apply(currentLang);
+    });
     currentLang = readStoredLang();
     bindLangSwitch();
     bindDocLangSetting();

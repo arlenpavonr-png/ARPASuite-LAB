@@ -13,6 +13,8 @@
   const DEMO_BACKUP_SETTINGS_KEY = 'arpa_suite_demo_backup_settings';
   const DEMO_BACKUP_CONFIGURED_KEY = 'arpa_suite_demo_backup_configured';
   const DEMO_BACKUP_LOGO_KEY = 'arpa_suite_demo_backup_logo';
+  const ACTIVE_OFICIOS_KEY = 'arpa_active_oficios';
+  const DEMO_BACKUP_OFICIOS_KEY = 'arpa_suite_demo_backup_oficios';
   const HOME_SETTINGS_KEY = 'arpa_suite_home_settings';
   const HOME_CONFIGURED_KEY = 'arpa_suite_home_configured';
   const HOME_LOGO_KEY = 'arpa_suite_home_logo';
@@ -520,6 +522,11 @@
   }
 
   const DEFAULT_REQUIREMENTS_HTML = 'El cliente debe suministrar punto eléctrico (110V–220V) con polo a tierra para la instalación, incluyendo cableado y tubería para sensores si se requieren.';
+  // El texto de punto eléctrico y sensores es de Automatismos; los demás oficios usan uno general.
+  const GENERIC_REQUIREMENTS_HTML = {
+    es: 'El cliente debe facilitar el acceso al sitio de trabajo y los permisos necesarios (administración, portería) para realizar el servicio.',
+    en: 'The client must provide access to the work site and any permits required (building management, security) to carry out the service.'
+  };
 
   function applyLegalCopyToDocuments(options) {
     const onlyCustom = !!(options && options.onlyCustom);
@@ -540,6 +547,11 @@
     document.querySelectorAll('[data-arpa-requirements-body]').forEach((el) => {
       if (customR) {
         el.textContent = customR;
+        return;
+      }
+      const oficio = global.ArpaOficios?.getActiveFormatoOficioId?.() || 'automatismos';
+      if (oficio !== 'automatismos') {
+        el.innerHTML = lang === 'en' ? GENERIC_REQUIREMENTS_HTML.en : GENERIC_REQUIREMENTS_HTML.es;
         return;
       }
       if (onlyCustom) return;
@@ -1239,6 +1251,7 @@
       copyKey(HOME_SETTINGS_KEY, DEMO_BACKUP_SETTINGS_KEY);
       copyKey(HOME_CONFIGURED_KEY, DEMO_BACKUP_CONFIGURED_KEY);
       copyKey(HOME_LOGO_KEY, DEMO_BACKUP_LOGO_KEY);
+      copyKey(ACTIVE_OFICIOS_KEY, DEMO_BACKUP_OFICIOS_KEY);
       if (!localStorage.getItem(DEMO_BACKUP_SETTINGS_KEY)) {
         copyKey(SETTINGS_KEY, DEMO_BACKUP_SETTINGS_KEY);
         copyKey(SETTINGS_CONFIGURED_KEY, DEMO_BACKUP_CONFIGURED_KEY);
@@ -1276,12 +1289,30 @@
     dispatchDemoModeChanged();
   }
 
+  /** Devuelve los oficios que la empresa tenía antes de la demo (la demo pudo cambiarlos al del cliente). */
+  function restoreOficiosAfterDemo(raw) {
+    let ids = null;
+    try { ids = JSON.parse(raw || 'null'); } catch (e) { ids = null; }
+    if (!Array.isArray(ids) || !ids.length) {
+      ids = Array.isArray(getSettings().activeOficios) ? getSettings().activeOficios : null;
+    }
+    if (!Array.isArray(ids) || !ids.length) return;
+    if (global.ArpaOficios?.saveActiveOficios) {
+      global.ArpaOficios.saveActiveOficios(ids);
+      global.ArpaOficios.seedActiveOficios?.();
+      global.ArpaMiCatalogo?.refreshView?.();
+    } else {
+      localStorage.setItem(ACTIVE_OFICIOS_KEY, JSON.stringify(ids));
+    }
+  }
+
   function exitDemoMode() {
     if (!isDemoMode()) return;
     try {
       const settings = localStorage.getItem(DEMO_BACKUP_SETTINGS_KEY);
       const configured = localStorage.getItem(DEMO_BACKUP_CONFIGURED_KEY);
       const logo = localStorage.getItem(DEMO_BACKUP_LOGO_KEY);
+      const oficios = localStorage.getItem(DEMO_BACKUP_OFICIOS_KEY);
       if (settings) localStorage.setItem(SETTINGS_KEY, settings);
       else localStorage.removeItem(SETTINGS_KEY);
       if (configured) localStorage.setItem(SETTINGS_CONFIGURED_KEY, configured);
@@ -1291,7 +1322,9 @@
       localStorage.removeItem(DEMO_BACKUP_SETTINGS_KEY);
       localStorage.removeItem(DEMO_BACKUP_CONFIGURED_KEY);
       localStorage.removeItem(DEMO_BACKUP_LOGO_KEY);
+      localStorage.removeItem(DEMO_BACKUP_OFICIOS_KEY);
       localStorage.removeItem(DEMO_MODE_KEY);
+      restoreOficiosAfterDemo(oficios);
     } catch (e) {
       console.warn('[arpa-brand] exitDemoMode', e);
       return;
@@ -1360,6 +1393,10 @@
   global.previewAppLogoUpload = previewAppLogo;
 
   if (typeof document !== 'undefined') {
+    // La nota de requisitos depende del oficio: al cambiarlo se actualiza en Cotización y Formato.
+    global.addEventListener?.('arpa-active-oficio-changed', () => {
+      try { applyLegalCopyToDocuments(); } catch (e) {}
+    });
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('settings-license-change')?.addEventListener('click', () => {
         global.ArpaLicense?.requestLicenseChange?.();
