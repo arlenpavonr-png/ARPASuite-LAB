@@ -176,9 +176,10 @@
                 .toString().toUpperCase();
     var doc = (record.documento || '').toLowerCase().trim();
     var tipo = (record.tipo || '').toLowerCase().trim();
-    if (num.startsWith('CC-') || doc === 'cuenta de cobro'
+    // CC-012 / COT-180, o con código de técnico AP-CC-012 / AP-COT-180.
+    if (/(^|-)CC-/.test(num) || doc === 'cuenta de cobro'
         || tipo === 'cuenta de cobro') return 'cuenta-cobro';
-    if (num.startsWith('COT-')
+    if (/(^|-)COT-/.test(num)
         || doc === 'cotización' || doc === 'cotizacion'
         || tipo === 'cotización' || tipo === 'cotizacion')
       return 'cotizacion';
