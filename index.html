@@ -600,6 +600,8 @@
   .firma-name { border: none; border-bottom: 1px solid var(--border); font-size: 12px; font-family: 'DM Sans', sans-serif; background: transparent; outline: none; padding: 4px 2px; color: var(--text); width: 100%; }
 
   /* ── VIDEO ENTREGA + QR ── */
+  /* Avisos flotantes (p. ej. "Próximo mantenimiento") no salen en el PDF impreso. */
+  @media print { .no-print { display: none !important; } }
   .formato-video-qr-print {
     display: none;
     margin-top: 20px;
