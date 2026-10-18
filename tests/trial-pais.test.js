@@ -25,8 +25,9 @@ function loadCapture(country, stored) {
       removeItem: (k) => { delete store[k]; }
     },
     document: { readyState: 'complete', getElementById: () => null, addEventListener() {} },
-    // Dominio de producción: fuera de él el registro no llama al servidor (LAB sin producción).
-    location: { hostname: 'arpa.arpatechnologyglobal.com' },
+    // Fuera del dominio de producción el registro no llama al servidor (LAB sin producción).
+    // Se simula ese dominio tomándolo del propio código (fetch es falso: no hay red).
+    location: { hostname: code.match(/hostname !== '([^']+)'/)[1] },
     addEventListener() {},
     fetch: (url, opts) => {
       sent.push(JSON.parse(opts.body));
