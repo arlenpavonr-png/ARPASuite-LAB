@@ -490,6 +490,10 @@
   }
 
   async function renderCcToPdf(d, jsPDF) {
+    // En México el documento fiscal es el RFC; en los demás países, NIT / C.C.
+    const taxLabel = global.ArpaPricing?.getTaxIdLabel?.() || 'NIT';
+    const idLabel = taxLabel === 'NIT' ? 'C.C. / NIT' : taxLabel;
+    const clientIdLabel = taxLabel === 'NIT' ? 'NIT / C.C.' : taxLabel;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
@@ -514,7 +518,7 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     let hy = 20;
-    if (d.cobrador.nit) { doc.text(`NIT: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
+    if (d.cobrador.nit) { doc.text(`${taxLabel}: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
     if (d.cobrador.tel) { doc.text(`Tel: ${d.cobrador.tel}`, m + (logoData ? 26 : 0), hy); }
 
     doc.setFillColor(...GOLD);
@@ -566,16 +570,16 @@
     let yR = y + 6;
     yL = blockLines(leftX, yL, [
       ['Nombre', d.cobrador.nombre],
-      ['C.C. / NIT', d.cobrador.doc],
+      [idLabel, d.cobrador.doc],
       ['Empresa', d.cobrador.empresa],
-      ['NIT', d.cobrador.nit],
+      [taxLabel, d.cobrador.nit],
       ['Tel', d.cobrador.tel],
       ['Dir', d.cobrador.dir],
       ['Web', d.cobrador.web]
     ]);
     yR = blockLines(rightX, yR, [
       ['Nombre', d.cliente.nombre],
-      ['NIT / C.C.', d.cliente.doc],
+      [clientIdLabel, d.cliente.doc],
       ['Dir', d.cliente.dir],
       ['Tel', d.cliente.tel]
     ]);
@@ -654,7 +658,7 @@
       d.pago.accountType && `Tipo: ${d.pago.accountType}`,
       d.pago.accountNumber && `Cuenta N°: ${d.pago.accountNumber}`,
       d.pago.accountHolder && `Titular: ${d.pago.accountHolder}`,
-      d.pago.accountHolderDocument && `NIT/C.C.: ${d.pago.accountHolderDocument}`
+      d.pago.accountHolderDocument && `${taxLabel === 'NIT' ? 'NIT/C.C.' : taxLabel}: ${d.pago.accountHolderDocument}`
     ].filter(Boolean);
     const consigBoxH = 10 + consigLines.length * 4.5 + 4;
     if (y > ph - (consigBoxH + 15)) { doc.addPage(); y = m; }
