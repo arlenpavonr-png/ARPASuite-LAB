@@ -15,6 +15,7 @@
     { id: 'c6', label: 'Barrera vehicular', i18nKey: 'formato.puerta.barrera', catalogKey: 'Barrera vehicular' },
     { id: 'c7', label: 'Techo corredizo', i18nKey: 'formato.puerta.techo_corredizo', catalogKey: 'Corrediza' },
     { id: 'c9', label: 'Cortina enrollable', i18nKey: 'formato.puerta.cortina_enrollable', catalogKey: 'Cortina enrollable' },
+    { id: 'c10', label: 'Puerta automática de vidrio (cabezal)', i18nKey: 'formato.puerta.cabezal', catalogKey: 'Cabezal' },
     { id: 'c8', label: 'Otra', i18nKey: 'formato.puerta.otra', otra: true }
   ];
 

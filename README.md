@@ -1,5 +1,7 @@
 # ARPA Suite — LAB
 
+> **Entorno de pruebas de ARPA Suite. No usar en producción.**
+
 PWA de marca blanca para formatos de servicio, cotizaciones y reportes en campo.
 
 **Rama `arpa-suite-next-gen`:** incluye **ARPASuite NEXT** (`next/`), el flujo de campo para el técnico (voz → datos → informe), además de la suite clásica de documentos.
