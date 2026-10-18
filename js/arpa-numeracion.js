@@ -61,10 +61,11 @@
     return Math.max(getStoredCounter(storageKey), parseSequenceNumber(fieldValue));
   }
 
-  function formatWithPrefix(seq, pad) {
+  /** Con código de técnico: AP-180 (formato), AP-COT-180 (cotización), AP-CC-012 (cuenta de cobro). */
+  function formatWithPrefix(seq, pad, docTag) {
     const code = getTechnicianCode();
     if (!code) return null;
-    return code + '-' + String(seq).padStart(pad, '0');
+    return code + '-' + (docTag ? docTag + '-' : '') + String(seq).padStart(pad, '0');
   }
 
   function formatFormNumber(n) {
@@ -72,11 +73,11 @@
   }
 
   function formatCotNumber(n) {
-    return formatWithPrefix(n, 3) || ('COT-' + String(n).padStart(3, '0'));
+    return formatWithPrefix(n, 3, 'COT') || ('COT-' + String(n).padStart(3, '0'));
   }
 
   function formatCcNumber(n) {
-    return formatWithPrefix(n, 3) || ('CC-' + String(n).padStart(3, '0'));
+    return formatWithPrefix(n, 3, 'CC') || ('CC-' + String(n).padStart(3, '0'));
   }
 
   const FORMATTERS = {

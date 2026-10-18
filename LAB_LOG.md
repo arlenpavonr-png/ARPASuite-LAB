@@ -95,6 +95,17 @@ En cualquier otra dirección la llamada se rechaza como "sin red" antes de salir
   el PR #36 (Formato-Arlenpav); llega al LAB con la próxima sincronización.
 - Al pasar este cambio a producción no cambia nada allí (el dominio coincide).
 
+## 2026-10-10 — Con código de técnico, cada documento lleva su tipo (`agent/prefijo-por-documento`)
+
+Con código de técnico (p. ej. AP) la app ponía el mismo prefijo a todo: el formato AP-180 y la
+cotización AP-180 se veían iguales (Arlen lo vio en un Estimate de producción). Ahora: formato
+AP-180, cotización AP-COT-180, cuenta de cobro AP-CC-012. Las secuencias no cambian (cada tipo
+sigue su contador local y en la nube; el número sale de los dígitos finales). Sin código de
+técnico, igual que antes. El Historial reconoce también AP-COT- y AP-CC- como respaldo.
+
+- Archivos: `js/arpa-numeracion.js`, `js/arpa-historial.js`, `tests/arpa-numeracion.test.js`. Sin protegidos.
+- Pruebas: `npm test` 79/79.
+
 ## 2026-10-07 — Checklist de mantenimiento preventivo (`agent/checklist-mantenimiento`)
 
 ### Qué hace
