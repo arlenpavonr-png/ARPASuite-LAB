@@ -136,6 +136,14 @@
     'formato.titulo.refrigeracion': 'Equipment Type',
     'formato.titulo.cctv': 'Security System Type',
     'formato.titulo.plomeria': 'Plumbing Work Type',
+    'formato.titulo.construccion': 'Construction Work Type',
+    'formato.construccion.drywall': 'Drywall walls',
+    'formato.construccion.cielo': 'Drywall ceiling',
+    'formato.construccion.fibrocemento': 'Cement board',
+    'formato.construccion.pintura': 'Painting & finishes',
+    'formato.construccion.impermeabilizacion': 'Waterproofing',
+    'formato.construccion.pisos': 'Flooring & tiling',
+    'formato.construccion.resanes': 'Patching & repairs',
     'formato.titulo.gas': 'Gas Work Type',
     'formato.titulo.plagas': 'Service Type',
     'formato.titulo.linea_blanca': 'Appliance Type',
@@ -344,6 +352,7 @@
     'oficio.plagas': 'Pest Control / Fumigation',
     'oficio.linea_blanca': 'White Goods / Appliances',
     'oficio.solar': 'Solar Energy',
+    'oficio.construccion': 'Construction & Finishes',
 
     'settings.section.oficios': 'Your main trade',
     'settings.oficios.hint': 'Choose your line of business. Only one trade can be active (Founder license excepted). Each trade includes an editable starter catalog in My Catalog.',
@@ -1169,6 +1178,14 @@
       en: ['Labor is warranted for 3 months or 3,000 km, whichever comes first. Parts carry the manufacturer\'s warranty.',
         'We recommend an oil change and general check every 3,000 km or as the motorcycle manual indicates.',
         'misuse, falls or accidents, lack of maintenance, or repairs made by third parties']
+    },
+    construccion: {
+      es: ['La garantía de mano de obra es de 1 año a partir de la entrega del trabajo: fisuras en juntas, desprendimientos o fallas por mala instalación. Los materiales tienen la garantía del fabricante.',
+        'Recomendamos revisar juntas, pintura e impermeabilización una vez al año.',
+        'humedad o filtraciones de origen externo, golpes, asentamientos de la construcción o modificaciones hechas por terceros'],
+      en: ['Labor is warranted for 1 year from completion: joint cracks, detachment or failures caused by faulty installation. Materials carry the manufacturer\'s warranty.',
+        'We recommend checking joints, paint and waterproofing once a year.',
+        'external moisture or leaks, impacts, building settlement, or modifications made by third parties']
     }
   };
 

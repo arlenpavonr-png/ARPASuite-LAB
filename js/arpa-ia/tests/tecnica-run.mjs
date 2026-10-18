@@ -106,7 +106,7 @@ function noBypassRecomendado(result) {
 }
 
 section('Chasis — oficio oficial y sin LLM');
-assert(oficiales.length === 11, 'hay 11 oficios oficiales');
+assert(oficiales.length === 12, 'hay 12 oficios oficiales (incluye construcción)');
 assert(typeof analizar === 'function', 'analizarFalla existe');
 
 const sinOficio = analizar('La puerta no cierra', '');
