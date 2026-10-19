@@ -91,9 +91,16 @@ Arlen (dueño) ── autoriza
 - Publicar = Implementar → Gestionar implementaciones → editar la implementación
   **actual** → Nueva versión. Nunca crear una implementación nueva (cambia la URL
   `LICENSE_API` y la app deja de conectarse). Eso lo hace Arlen.
-- **Error abierto:** `saveCatalogo_` borra el catálogo de la licencia y no escribe
-  el nuevo (rango mal calculado). Arreglo en el LAB: PR #20, sin unir ni publicar.
-  Mientras tanto, el catálogo de cada técnico solo vive en su celular.
+- **Error del catálogo:** `saveCatalogo_` borraba el catálogo de la licencia y no
+  escribía el nuevo (rango mal calculado). **18-oct noche: Arlen publicó en el Apps
+  Script solo el cambio de una línea** (`rows.length`), misma implementación y misma
+  URL. El resto del PR #20 (candado y validación) sigue sin publicar.
+  - **Sin verificar:** después de publicar, las ediciones de Arlen en el celular no
+    llegaron al servidor (ni filas nuevas en Catalogo ni errores en Debug). Falta
+    averiguar cuándo envía la app el catálogo.
+  - Respaldo: pestaña "Catalogo RESPALDO 19-oct" en la hoja de licencias.
+  - Los catálogos de 844 productos en la hoja son de licencias de prueba, no de la
+    licencia Fundador de Arlen (que no tiene filas).
 
 ## Reglas de trabajo
 - Arlen no es programador y trabaja desde el celular: explicar simple y paso
@@ -114,3 +121,6 @@ Arlen (dueño) ── autoriza
   Se encuentra y arregla en el LAB el error del guardado del catálogo (PR #20).
   Arlen decide no mandar nada más a los prospectos hasta que respondan.
   Prospectos guardados en Drive ("ARPA Suite – Prospectos México").
+- 2026-10-18 (noche): se publica el arreglo de una línea del catálogo en el Apps
+  Script. Queda pendiente verificarlo. Las sesiones del PC se trabaron con Chrome;
+  para el Apps Script resultó más fácil hacer el cambio a mano guiado.
