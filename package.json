@@ -2,7 +2,7 @@
   "name": "arpasuite-lab",
   "private": true,
   "scripts": {
-    "test": "node --test tests/arpa-brand.test.js tests/arpa-cloud-sync.test.js tests/pdf-print-css.test.js tests/arpa-numeracion.test.js tests/cantidades-unidades.test.js tests/actualizaciones.test.js tests/respaldo-servidor.test.js tests/respaldo-nube.test.js tests/cerrajeria.test.js tests/demo-oficio.test.js tests/garantia-oficio.test.js tests/construccion.test.js tests/cuenta-cobro-rfc.test.js tests/whatsapp-prefijo.test.js tests/pdf-idioma-documento.test.js tests/cuenta-cobro-numero.test.js tests/cotizacion-numero.test.js tests/secuencia-pruebas.test.js tests/trial-pais.test.js tests/ventas-manuales.test.js",
+    "test": "node --test tests/arpa-brand.test.js tests/arpa-cloud-sync.test.js tests/pdf-print-css.test.js tests/arpa-numeracion.test.js tests/cantidades-unidades.test.js tests/actualizaciones.test.js tests/respaldo-servidor.test.js tests/respaldo-nube.test.js tests/cerrajeria.test.js tests/demo-oficio.test.js tests/garantia-oficio.test.js tests/construccion.test.js tests/cuenta-cobro-rfc.test.js tests/whatsapp-prefijo.test.js tests/pdf-idioma-documento.test.js tests/cuenta-cobro-numero.test.js tests/cotizacion-numero.test.js tests/secuencia-pruebas.test.js tests/trial-pais.test.js tests/ventas-manuales.test.js tests/catalogo-servidor.test.js",
     "test:pdf": "node tests/pdf-print-footer.mjs"
   },
   "devDependencies": {
