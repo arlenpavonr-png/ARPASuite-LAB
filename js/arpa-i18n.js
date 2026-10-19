@@ -528,6 +528,7 @@
     'alert.oficios.catalogo_ya_cargado': 'The base catalog for {label} was already loaded ({total} products). No duplicates were added.',
     'confirm.oficios.cambiar_oficio': 'You are about to change from {from} to {to}. This will remove {from}\'s products from your catalog (items you added manually in other categories are not affected). Continue?',
     'alert.catalogo.no_guardado': 'The catalog could not be saved. Try again.',
+    'aviso.catalogo.nube_no_guardada': 'Your catalog is saved on this phone, but it could not be backed up to the cloud. It will try again on your next change.',
     'alert.catalogo.marca_cargado': '{marca} catalog loaded: {count} products.',
     'alert.catalogo.modulo_no_disponible': 'The brand catalog module is not available.',
 
@@ -1049,6 +1050,7 @@
       'alert.oficios.catalogo_ya_cargado': 'El catálogo base de {label} ya estaba cargado ({total} productos). No se agregaron duplicados.',
       'confirm.oficios.cambiar_oficio': 'Vas a cambiar de {from} a {to}. Esto eliminará los productos de {from} de tu catálogo (los que agregaste manualmente en otras categorías no se tocan). ¿Continuar?',
       'alert.catalogo.no_guardado': 'No se pudo guardar el catálogo. Intente de nuevo.',
+      'aviso.catalogo.nube_no_guardada': 'El catálogo quedó guardado en este celular, pero no se pudo respaldar en la nube. Se intentará de nuevo en el próximo cambio.',
       'alert.catalogo.marca_cargado': 'Catálogo {marca} cargado: {count} productos.',
       'alert.catalogo.modulo_no_disponible': 'El módulo de catálogos por marca no está disponible.',
       'alert.brand.logo_no_guardado_quota': 'No se pudo guardar el logo. Intente con una imagen más pequeña o en otro formato.',

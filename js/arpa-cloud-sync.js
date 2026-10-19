@@ -61,16 +61,23 @@
 
   // ── HTTP ──────────────────────────────────────────────────────────────────
 
-  function postJson(payload) {
+  // El navegador solo acepta keepalive (envío que sigue aunque se cierre la app) si el
+  // cuerpo pesa menos de 64 KB; se deja margen.
+  const KEEPALIVE_MAX_BYTES = 60000;
+
+  function postJson(payload, opts) {
     // Fuera del dominio de producción (LAB, localhost, red local) no se llama al servidor.
     if (global.location?.hostname !== 'arpa.arpatechnologyglobal.com') {
       return Promise.reject(new Error('network'));
     }
-    return fetch(LICENSE_API, {
+    const body = JSON.stringify(payload);
+    const init = {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    }).then((res) => res.json());
+      body
+    };
+    if (opts && opts.keepalive && body.length < KEEPALIVE_MAX_BYTES) init.keepalive = true;
+    return fetch(LICENSE_API, init).then((res) => res.json());
   }
 
   // ── Catálogo local ────────────────────────────────────────────────────────
@@ -91,29 +98,108 @@
 
   let catalogSyncTimer = null;
   let suppressCatalogSync = false;
+  let catalogPushSeq = 0;
+  const CATALOG_RETRY_MS = 4000;
+  const CATALOG_AVISO_MS = 6000;
 
-  function pushCatalogo() {
+  // Modo demo (se muestra la app a un cliente con otro oficio): nada del catálogo sube a la
+  // nube, para no reemplazar la copia de la empresa real con el catálogo de la demo.
+  function isDemoModeActive() {
+    return global.ArpaBrand?.isDemoMode?.() === true;
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function sendCatalogoOnce(licencia, productos, opts) {
+    return postJson({ accion: 'savecatalogo', licencia, productos }, opts)
+      .then((res) => (res && res.ok === true
+        ? { ok: true, count: res.count }
+        : { ok: false, mensaje: (res && res.mensaje) || 'Respuesta inválida del servidor.' }))
+      .catch((err) => ({ ok: false, mensaje: (err && err.message) || 'network' }));
+  }
+
+  function mostrarAvisoCatalogo() {
+    const doc = global.document;
+    if (!doc || !doc.body || typeof doc.createElement !== 'function') return null;
+    const texto = global.ArpaI18n?.t?.('aviso.catalogo.nube_no_guardada');
+    const msg = texto && texto !== 'aviso.catalogo.nube_no_guardada'
+      ? texto
+      : 'El catálogo quedó guardado en este celular, pero no se pudo respaldar en la nube. Se intentará de nuevo en el próximo cambio.';
+    const anterior = doc.getElementById?.('arpa-aviso-catalogo-nube');
+    if (anterior) anterior.remove();
+    const el = doc.createElement('div');
+    el.id = 'arpa-aviso-catalogo-nube';
+    el.setAttribute('role', 'status');
+    el.textContent = msg;
+    el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
+      'max-width:min(92vw,420px);background:#0f2044;color:#fff;padding:10px 16px;border-radius:8px;' +
+      'font:500 13px system-ui,sans-serif;line-height:1.35;text-align:center;z-index:99999;' +
+      'box-shadow:0 4px 12px rgba(0,0,0,.25);';
+    doc.body.appendChild(el);
+    setTimeout(() => { el.remove(); }, CATALOG_AVISO_MS);
+    return el;
+  }
+
+  /**
+   * Envía el catálogo completo (todos los oficios guardados en el celular).
+   * Si falla (sin red o el servidor responde ok:false) reintenta UNA vez; si vuelve a
+   * fallar muestra un aviso discreto. Devuelve { ok, count } o { ok:false, motivo|mensaje }.
+   */
+  function pushCatalogo(opts) {
     const licencia = getLicenseCode();
-    if (!licencia) return Promise.resolve();
+    if (!licencia) return Promise.resolve({ ok: false, motivo: 'sin_licencia' });
+    if (isDemoModeActive()) return Promise.resolve({ ok: false, motivo: 'demo' });
     const productos = collectLocalCatalogProducts();
     if (productos.length) {
       global.ArpaMiCatalogo?.markEverHadProducts?.();
+    } else {
+      // El servidor ya no acepta una lista vacía (borraría la copia); no se envía.
+      return Promise.resolve({ ok: false, motivo: 'vacio' });
     }
-    if (!productos.length && !global.ArpaMiCatalogo?.hasEverHadProducts?.()) {
-      return Promise.resolve();
-    }
-    return postJson({ accion: 'savecatalogo', licencia, productos }).catch((err) => {
-      console.warn('[arpa-cloud-sync] savecatalogo', err);
+    const seq = ++catalogPushSeq;
+    return sendCatalogoOnce(licencia, productos, opts).then((r1) => {
+      if (r1.ok) return r1;
+      console.warn('[arpa-cloud-sync] savecatalogo', r1.mensaje);
+      return wait(CATALOG_RETRY_MS).then(() => {
+        // Si mientras tanto salió un envío más nuevo, ese lleva los datos al día.
+        if (seq !== catalogPushSeq) return { ok: false, motivo: 'reemplazado' };
+        return sendCatalogoOnce(licencia, productos, opts).then((r2) => {
+          if (r2.ok) return r2;
+          console.warn('[arpa-cloud-sync] savecatalogo (reintento)', r2.mensaje);
+          if (seq === catalogPushSeq) mostrarAvisoCatalogo();
+          return r2;
+        });
+      });
     });
   }
 
   function scheduleCatalogCloudSync() {
     if (suppressCatalogSync) return;
+    if (isDemoModeActive()) return;
     if (catalogSyncTimer) clearTimeout(catalogSyncTimer);
     catalogSyncTimer = setTimeout(() => {
       catalogSyncTimer = null;
       pushCatalogo();
     }, 2000);
+  }
+
+  /** Si hay un envío esperando el temporizador, lo manda ya (la app se va a segundo plano). */
+  function flushCatalogCloudSync() {
+    if (!catalogSyncTimer) return null;
+    clearTimeout(catalogSyncTimer);
+    catalogSyncTimer = null;
+    return pushCatalogo({ keepalive: true });
+  }
+
+  if (global.document && typeof global.document.addEventListener === 'function') {
+    global.document.addEventListener('visibilitychange', () => {
+      if (global.document.visibilityState === 'hidden') flushCatalogCloudSync();
+    });
+  }
+  if (typeof global.addEventListener === 'function') {
+    global.addEventListener('pagehide', () => { flushCatalogCloudSync(); });
   }
 
   // ── Push historial → nube ─────────────────────────────────────────────────
@@ -260,44 +346,62 @@
     if (!Array.isArray(productos) || !productos.length) return false;
     if (!isLocalCatalogEmpty()) return false;
 
-    const oficioId = global.ArpaMiCatalogo?.getActiveOficioId?.()
+    const activeOficioId = global.ArpaMiCatalogo?.getActiveOficioId?.()
       || global.ArpaOficios?.normalizeOficioId?.(null)
       || 'automatismos';
 
-    const categories = [];
-    const catKeyToId = new Map();
+    // Cada producto vuelve a su oficio (columna Oficio). Las filas viejas sin oficio
+    // van al oficio activo, como antes.
+    function oficioDe(p) {
+      const raw = String(p?.oficioId || p?.oficio || '').trim();
+      if (!raw) return activeOficioId;
+      return global.ArpaOficios?.normalizeOficioId?.(raw) || raw;
+    }
 
-    function ensureCategory(name) {
+    const porOficio = new Map();
+    function grupo(oficioId) {
+      if (!porOficio.has(oficioId)) porOficio.set(oficioId, { categories: [], products: [], catKeyToId: new Map() });
+      return porOficio.get(oficioId);
+    }
+
+    function ensureCategory(g, oficioId, name) {
       const label = String(name || 'General').trim() || 'General';
       const key = oficioId + '::' + label.toLowerCase();
-      if (catKeyToId.has(key)) return catKeyToId.get(key);
+      if (g.catKeyToId.has(key)) return g.catKeyToId.get(key);
       const cat = { id: newId(), name: label, oficioId };
-      categories.push(cat);
-      catKeyToId.set(key, cat.id);
+      g.categories.push(cat);
+      g.catKeyToId.set(key, cat.id);
       return cat.id;
     }
 
-    const products = productos.map((p) => ({
-      id: p.id || newId(),
-      cod: String(p.cod || '').trim(),
-      nom: String(p.nom || '').trim(),
-      pvp: Number(p.pvp) || 0,
-      unidad: String(p.unidad || 'unidad').trim() || 'unidad',
-      marca: String(p.marca || '').trim(),
-      categoriaId: ensureCategory(p.categoria),
-      oficioId
-    }));
+    productos.forEach((p) => {
+      const oficioId = oficioDe(p);
+      const g = grupo(oficioId);
+      g.products.push({
+        id: p.id || newId(),
+        cod: String(p.cod || '').trim(),
+        nom: String(p.nom || '').trim(),
+        pvp: Number(p.pvp) || 0,
+        unidad: String(p.unidad || 'unidad').trim() || 'unidad',
+        marca: String(p.marca || '').trim(),
+        categoriaId: ensureCategory(g, oficioId, p.categoria),
+        oficioId
+      });
+    });
 
-    if (!products.length) return false;
+    if (!porOficio.size) return false;
 
     suppressCatalogSync = true;
     try {
       if (typeof global.ArpaMiCatalogo?.writeCategoriesRaw === 'function') {
-        global.ArpaMiCatalogo.writeCategoriesRaw(oficioId, categories);
-        global.ArpaMiCatalogo.writeProductsRaw(oficioId, products);
+        porOficio.forEach((g, oficioId) => {
+          global.ArpaMiCatalogo.writeCategoriesRaw(oficioId, g.categories);
+          global.ArpaMiCatalogo.writeProductsRaw(oficioId, g.products);
+        });
       } else {
-        localStorage.setItem(CATALOG_CATEGORIES_KEY, JSON.stringify(categories));
-        localStorage.setItem(CATALOG_PRODUCTS_KEY, JSON.stringify(products));
+        const all = [...porOficio.values()];
+        localStorage.setItem(CATALOG_CATEGORIES_KEY, JSON.stringify(all.flatMap((g) => g.categories)));
+        localStorage.setItem(CATALOG_PRODUCTS_KEY, JSON.stringify(all.flatMap((g) => g.products)));
       }
       global.ArpaCatalogo?.invalidateListaCache?.();
       global.ArpaCotizacion?.updateCatalogHint?.();
@@ -465,6 +569,7 @@
     // Push (local → nube)
     pushCatalogo,
     scheduleCatalogCloudSync,
+    flushCatalogCloudSync,
     pushHistorialEntry,
     deleteHistorialEntry,
     // Pull (nube → local)

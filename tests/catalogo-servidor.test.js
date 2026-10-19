@@ -25,6 +25,10 @@ function fakeSheet(initialRows) {
       const nc = numCols == null ? 1 : numCols;
       return {
         getValue: () => (data[row - 1] ? data[row - 1][col - 1] : ''),
+        setValue: (v) => {
+          while (data.length < row) data.push([]);
+          data[row - 1][col - 1] = v;
+        },
         setValues: (v) => {
           if (v.length !== nr) {
             throw new Error('El número de filas de los datos no coincide con el número de filas del rango. Los datos tienen ' + v.length + ', y el rango, ' + nr + '.');
@@ -125,13 +129,55 @@ test('(c) getcatalogo devuelve exactamente lo guardado', () => {
   assert.strictEqual(post({ accion: 'getcatalogo', licencia: B }).productos.length, 2, 'B solo ve lo suyo');
 });
 
-test('(d) lista vacía borra solo las filas de A', () => {
-  const { post, sheet } = loadServer(otrasLicencias(6));
+test('(d) lista vacía NO borra: responde ok:false y la copia de A queda intacta', () => {
+  const { post, sheet, debug } = loadServer(otrasLicencias(6));
   post({ accion: 'savecatalogo', licencia: A, productos: productos(4, 'a') });
+  const antes = sheet.data.map((r) => r.slice());
   const r = post({ accion: 'savecatalogo', licencia: A, productos: [] });
-  assert.deepStrictEqual(r, { ok: true, count: 0 });
-  assert.strictEqual(filasDe(sheet, A).length, 0);
-  assert.strictEqual(sheet.data.length, 1 + 6);
+  assert.deepStrictEqual(r, { ok: false, mensaje: 'Catálogo vacío: no se borra la copia en la nube.' });
+  assert.strictEqual(filasDe(sheet, A).length, 4);
+  assert.deepStrictEqual(sheet.data, antes, 'la hoja no cambia');
+  const ultimo = debug[debug.length - 1];
+  assert.strictEqual(ultimo[1], 'catalogo_guardado');
+  assert.deepStrictEqual(JSON.parse(ultimo[2]), { licencia: 'AAA111', cantidad: 0, resultado: 'rechazado_vacio' });
+});
+
+test('sin campo productos (null/ausente) tampoco borra', () => {
+  const { post, sheet } = loadServer([]);
+  post({ accion: 'savecatalogo', licencia: A, productos: productos(3, 'a') });
+  const r = post({ accion: 'savecatalogo', licencia: A });
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(filasDe(sheet, A).length, 3);
+});
+
+test('Debug anota cada guardado con los últimos 6 caracteres y la cantidad', () => {
+  const { post, debug } = loadServer(otrasLicencias(3));
+  post({ accion: 'savecatalogo', licencia: A.toLowerCase(), productos: productos(7, 'a') });
+  post({ accion: 'savecatalogo', licencia: B, productos: productos(2, 'b') });
+  const guardados = debug.filter((r) => r[1] === 'catalogo_guardado').map((r) => JSON.parse(r[2]));
+  assert.deepStrictEqual(guardados, [
+    { licencia: 'AAA111', cantidad: 7, resultado: 'ok' },
+    { licencia: 'BBB222', cantidad: 2, resultado: 'ok' },
+  ]);
+  assert.ok(debug.every((r) => !String(r[2]).includes('ARPA-PRO-AAA111')), 'no guarda la licencia completa');
+});
+
+test('columna Oficio: se guarda, getcatalogo la devuelve y las filas viejas sin oficio siguen funcionando', () => {
+  const vieja = [A, 'v-1', 'V1', 'Producto viejo', 50, 'und', '', 'General'];
+  const { post, sheet } = loadServer([vieja]);
+  // Leer una hoja de antes (8 columnas) agrega solo el título "Oficio".
+  const r0 = post({ accion: 'getcatalogo', licencia: A });
+  assert.strictEqual(sheet.data[0][8], 'Oficio');
+  assert.deepStrictEqual(r0.productos, [{ id: 'v-1', cod: 'V1', nom: 'Producto viejo', pvp: 50, unidad: 'und', marca: '', categoria: 'General' }]);
+
+  const lista = [
+    { id: 'p1', cod: 'P1', nom: 'Tubo', pvp: 10, unidad: 'metro', marca: '', categoria: 'Tubería', oficioId: 'plomeria' },
+    { id: 'c1', cod: 'C1', nom: 'Cámara', pvp: 900, unidad: 'unidad', marca: 'H', categoria: 'Cámaras', oficioId: 'cctv' },
+  ];
+  assert.deepStrictEqual(post({ accion: 'savecatalogo', licencia: A, productos: lista }), { ok: true, count: 2 });
+  const r = post({ accion: 'getcatalogo', licencia: A });
+  assert.deepStrictEqual(r.productos.map((p) => [p.id, p.oficioId]), [['p1', 'plomeria'], ['c1', 'cctv']]);
+  assert.strictEqual(filasDe(sheet, A).length, 2, 'reescritura completa: sin duplicados');
 });
 
 test('productos inválidos no borran el catálogo existente', () => {
