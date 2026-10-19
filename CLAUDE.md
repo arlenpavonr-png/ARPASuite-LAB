@@ -52,11 +52,21 @@ Arlen (dueño) ── autoriza
 - **Precio actual en México:** fundador USD 59 (≈ $1,090 MXN), pago único,
   hasta el domingo 25-oct-2026, por Gumroad (solo tarjeta, **sin OXXO**).
   Después: Técnico USD 83 (≈ $1,535 MXN). La web aún no muestra la oferta fundador.
+  - FUNDADOR es un **cupón** de Gumroad (USD 24 menos, 30 usos), no un plan.
+    Enlace con el cupón aplicado (verificado 19-oct):
+    https://arpatech.gumroad.com/l/arpa-suite-tecnico/FUNDADOR
+  - Quien compra recibe una licencia **ARPA-PRO de UN oficio** (soporte 12
+    meses; la app sigue funcionando después). Solo la licencia Fundador de
+    Arlen permite varios oficios: **no prometer varios oficios** a clientes.
+  - El cobro entrega la licencia sola: compra de prueba procesada el
+    24-sep-2026 (Debug: `licencia_creada`).
 - **WhatsApp del negocio (+57 301 609 2542):** está en otro celular de Arlen.
   Respuestas rápidas con "/" (no son automáticas). Lo único automático es la
   bienvenida y el mensaje de ausencia. A México se le habla de "tú" y se dice
   "herrería"; no usar las plantillas de Colombia.
-- **Prospectos:** se llevan fuera del repo (datos privados). Lo aprendido: casi
+- **Prospectos:** se llevan fuera del repo (datos privados), en el documento
+  privado de Drive **"ARPA Suite – Prospectos México"**. Leerlo al empezar y
+  actualizarlo al cerrar cada sesión. Lo aprendido: casi
   nadie manda nombre y logo; funciona mejor mandar ejemplos hechos de su
   oficio + la prueba gratis. Armar la muestra solo cuando el cliente dice su oficio.
 - **Pendiente (en orden de importancia):**
@@ -74,6 +84,17 @@ Arlen (dueño) ── autoriza
 - **Metas:** aún no definidas. El gerente debe proponer metas medibles
   (técnicos en prueba, licencias pagadas, plazo) y Arlen las aprueba.
 
+## Sistema de licencias (Apps Script "ARPA- Licencias")
+- El código del editor del Apps Script coincide con `arpa-licencias-apps-script.gs`
+  de la rama `arpa-suite-next-gen` del LAB (comprobado 19-oct), **no** con el de
+  Formato-Arlenpav `main`. Usar el del LAB como base para arreglos del servidor.
+- Publicar = Implementar → Gestionar implementaciones → editar la implementación
+  **actual** → Nueva versión. Nunca crear una implementación nueva (cambia la URL
+  `LICENSE_API` y la app deja de conectarse). Eso lo hace Arlen.
+- **Error abierto:** `saveCatalogo_` borra el catálogo de la licencia y no escribe
+  el nuevo (rango mal calculado). Arreglo en el LAB: PR #20, sin unir ni publicar.
+  Mientras tanto, el catálogo de cada técnico solo vive en su celular.
+
 ## Reglas de trabajo
 - Arlen no es programador y trabaja desde el celular: explicar simple y paso
   a paso. Cero adulación; señalar fallas e inconsistencias de inmediato.
@@ -88,3 +109,8 @@ Arlen (dueño) ── autoriza
   agentes producto, mercadeo y ventas. Prioridad: lanzamiento en México.
 - 2026-10-18: se agrega el agente soporte. No contesta WhatsApp solo: escribe
   los textos y las respuestas para que Arlen las copie.
+- 2026-10-19: se revisan bienvenida y respuestas rápidas de WhatsApp; se confirma
+  que el cupón FUNDADOR funciona y que la compra entrega ARPA-PRO de un oficio.
+  Se encuentra y arregla en el LAB el error del guardado del catálogo (PR #20).
+  Arlen decide no mandar nada más a los prospectos hasta que respondan.
+  Prospectos guardados en Drive ("ARPA Suite – Prospectos México").
