@@ -91,9 +91,21 @@ Arlen (dueño) ── autoriza
 - Publicar = Implementar → Gestionar implementaciones → editar la implementación
   **actual** → Nueva versión. Nunca crear una implementación nueva (cambia la URL
   `LICENSE_API` y la app deja de conectarse). Eso lo hace Arlen.
-- **Error abierto:** `saveCatalogo_` borra el catálogo de la licencia y no escribe
-  el nuevo (rango mal calculado). Arreglo en el LAB: PR #20, sin unir ni publicar.
-  Mientras tanto, el catálogo de cada técnico solo vive en su celular.
+- **Error del catálogo: ARREGLADO y verificado (19-oct).** `saveCatalogo_` borraba el
+  catálogo y no escribía el nuevo. Se publicó el cambio de una línea (`rows.length`).
+  Verificado: la licencia Fundador subió 846 productos a la hoja Catalogo y las demás
+  licencias quedaron intactas. El resto del PR #20 y los arreglos del PR #23 (vacío no
+  borra, demo no envía, aviso si falla, todos los oficios) siguen solo en el LAB.
+  - Respaldo: pestaña "Catalogo RESPALDO 19-oct" en la hoja de licencias.
+- **Incidente 18–19 oct:** una letra suelta en la línea 1863 del código publicado
+  tumbó el servidor toda la noche (ReferenceError al cargar; nada llegaba y Debug
+  quedaba vacío). Se arregló publicando de nuevo.
+- **Regla obligatoria después de cada publicación:** abrir la URL `/exec` en una
+  ventana de incógnito. Debe responder `{"valido":false,"mensaje":"Código requerido."}`.
+  Si muestra un error o pide iniciar sesión, volver de inmediato a la versión anterior.
+- **Aviso "(local)" junto al número:** significa que el número NO se apartó en el
+  servidor y puede repetirse (pasó con AP-COT-186). No mandar documentos con ese aviso.
+  Además el aviso sale impreso en el PDF con "Guardar PDF" (pendiente de arreglar).
 
 ## Reglas de trabajo
 - Arlen no es programador y trabaja desde el celular: explicar simple y paso
@@ -114,3 +126,9 @@ Arlen (dueño) ── autoriza
   Se encuentra y arregla en el LAB el error del guardado del catálogo (PR #20).
   Arlen decide no mandar nada más a los prospectos hasta que respondan.
   Prospectos guardados en Drive ("ARPA Suite – Prospectos México").
+- 2026-10-18 (noche): se publica el arreglo de una línea del catálogo en el Apps
+  Script. Queda pendiente verificarlo. Las sesiones del PC se trabaron con Chrome;
+  para el Apps Script resultó más fácil hacer el cambio a mano guiado.
+- 2026-10-19: el servidor estuvo caído desde la publicación del 18-oct por una letra
+  suelta; se arregla y se verifica el respaldo del catálogo (846 productos).
+  Se crea la regla de probar `/exec` en incógnito después de cada publicación.
