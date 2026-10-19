@@ -131,9 +131,25 @@
     return [getActiveOficioId()];
   }
 
+  /**
+   * Oficios activos + cualquier otro oficio que tenga productos guardados en este celular.
+   * La nube guarda UNA copia por licencia y cada envío la reemplaza completa: si solo se
+   * mandaran los activos, los productos de un oficio desactivado (o del modo demo) se
+   * borrarían de la nube aunque sigan en el celular.
+   */
+  function listStoredCatalogOficioIds() {
+    const ids = listCatalogOficioIds().slice();
+    const all = global.ArpaOficios?.getOficiosList?.().map((o) => o.id) || [];
+    all.forEach((id) => {
+      const oid = normalizeOficioId(id);
+      if (ids.indexOf(oid) === -1 && readProductsRaw(oid).length) ids.push(oid);
+    });
+    return ids;
+  }
+
   function collectProductsForCloud() {
     const out = [];
-    listCatalogOficioIds().forEach((oid) => {
+    listStoredCatalogOficioIds().forEach((oid) => {
       readProductsRaw(oid).forEach((p) => {
         const catId = resolveProductCategoryId(p);
         const categoria = getCategoryName(catId, oid) || 'General';
@@ -146,7 +162,8 @@
           precioPrecargado: p.precioPrecargado,
           unidad: p.unidad || '',
           marca: p.marca || '',
-          categoria
+          categoria,
+          oficioId: oid
         });
       });
     });
@@ -154,7 +171,7 @@
   }
 
   function isLocalCatalogEmpty() {
-    return listCatalogOficioIds().every((oid) => readProductsRaw(oid).length === 0);
+    return listStoredCatalogOficioIds().every((oid) => readProductsRaw(oid).length === 0);
   }
 
   function writeProductsRaw(oficioId, products) {

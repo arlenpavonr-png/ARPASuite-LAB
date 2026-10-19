@@ -674,6 +674,13 @@ function doPost(e) {
     debugLog_('error_doPost', { mensaje: err.message });
     Logger.log('doPost error: ' + err.stack || err);
 
+    // Pedidos JSON de la app (sync): responder JSON para que la app pueda leer el error.
+    // Gumroad y los demás siguen recibiendo texto como antes.
+    const syncBody = parseSyncJsonBody_(e);
+    if (syncBody && syncBody.accion) {
+      return respondJson_({ ok: false, mensaje: 'Error del servidor: ' + err.message });
+    }
+
     return textResponse_('Error: ' + err.message, 500);
 
   }
@@ -998,7 +1005,9 @@ const EMPRESAS_HEADERS_ = [
 
 
 
-const CATALOGO_HEADERS_ = ['Licencia', 'ProductoId', 'Codigo', 'Nombre', 'Precio', 'Unidad', 'Marca', 'Categoria'];
+// 'Oficio' (columna I) se agregó en oct-2026 para restaurar cada producto en su oficio.
+// Las filas viejas la tienen vacía y la app las pone en el oficio activo, como antes.
+const CATALOGO_HEADERS_ = ['Licencia', 'ProductoId', 'Codigo', 'Nombre', 'Precio', 'Unidad', 'Marca', 'Categoria', 'Oficio'];
 
 
 
@@ -1354,6 +1363,11 @@ function getCatalogoSheet_() {
 
     sheet.getRange(1, 1, 1, CATALOGO_HEADERS_.length).setValues([CATALOGO_HEADERS_]);
 
+  } else if (!String(sheet.getRange(1, CATALOGO_HEADERS_.length).getValue() || '').trim()) {
+
+    // Hoja creada antes de la columna Oficio: solo se escribe el título que falta.
+    sheet.getRange(1, CATALOGO_HEADERS_.length).setValue(CATALOGO_HEADERS_[CATALOGO_HEADERS_.length - 1]);
+
   }
 
   return sheet;
@@ -1536,54 +1550,63 @@ function deleteRowsForLicencia_(sheet, licencia) {
 
 function saveCatalogo_(licencia, productos) {
 
-  const sheet = getCatalogoSheet_();
-
-  deleteRowsForLicencia_(sheet, licencia);
-
-
+  // Primero se arman y validan las filas; solo después se borra lo anterior.
+  // Así un error al armar los datos no deja a la licencia sin catálogo en la nube.
+  if (productos != null && !Array.isArray(productos)) {
+    debugLog_('catalogo_guardado', { licencia: licenciaCorta_(licencia), cantidad: null, resultado: 'rechazado_invalido' });
+    return { ok: false, mensaje: 'Productos inválidos.' };
+  }
 
   const list = Array.isArray(productos) ? productos : [];
 
+  // Una lista vacía casi siempre es un error de la app (catálogo sin cargar,
+  // modo demo, datos borrados en el celular). Borrar por eso dejaría a la
+  // licencia sin su copia en la nube, así que se rechaza y no se borra nada.
   if (!list.length) {
-
-    return { ok: true, count: 0 };
-
+    debugLog_('catalogo_guardado', { licencia: licenciaCorta_(licencia), cantidad: 0, resultado: 'rechazado_vacio' });
+    return { ok: false, mensaje: 'Catálogo vacío: no se borra la copia en la nube.' };
   }
 
-
-
   const rows = list.map(function (p) {
-
+    const item = p && typeof p === 'object' ? p : {};
     return [
-
       licencia,
-
-      String(p.id || ''),
-
-      String(p.cod || p.codigo || ''),
-
-      String(p.nom || p.nombre || ''),
-
-      Number(p.pvp != null ? p.pvp : p.precio) || 0,
-
-      String(p.unidad || ''),
-
-      String(p.marca || ''),
-
-      String(p.categoria || p.category || 'General')
-
+      String(item.id || ''),
+      String(item.cod || item.codigo || ''),
+      String(item.nom || item.nombre || ''),
+      Number(item.pvp != null ? item.pvp : item.precio) || 0,
+      String(item.unidad || ''),
+      String(item.marca || ''),
+      String(item.categoria || item.category || 'General'),
+      String(item.oficioId || item.oficio || '')
     ];
-
   });
 
+  // Un solo guardado a la vez: deleteRow por índice no es seguro si otro
+  // dispositivo borra o agrega filas al mismo tiempo.
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sheet = getCatalogoSheet_();
+    deleteRowsForLicencia_(sheet, licencia);
 
+    const startRow = sheet.getLastRow() + 1;
+    // getRange(fila, columna, NÚMERO de filas, NÚMERO de columnas).
+    sheet.getRange(startRow, 1, rows.length, CATALOGO_HEADERS_.length).setValues(rows);
+  } finally {
+    lock.releaseLock();
+  }
 
-  const startRow = sheet.getLastRow() + 1;
-
-  sheet.getRange(startRow, 1, startRow + rows.length - 1, CATALOGO_HEADERS_.length).setValues(rows);
-
+  debugLog_('catalogo_guardado', { licencia: licenciaCorta_(licencia), cantidad: rows.length, resultado: 'ok' });
   return { ok: true, count: rows.length };
 
+}
+
+// Solo los últimos 6 caracteres: basta para reconocer la licencia en Debug
+// sin dejar la clave completa a la vista.
+function licenciaCorta_(licencia) {
+  const s = String(licencia || '');
+  return s.slice(-6);
 }
 
 
@@ -1619,6 +1642,10 @@ function getCatalogo_(licencia) {
       categoria: String(values[i][7] || 'General')
 
     });
+
+    const oficio = String(values[i][8] || '').trim();
+
+    if (oficio) productos[productos.length - 1].oficioId = oficio;
 
   }
 

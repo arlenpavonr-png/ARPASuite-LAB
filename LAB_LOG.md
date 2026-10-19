@@ -384,3 +384,17 @@ Modelo: licencia de por vida + actualización anual paga. NEXT es la primera act
   fundador). Basta para el cliente normal; no frena a alguien que edite el almacenamiento.
 - Para renovar a un cliente: cambiar la fecha VENCIMIENTO de su fila en la hoja de licencias;
   la app la toma la próxima vez que abra con internet.
+
+### 2026-10-19 — Catálogo en la nube: envío seguro (rama `agent/catalogo-sync-seguro`, incluye PR #20)
+Autorizado por Arlen. Sin tocar producción, LICENSE_API ni Sheets.
+- Servidor (`saveCatalogo_`): una lista vacía ya no borra la copia de la licencia (responde
+  `ok:false`). Cada guardado queda en Debug como `catalogo_guardado` con los últimos 6 caracteres
+  de la licencia, la cantidad y el resultado (`ok`, `rechazado_vacio`, `rechazado_invalido`).
+  Nueva columna I "Oficio" en la hoja Catalogo (se agrega sola el título si falta).
+- App: en modo demo no se envía el catálogo; se lee la respuesta del servidor y si falla se
+  reintenta una vez y luego se muestra un aviso; si la app se oculta con un envío pendiente se
+  manda de inmediato (keepalive si pesa < 60 KB).
+- App: se envían los productos de todos los oficios guardados en el celular (no solo los activos),
+  cada uno con su oficio; al restaurar, cada producto vuelve a su oficio.
+- Caché LAB: `js/arpa-ia/arpa-ia-cache.js` → `v20261019-catalogo-sync`.
+- Pruebas: `tests/catalogo-servidor.test.js` (9) y `tests/catalogo-sync-app.test.js` (7).
