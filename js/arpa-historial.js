@@ -302,30 +302,98 @@
     if (!concepto && d?.observaciones) concepto = trimBrief(d.observaciones, 120);
     return concepto || getSinDescripcion();
   }
+  // ── Documento en edición ──────────────────────────────────────────────────
+  // Guarda, por módulo, qué registro del Historial está abierto en el formulario
+  // (el que se abrió con "Ver documento" o el que se acaba de guardar).
+  // Solo ESE registro se actualiza al volver a guardar; un documento nuevo con
+  // el mismo número nunca reemplaza a otro (así se perdió AP-COT-186).
+  const EDICION_KEY = 'arpa_historial_editando';
+  function getEdiciones() {
+    try {
+      const data = JSON.parse(localStorage.getItem(EDICION_KEY) || '{}');
+      return data && typeof data === 'object' ? data : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  function setEdiciones(data) {
+    try { localStorage.setItem(EDICION_KEY, JSON.stringify(data)); } catch (e) { /* ignore */ }
+  }
+  function marcarEdicion(modulo, id, numero) {
+    if (!modulo || !id) return;
+    const data = getEdiciones();
+    data[modulo] = { id: String(id), numero: String(numero || '').trim() };
+    setEdiciones(data);
+  }
+  function olvidarEdicion(modulo) {
+    const data = getEdiciones();
+    if (!data[modulo]) return;
+    delete data[modulo];
+    setEdiciones(data);
+  }
+  /** Números ya usados en ese módulo (un solo recorrido del historial). */
+  function numerosUsados(modulo) {
+    const set = new Set();
+    getRecords().forEach((r) => {
+      const n = String(r.numero || '').trim();
+      if (n && inferModulo(r) === modulo) set.add(n);
+    });
+    return set;
+  }
+  function existeNumero(modulo, numero) {
+    const n = String(numero || '').trim();
+    return !!n && numerosUsados(modulo).has(n);
+  }
+  function mismoCliente(a, b) {
+    const x = String(a || '').trim().toLowerCase();
+    return !!x && x === String(b || '').trim().toLowerCase();
+  }
   function addRecord(record) {
     const records = getRecords();
     const numero = String(record.numero || '').trim();
     const modulo = inferModulo(record);
     let finalRecord = record;
-    if (numero) {
-      const existingIdx = records.findIndex(
-        (r) => inferModulo(r) === modulo && String(r.numero || '').trim() === numero
-      );
-      if (existingIdx !== -1) {
-        const existing = records[existingIdx];
-        finalRecord = { ...existing, ...record, id: existing.id };
-        records.splice(existingIdx, 1);
-        records.unshift(finalRecord);
-        saveRecords(records);
-        render();
-        global.ArpaCloudSync?.pushHistorialEntry?.(finalRecord);
-        return finalRecord;
+    let numeroRepetido = false;
+    const edicion = numero ? getEdiciones()[modulo] : null;
+    let editIdx = edicion
+      ? records.findIndex((r) => r.id === edicion.id && inferModulo(r) === modulo)
+      : -1;
+    // El abierto solo se actualiza con su mismo número, salvo que sea uno marcado
+    // "número repetido": cambiarle el número es justo lo que pide el aviso.
+    if (editIdx !== -1 && edicion.numero !== numero && !records[editIdx].numeroRepetido) {
+      editIdx = -1;
+    }
+    if (editIdx === -1 && numero) {
+      // Sin marca de edición (documento guardado antes de esta versión, o la marca
+      // se perdió): mismo número y mismo cliente es el mismo documento.
+      editIdx = records.findIndex((r) => inferModulo(r) === modulo
+        && String(r.numero || '').trim() === numero && mismoCliente(r.cliente, record.cliente));
+    }
+    if (editIdx !== -1) {
+      // Se está editando ese mismo documento: se actualiza, no se duplica.
+      const existing = records[editIdx];
+      finalRecord = { ...existing, ...record, id: existing.id };
+      records.splice(editIdx, 1);
+      const otros = records.some((r) => inferModulo(r) === modulo && String(r.numero || '').trim() === numero);
+      if (otros) {
+        numeroRepetido = !existing.numeroRepetido || String(existing.numero || '').trim() !== numero;
+        finalRecord.numeroRepetido = true;
+      } else {
+        delete finalRecord.numeroRepetido;
       }
+    } else if (numero && existeNumero(modulo, numero)) {
+      // Documento nuevo con un número que ya existe: se guarda aparte y se avisa.
+      numeroRepetido = true;
+      finalRecord = { ...record, numeroRepetido: true };
     }
     records.unshift(finalRecord);
     saveRecords(records);
+    if (numero) marcarEdicion(modulo, finalRecord.id, numero);
     render();
     global.ArpaCloudSync?.pushHistorialEntry?.(finalRecord);
+    if (numeroRepetido) {
+      alert(window.ArpaI18n.t('alert.historial.numero_repetido', { numero }));
+    }
     return finalRecord;
   }
   function readFormSnapshot() {
@@ -432,6 +500,9 @@
     });
   }
   function removeRecord(id) {
+    const data = getEdiciones();
+    Object.keys(data).forEach((m) => { if (data[m] && data[m].id === id) delete data[m]; });
+    setEdiciones(data);
     saveRecords(getRecords().filter((r) => r.id !== id));
     render();
     global.ArpaCloudSync?.deleteHistorialEntry?.(id);
@@ -445,7 +516,10 @@
     records.forEach((r) => {
       const numero = String(r.numero || '').trim();
       if (!numero) { result.push(r); return; }
-      const key = inferModulo(r) + '|' + numero;
+      // Solo copias del mismo documento. Dos documentos distintos con el mismo
+      // número (cliente o total diferente) se conservan los dos.
+      const key = [inferModulo(r), numero, String(r.cliente || '').trim().toLowerCase(),
+        r.total != null ? Number(r.total) : ''].join('|');
       if (seen.has(key)) {
         removedIds.push(r.id);
         return;
@@ -467,6 +541,15 @@
       .replace(/</g, '&lt;')
       .replace(/"/g, '&quot;');
   }
+  function renderAvisos(r) {
+    const avisos = [];
+    if (global.ArpaCloudSync?.estaPendiente?.(r.id)) avisos.push(window.ArpaI18n.t('ui.historial.sin_subir'));
+    if (r.numeroRepetido) avisos.push(window.ArpaI18n.t('ui.historial.numero_repetido'));
+    return avisos.map((txt) =>
+      `<div class="historial-aviso" role="status" style="margin:6px 0 0;padding:6px 10px;border-radius:6px;` +
+      `background:rgba(224,82,82,0.15);color:#c0392b;font-weight:600;font-size:13px;">${escapeHtml(txt)}</div>`
+    ).join('');
+  }
   function renderCard(r) {
     const meta = getDocumentoMeta(r);
     const subtipo = getSubtipoLabel(r);
@@ -487,6 +570,7 @@
           <div class="historial-row"><span>${escapeHtml(window.ArpaI18n.t('ui.historial.fecha'))}</span><strong>${escapeHtml(formatFechaLegible(r.fecha))}</strong></div>
           ${r.estado ? `<div class="historial-row"><span>${escapeHtml(window.ArpaI18n.t('ui.historial.estado'))}</span><strong>${escapeHtml(global.ArpaOT?.estadoLabel?.(r.estado) || r.estado)}</strong></div>` : ''}
           ${showTotal ? `<div class="historial-row"><span>${escapeHtml(window.ArpaI18n.t('ui.historial.total'))}</span><strong>${escapeHtml(formatoPesos(r.total))}</strong></div>` : ''}
+          ${renderAvisos(r)}
         </div>
         <button type="button" class="historial-delete" data-id="${escapeHtml(r.id)}" aria-label="${escapeHtml(window.ArpaI18n.t('aria.historial.eliminar_registro'))}">${escapeHtml(window.ArpaI18n.t('ui.historial.eliminar'))}</button>
         <button type="button" class="btn-ver-doc" onclick="ArpaHistorial.verDocumento('${escapeHtml(r.id)}')">
@@ -502,6 +586,8 @@
       return;
     }
     const modulo = inferModulo(r);
+    // Lo que se guarde desde este documento actualiza este mismo registro.
+    marcarEdicion(modulo, r.id, r.numero);
     if (modulo === 'formato') {
       document.querySelector('.main-menu-btn[onclick*="scrollToTopMenu"]')?.click();
       setTimeout(() => {
@@ -633,8 +719,10 @@
     var records = getRecords();
     var ahora = new Date();
     var mesActual = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0');
+    // Mes del documento (su fecha). La fecha de guardado solo cuenta si no tiene fecha:
+    // antes, cada sincronización le ponía "hoy" a todo lo bajado de la nube y lo sumaba al mes.
     var esteMes = records.filter(function(r) {
-      return toYM(r.fecha) === mesActual || toYM(r.savedAt) === mesActual;
+      return (toYM(r.fecha) || toYM(r.savedAt)) === mesActual;
     });
     var totalCotMes = esteMes
       .filter(function(r) { return inferModulo(r) === 'cotizacion' && r.total; })
@@ -652,6 +740,7 @@
     const empty = document.getElementById('historial-empty');
     if (!list) return;
     let records = getRecords();
+    const hayRegistros = records.length > 0;
     if (filtroActivo !== 'todos') {
       records = records.filter(function(r) { return inferModulo(r) === filtroActivo; });
     }
@@ -666,7 +755,13 @@
     }
     if (!records.length) {
       list.innerHTML = '';
-      if (empty) empty.hidden = false;
+      if (empty) {
+        // Con registros guardados, lista vacía = la búsqueda o el filtro no encontró nada.
+        const clave = hayRegistros ? 'hist.no_results' : 'hist.empty';
+        const texto = window.ArpaI18n.t(clave);
+        if (texto && texto !== clave) empty.innerHTML = texto;
+        empty.hidden = false;
+      }
       return;
     }
     if (empty) empty.hidden = true;
@@ -775,6 +870,10 @@
     captureFromCotizacion,
     captureFromCuentaCobro,
     dedupeRecords,
+    existeNumero,
+    numerosUsados,
+    marcarEdicion,
+    olvidarEdicion,
     render,
     exportCSV,
     removeRecord,

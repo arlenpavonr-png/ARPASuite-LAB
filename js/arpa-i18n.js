@@ -939,7 +939,11 @@
       'cc.cuenta.clabe': "CLABE",
       'tax.label.iva': "IVA",
       'tax.label.igv': "IGV",
-      'tax.label.sales_tax': "Impuesto sobre ventas"
+      'tax.label.sales_tax': "Impuesto sobre ventas",
+      'hist.no_results': "No se encontraron resultados.",
+      'ui.historial.sin_subir': "⚠ Sin subir a la nube",
+      'ui.historial.numero_repetido': "⚠ Número repetido: revise antes de enviar",
+      'alert.historial.numero_repetido': "Ya existe otro documento con el número {numero}. Se guardó aparte (no se borró el anterior). Revise el número antes de enviarlo al cliente."
     };
     var en = {
       'ot.status.label': "Status",
@@ -978,7 +982,11 @@
       'ot.alert.finalizada': "Work finished. Complete notes, photos and signatures before closing.",
       'ot.alert.no_cerrar': "Only a finished work order can be closed.",
       'ot.alert.cerrada': "Work order closed and saved to history.",
-      'ui.historial.estado': "Status"
+      'ui.historial.estado': "Status",
+      'hist.no_results': "No results found.",
+      'ui.historial.sin_subir': "⚠ Not uploaded to the cloud",
+      'ui.historial.numero_repetido': "⚠ Duplicate number: check before sending",
+      'alert.historial.numero_repetido': "Another document already has number {numero}. This one was saved separately (the previous one was not deleted). Check the number before sending it to the customer."
     };
     Object.keys(es).forEach(function (k) { if (I18N_ES[k] == null) I18N_ES[k] = es[k]; });
     Object.keys(en).forEach(function (k) { if (I18N_EN[k] == null) I18N_EN[k] = en[k]; });
