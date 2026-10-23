@@ -61,16 +61,47 @@
 
   // ── HTTP ──────────────────────────────────────────────────────────────────
 
+  const POST_TIMEOUT_MS = 20000;
+  const ULTIMO_ERROR_KEY = 'arpa_ultimo_error_nube';
+
+  /** Deja el último error de la nube a la vista (Debug / soporte) en vez de perderlo en la consola. */
+  function registrarErrorNube(accion, err) {
+    const mensaje = String((err && (err.message || err.mensaje)) || err || 'error');
+    console.warn('[arpa-cloud-sync] ' + accion, mensaje);
+    try {
+      localStorage.setItem(ULTIMO_ERROR_KEY, JSON.stringify({ accion, mensaje, fecha: new Date().toISOString() }));
+    } catch (e) {}
+  }
+
   function postJson(payload) {
     // Fuera del dominio de producción (LAB, localhost, red local) no se llama al servidor.
     if (global.location?.hostname !== 'arpa.arpatechnologyglobal.com') {
       return Promise.reject(new Error('network'));
     }
+    // Sin límite de tiempo, un pedido colgado deja el documento esperando sin aviso.
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), POST_TIMEOUT_MS) : null;
     return fetch(LICENSE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    }).then((res) => res.json());
+      body: JSON.stringify(payload),
+      signal: controller ? controller.signal : undefined
+    })
+      .then((res) => res.text())
+      .then((text) => {
+        // Si el servidor falla responde texto ("Error: ...") o una página HTML, no JSON:
+        // antes res.json() lo convertía en un error genérico y el mensaje se perdía.
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error('respuesta no JSON: ' + String(text || '').slice(0, 160));
+        }
+      })
+      .catch((err) => {
+        if (err && err.name === 'AbortError') throw new Error('timeout ' + (POST_TIMEOUT_MS / 1000) + ' s');
+        throw err;
+      })
+      .finally(() => { if (timer) clearTimeout(timer); });
   }
 
   // ── Catálogo local ────────────────────────────────────────────────────────
@@ -160,17 +191,87 @@
     return entry;
   }
 
+  function readHistorialLocal() {
+    try {
+      const data = JSON.parse(localStorage.getItem(HISTORIAL_KEY) || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * Marca o desmarca "pendiente de subir" en el registro local.
+   * Solo desmarca si el registro sigue siendo la misma versión que se subió
+   * (si se volvió a guardar mientras subía, queda pendiente la versión nueva).
+   */
+  function setPendienteNube(id, savedAt, pendiente, error) {
+    const records = readHistorialLocal();
+    const r = records.find((x) => x.id === id);
+    if (!r) return;
+    if (!pendiente && (r.savedAt || '') !== (savedAt || '')) return;
+    if (pendiente) {
+      r.pendienteNube = true;
+      if (error) r.errorNube = String(error).slice(0, 200);
+    } else {
+      delete r.pendienteNube;
+      delete r.errorNube;
+    }
+    try {
+      localStorage.setItem(HISTORIAL_KEY, JSON.stringify(records));
+    } catch (e) {
+      console.warn('[arpa-cloud-sync] setPendienteNube', e);
+    }
+    global.ArpaHistorial?.render?.();
+  }
+
+  /**
+   * Sube un registro. Antes de enviar queda "pendiente de subir"; solo se quita
+   * la marca si el servidor responde ok:true. Devuelve true si subió.
+   */
   function pushHistorialEntry(record) {
-    if (suppressHistorialSync || !record) return Promise.resolve();
+    if (suppressHistorialSync || !record || !record.id) return Promise.resolve(false);
     const licencia = getLicenseCode();
-    if (!licencia) return Promise.resolve();
+    if (!licencia) return Promise.resolve(false);
+    setPendienteNube(record.id, record.savedAt, true);
     return postJson({
       accion: 'savehistorialentry',
       licencia,
       entrada: recordToCloudEntry(record)
+    }).then((data) => {
+      if (data && data.ok) {
+        setPendienteNube(record.id, record.savedAt, false);
+        return true;
+      }
+      const msg = (data && data.mensaje) || 'el servidor no confirmó (ok:false)';
+      registrarErrorNube('savehistorialentry', msg);
+      setPendienteNube(record.id, record.savedAt, true, msg);
+      return false;
     }).catch((err) => {
-      console.warn('[arpa-cloud-sync] savehistorialentry', err);
+      registrarErrorNube('savehistorialentry', err);
+      setPendienteNube(record.id, record.savedAt, true, err && err.message);
+      return false;
     });
+  }
+
+  let reintentoEnCurso = null;
+
+  /** Vuelve a subir, uno por uno, los registros marcados "pendiente de subir". */
+  function reintentarPendientes() {
+    if (reintentoEnCurso) return reintentoEnCurso;
+    if (!getLicenseCode()) return Promise.resolve(0);
+    const pendientes = readHistorialLocal().filter((r) => r && r.pendienteNube && r.id);
+    if (!pendientes.length) return Promise.resolve(0);
+    let subidos = 0;
+    reintentoEnCurso = pendientes.reduce((cadena, r) => cadena.then(() => {
+      // Se lee de nuevo: pudo cambiar o borrarse mientras subían los anteriores.
+      const actual = readHistorialLocal().find((x) => x.id === r.id);
+      if (!actual || !actual.pendienteNube) return null;
+      return pushHistorialEntry(actual).then((ok) => { if (ok) subidos += 1; });
+    }), Promise.resolve())
+      .then(() => subidos)
+      .finally(() => { reintentoEnCurso = null; });
+    return reintentoEnCurso;
   }
 
   function deleteHistorialEntry(entradaId) {
@@ -214,7 +315,9 @@
       cliente: entry.cliente || '',
       ciudad: entry.ciudad || '',
       fecha: entry.fecha || '',
-      savedAt: new Date().toISOString()
+      // La fecha del documento, no "ahora": si no, cada sincronización volvía
+      // "de este mes" todo lo bajado de la nube (inflaba "Cotizado mes").
+      savedAt: entry.fecha || new Date().toISOString()
     };
     if (entry.concepto) record.concepto = String(entry.concepto);
     if (monto !== '' && monto != null && !Number.isNaN(Number(monto))) {
@@ -341,9 +444,20 @@
     const merged = new Map();
     cloudRecords.forEach((r) => merged.set(r.id, r));
 
-    // Agregar registros locales que la nube no tiene (offline-created)
+    // Agregar registros locales que la nube no tiene (offline-created).
+    // Un registro local "pendiente de subir" NUNCA lo reemplaza la nube: es más nuevo.
+    // Si gana la nube, se conserva lo que la nube no guarda (detalle y fecha de guardado).
     localRecords.forEach((r) => {
-      if (r.id && !merged.has(r.id)) merged.set(r.id, r);
+      if (!r.id) return;
+      const cloud = merged.get(r.id);
+      if (!cloud || r.pendienteNube) {
+        merged.set(r.id, r);
+        return;
+      }
+      merged.set(r.id, Object.assign({}, cloud, {
+        fullSnapshot: cloud.fullSnapshot || r.fullSnapshot,
+        savedAt: r.savedAt || cloud.savedAt
+      }));
     });
 
     // Ordenar: más reciente primero
@@ -375,7 +489,13 @@
   function restoreCloudDataIfNeeded() {
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve({ catalog: false, historial: false });
+    // Primero se sube lo pendiente; después se baja de la nube.
+    return reintentarPendientes()
+      .catch(() => 0)
+      .then(() => pullCloudData(licencia));
+  }
 
+  function pullCloudData(licencia) {
     const tasks = [];
 
     if (needsCatalogRestore()) {
@@ -450,9 +570,14 @@
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve(null);
     return postJson({ accion: 'siguientenumero', licencia, tipo, clienteUltimo })
-      .then((res) => (res && res.ok ? res.numero : null))
+      .then((res) => {
+        if (res && res.ok) return res.numero;
+        // Antes se descartaba el motivo que da el servidor (ej. "Licencia requerida.").
+        registrarErrorNube('siguientenumero', (res && res.mensaje) || 'el servidor no confirmó (ok:false)');
+        return null;
+      })
       .catch((err) => {
-        console.warn('[arpa-cloud-sync] siguientenumero', err);
+        registrarErrorNube('siguientenumero', err);
         return null;
       });
   }
@@ -466,6 +591,7 @@
     pushCatalogo,
     scheduleCatalogCloudSync,
     pushHistorialEntry,
+    reintentarPendientes,
     deleteHistorialEntry,
     // Pull (nube → local)
     restoreCloudDataIfNeeded,
@@ -480,6 +606,9 @@
     // Numeración
     obtenerSiguienteNumeroCloud
   };
+
+  // Al volver la conexión se suben los pendientes.
+  global.addEventListener?.('online', () => { reintentarPendientes(); });
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = { stripBase64 };

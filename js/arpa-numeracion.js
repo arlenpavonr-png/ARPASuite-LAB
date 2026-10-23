@@ -133,6 +133,19 @@
     return request;
   }
 
+  /** Módulo del Historial que corresponde a cada tipo de numeración. */
+  const MODULO_HISTORIAL = {
+    formato: 'formato',
+    cot: 'cotizacion',
+    cc: 'cuenta-cobro'
+  };
+
+  /** ¿Ese número ya está en el Historial de este dispositivo (mismo módulo)? */
+  function numeroEnHistorial(docType, value) {
+    const modulo = MODULO_HISTORIAL[docType] || 'formato';
+    return !!global.ArpaHistorial?.existeNumero?.(modulo, value);
+  }
+
   async function requestNextNumber(docType, fieldValue) {
     if (!hasActiveLicenseCode()) {
       return { sequence: 0, value: '', sincronizado: false, blocked: true };
@@ -151,6 +164,17 @@
     } catch (e) {
       // sin conexión u otro error — se usa el número local calculado arriba
     }
+    if (!sincronizado) {
+      // Sin nube, el contador local puede ir atrás de documentos hechos en otro
+      // dispositivo (pasó con AP-COT-186): se sube hasta un número libre en el Historial.
+      let intentos = 0;
+      while (numeroEnHistorial(docType, format(numero)) && intentos < 1000) {
+        numero += 1;
+        intentos += 1;
+      }
+    }
+    // Documento nuevo: lo que se guarde con este número no reemplaza al que estaba abierto.
+    global.ArpaHistorial?.olvidarEdicion?.(MODULO_HISTORIAL[docType] || 'formato');
     setCounter(storageKey, numero);
     return { sequence: numero, value: format(numero), sincronizado };
   }
@@ -165,7 +189,13 @@
 
   function getReserved(docType) {
     try {
-      return String(localStorage.getItem(RESERVED_PREFIX + docType) || '').trim();
+      const value = String(localStorage.getItem(RESERVED_PREFIX + docType) || '').trim();
+      // Un reservado que ya quedó usado en el Historial no se vuelve a entregar.
+      if (value && numeroEnHistorial(docType, value)) {
+        localStorage.removeItem(RESERVED_PREFIX + docType);
+        return '';
+      }
+      return value;
     } catch (e) {
       return '';
     }
