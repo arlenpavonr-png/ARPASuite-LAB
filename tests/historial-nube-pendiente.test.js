@@ -39,6 +39,8 @@ function appCaso186(servidor) {
 const sinRed = () => { throw new Error('offline'); };
 const nubeOk = (entradas) => (p) => (p.accion === 'gethistorial' ? { ok: true, entradas: entradas || [] } : { ok: true, numero: 999 });
 
+const pendientes = (app) => JSON.parse(app.store.arpa_historial_pendientes_nube || '{}');
+
 function guardarCot(app, numero, cliente, total) {
   return app.H.captureFromCotizacion({ numero, cliente, ciudad: 'Medellín', fecha: '2026-10-19', total });
 }
@@ -74,8 +76,7 @@ describe('PRUEBA 1 — sin conexión: queda "Sin subir" y sube sola al reconecta
     const r = await app.N.nextNumberAsync('cot', '');
     const rec = guardarCot(app, r.value, 'Muros y Techos S.A.S', 7525441);
     await esperar();
-    const guardado = app.historial().find((x) => x.id === rec.id);
-    assert.equal(guardado.pendienteNube, true);
+    assert.equal(app.C.estaPendiente(rec.id), true);
     app.H.render();
     assert.match(app.elementos['historial-list'].innerHTML, /ui\.historial\.sin_subir/);
     assert.ok(app.store.arpa_ultimo_error_nube, 'el error queda registrado, no solo en consola');
@@ -83,8 +84,7 @@ describe('PRUEBA 1 — sin conexión: queda "Sin subir" y sube sola al reconecta
     app.servidor = nubeOk();
     app.disparar('online');
     await esperar();
-    const subido = app.historial().find((x) => x.id === rec.id);
-    assert.equal(subido.pendienteNube, undefined);
+    assert.equal(app.C.estaPendiente(rec.id), false);
     assert.ok(app.enviados.some((p) => p.accion === 'savehistorialentry' && p.entrada.id === rec.id && p.entrada.cliente === 'Muros y Techos S.A.S'));
     app.H.render();
     assert.doesNotMatch(app.elementos['historial-list'].innerHTML, /ui\.historial\.sin_subir/);
@@ -94,29 +94,59 @@ describe('PRUEBA 1 — sin conexión: queda "Sin subir" y sube sola al reconecta
     const app = appCaso186((p) => (p.accion === 'savehistorialentry' ? { ok: false, mensaje: 'EntradaId requerido.' } : { ok: true }));
     const rec = guardarCot(app, 'AP-COT-200', 'X', 1);
     await esperar();
-    const r = app.historial().find((x) => x.id === rec.id);
-    assert.equal(r.pendienteNube, true);
-    assert.equal(r.errorNube, 'EntradaId requerido.');
+    assert.equal(app.C.estaPendiente(rec.id), true);
+    assert.equal(pendientes(app)[rec.id].error, 'EntradaId requerido.');
   });
 
   it('servidor con error que responde texto ("Error: ...") → pendiente y se guarda el motivo', async () => {
     const app = appCaso186(() => 'Error: Lock timeout');
     const rec = guardarCot(app, 'AP-COT-201', 'X', 1);
     await esperar();
-    const r = app.historial().find((x) => x.id === rec.id);
-    assert.equal(r.pendienteNube, true);
-    assert.match(r.errorNube, /no JSON: Error: Lock timeout/);
+    assert.equal(app.C.estaPendiente(rec.id), true);
+    assert.match(pendientes(app)[rec.id].error, /no JSON: Error: Lock timeout/);
   });
 
-  it('al abrir la app / sincronizar se reintenta antes de bajar de la nube', async () => {
+  it('al abrir la app / sincronizar se reintenta (sin hacer esperar la bajada)', async () => {
     const app = appCaso186(sinRed);
     const rec = guardarCot(app, 'AP-COT-202', 'X', 1);
     await esperar();
     app.servidor = nubeOk();
     await app.C.forceSyncFromCloud();
-    const acciones = app.enviados.map((p) => p.accion);
-    assert.ok(acciones.lastIndexOf('savehistorialentry') < acciones.indexOf('gethistorial'));
-    assert.equal(app.historial().find((x) => x.id === rec.id).pendienteNube, undefined);
+    await esperar();
+    assert.ok(app.enviados.some((p) => p.accion === 'gethistorial'));
+    assert.equal(app.C.estaPendiente(rec.id), false);
+    assert.ok(app.historial().find((x) => x.id === rec.id), 'sigue en el Historial después de bajar');
+  });
+
+  it('lo que ya va subiendo no se vuelve a mandar en el reintento (no duplica filas)', async () => {
+    let soltar;
+    const app = appCaso186(() => ({ ok: true }));
+    app.sandbox.fetch = (url, init) => {
+      app.enviados.push(JSON.parse(init.body));
+      return new Promise((resolve) => { soltar = () => resolve({ text: () => Promise.resolve('{"ok":true}') }); });
+    };
+    const rec = guardarCot(app, 'AP-COT-203', 'X', 1);
+    app.disparar('online');
+    await esperar();
+    assert.equal(app.enviados.filter((p) => p.accion === 'savehistorialentry' && p.entrada.id === rec.id).length, 1);
+    soltar();
+    await esperar();
+    assert.equal(app.C.estaPendiente(rec.id), false);
+  });
+
+  it('la marca de pendiente se guarda aunque el historial no quepa en el almacenamiento', async () => {
+    const app = appCaso186(sinRed);
+    const setItem = app.sandbox.localStorage.setItem;
+    app.sandbox.localStorage.setItem = (k, v) => {
+      if (k === 'arpa_suite_servicio_historial' && app.bloquearHistorial) {
+        const e = new Error('lleno'); e.name = 'QuotaExceededError'; throw e;
+      }
+      setItem(k, v);
+    };
+    const rec = guardarCot(app, 'AP-COT-204', 'X', 1);
+    app.bloquearHistorial = true;
+    await esperar();
+    assert.equal(app.C.estaPendiente(rec.id), true);
   });
 });
 
@@ -166,8 +196,9 @@ describe('PRUEBA 3 — sincronizar con datos de otro dispositivo: el pendiente n
     // Caso real: el registro local (pendiente) quedó con el id viejo y la nube trae la versión del 12-oct.
     const locales = app.historial();
     const i = locales.findIndex((x) => x.id === 'mv5px9ho6fkke');
-    locales[i] = Object.assign({}, locales[i], { cliente: 'Muros y Techos S.A.S', total: 7525441, pendienteNube: true });
+    locales[i] = Object.assign({}, locales[i], { cliente: 'Muros y Techos S.A.S', total: 7525441 });
     app.store.arpa_suite_servicio_historial = JSON.stringify(locales);
+    app.store.arpa_historial_pendientes_nube = JSON.stringify({ mv5px9ho6fkke: { savedAt: locales[i].savedAt, error: '' } });
     app.servidor = (p) => (p.accion === 'gethistorial'
       ? { ok: true, entradas: [{ id: 'mv5px9ho6fkke', tipo: 'Cotización', numero: 'AP-COT-186', cliente: 'Cliente', fecha: '2026-10-12', monto: 2522681 }] }
       : (() => { throw new Error('offline'); })());
@@ -175,7 +206,7 @@ describe('PRUEBA 3 — sincronizar con datos de otro dispositivo: el pendiente n
     const r = app.historial().find((x) => x.id === 'mv5px9ho6fkke');
     assert.equal(r.cliente, 'Muros y Techos S.A.S');
     assert.equal(r.total, 7525441);
-    assert.equal(r.pendienteNube, true);
+    assert.equal(app.C.estaPendiente('mv5px9ho6fkke'), true);
   });
 
   it('la nube trae documentos de otro dispositivo: se agregan y el pendiente local sigue', async () => {
@@ -190,7 +221,7 @@ describe('PRUEBA 3 — sincronizar con datos de otro dispositivo: el pendiente n
     assert.ok(h.find((x) => x.id === 'celular1'));
     const mio = h.find((x) => x.id === rec.id);
     assert.equal(mio.cliente, 'Muros y Techos S.A.S');
-    assert.equal(mio.pendienteNube, true);
+    assert.equal(app.C.estaPendiente(rec.id), true);
   });
 
   it('si gana la nube, se conserva el detalle local (la nube no guarda fullSnapshot)', async () => {
@@ -202,6 +233,35 @@ describe('PRUEBA 3 — sincronizar con datos de otro dispositivo: el pendiente n
     const r = app.historial().find((x) => x.id === 'id187');
     assert.deepEqual(r.fullSnapshot, { filas: [{ nom: 'Motor' }] });
     assert.equal(r.savedAt, '2026-10-15T15:00:00.000Z');
+  });
+});
+
+describe('Revisión: fusión con la nube', () => {
+  it('si gana la nube, se conservan los campos que la nube no guarda (aviso de número repetido, estado)', async () => {
+    const app = appCaso186(nubeOk([{ id: 'id188', tipo: 'Cotización', numero: 'AP-COT-188', cliente: 'C188', fecha: '2026-10-16', monto: 100 }]));
+    const locales = app.historial();
+    Object.assign(locales.find((x) => x.id === 'id188'), { numeroRepetido: true, estado: 'FINALIZADA' });
+    app.store.arpa_suite_servicio_historial = JSON.stringify(locales);
+    await app.C.forceSyncFromCloud();
+    const r = app.historial().find((x) => x.id === 'id188');
+    assert.equal(r.numeroRepetido, true);
+    assert.equal(r.estado, 'FINALIZADA');
+  });
+
+  it('fecha que llega de Sheets como texto de Date ("Mon Oct 12 2026 …") se ordena bien', async () => {
+    const app = crearApp({
+      servidor: nubeOk([
+        { id: 'n1', tipo: 'Cotización', numero: 'AP-COT-010', cliente: 'A', fecha: 'Mon Oct 12 2026 00:00:00 GMT-0500 (Colombia Standard Time)', monto: 1 },
+        { id: 'n2', tipo: 'Cotización', numero: 'AP-COT-011', cliente: 'B', fecha: 'Tue Oct 20 2026 00:00:00 GMT-0500 (Colombia Standard Time)', monto: 1 }
+      ]),
+      store: {
+        arpa_suite_license_code: LICENCIA,
+        arpa_suite_servicio_historial: JSON.stringify([cot('local', 12, 'C', 1, '2026-10-15')])
+      }
+    });
+    await app.C.forceSyncFromCloud();
+    assert.deepEqual(app.historial().map((x) => x.id), ['n2', 'local', 'n1']);
+    assert.match(app.historial()[0].savedAt, /^2026-10-20T/);
   });
 });
 
@@ -226,6 +286,26 @@ describe('PRUEBA 4 — editar un documento abierto desde Historial', () => {
     const rec = guardarCot(app, r.value, 'Otro cliente', 1);
     assert.notEqual(rec.id, 'mv5px9ho6fkke');
     assert.equal(app.historial().find((x) => x.id === 'mv5px9ho6fkke').cliente, 'Cliente');
+  });
+
+  it('cambiarle el número a uno marcado "número repetido" actualiza ese mismo (no crea un tercero)', async () => {
+    const app = appCaso186(sinRed);
+    const dup = guardarCot(app, 'AP-COT-186', 'Muros y Techos S.A.S', 7525441);
+    const corregido = guardarCot(app, 'AP-COT-192', 'Muros y Techos S.A.S', 7525441);
+    assert.equal(corregido.id, dup.id);
+    assert.equal(corregido.numeroRepetido, undefined);
+    const h = app.historial();
+    assert.equal(h.filter((x) => x.numero === 'AP-COT-186').length, 1);
+    assert.equal(h.find((x) => x.id === 'mv5px9ho6fkke').cliente, 'Cliente');
+    assert.equal(h.filter((x) => x.numero === 'AP-COT-192').length, 1);
+  });
+
+  it('documento guardado antes de esta versión (sin marca): mismo número y cliente → se actualiza', async () => {
+    const app = appCaso186(sinRed);
+    const rec = guardarCot(app, 'AP-COT-187', 'C187', 150);
+    assert.equal(rec.id, 'id187');
+    assert.equal(app.historial().filter((x) => x.numero === 'AP-COT-187').length, 1);
+    assert.equal(app.alertas.length, 0);
   });
 });
 

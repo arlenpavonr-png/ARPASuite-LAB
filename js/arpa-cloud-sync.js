@@ -61,7 +61,6 @@
 
   // ── HTTP ──────────────────────────────────────────────────────────────────
 
-  const POST_TIMEOUT_MS = 20000;
   const ULTIMO_ERROR_KEY = 'arpa_ultimo_error_nube';
 
   /** Deja el último error de la nube a la vista (Debug / soporte) en vez de perderlo en la consola. */
@@ -78,14 +77,10 @@
     if (global.location?.hostname !== 'arpa.arpatechnologyglobal.com') {
       return Promise.reject(new Error('network'));
     }
-    // Sin límite de tiempo, un pedido colgado deja el documento esperando sin aviso.
-    const controller = typeof AbortController === 'function' ? new AbortController() : null;
-    const timer = controller ? setTimeout(() => controller.abort(), POST_TIMEOUT_MS) : null;
     return fetch(LICENSE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      signal: controller ? controller.signal : undefined
+      body: JSON.stringify(payload)
     })
       .then((res) => res.text())
       .then((text) => {
@@ -96,12 +91,7 @@
         } catch (e) {
           throw new Error('respuesta no JSON: ' + String(text || '').slice(0, 160));
         }
-      })
-      .catch((err) => {
-        if (err && err.name === 'AbortError') throw new Error('timeout ' + (POST_TIMEOUT_MS / 1000) + ' s');
-        throw err;
-      })
-      .finally(() => { if (timer) clearTimeout(timer); });
+      });
   }
 
   // ── Catálogo local ────────────────────────────────────────────────────────
@@ -200,30 +190,51 @@
     }
   }
 
+  // ── Pendientes de subir ───────────────────────────────────────────────────
+  // Lista pequeña aparte del historial ({ id: { savedAt, error } }): se guarda
+  // aunque el historial (con fotos) tenga el almacenamiento casi lleno.
+  const PENDIENTES_KEY = 'arpa_historial_pendientes_nube';
+
+  function getPendientes() {
+    try {
+      const data = JSON.parse(localStorage.getItem(PENDIENTES_KEY) || '{}');
+      return data && typeof data === 'object' ? data : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function setPendientes(data) {
+    try {
+      localStorage.setItem(PENDIENTES_KEY, JSON.stringify(data));
+    } catch (e) {
+      registrarErrorNube('pendientes', e);
+    }
+  }
+
+  function estaPendiente(id) {
+    return !!(id && getPendientes()[id]);
+  }
+
   /**
-   * Marca o desmarca "pendiente de subir" en el registro local.
-   * Solo desmarca si el registro sigue siendo la misma versión que se subió
+   * Marca o desmarca "pendiente de subir".
+   * Solo desmarca si sigue pendiente la misma versión que se subió
    * (si se volvió a guardar mientras subía, queda pendiente la versión nueva).
    */
   function setPendienteNube(id, savedAt, pendiente, error) {
-    const records = readHistorialLocal();
-    const r = records.find((x) => x.id === id);
-    if (!r) return;
-    if (!pendiente && (r.savedAt || '') !== (savedAt || '')) return;
+    const data = getPendientes();
     if (pendiente) {
-      r.pendienteNube = true;
-      if (error) r.errorNube = String(error).slice(0, 200);
+      data[id] = { savedAt: savedAt || '', error: error ? String(error).slice(0, 200) : '' };
     } else {
-      delete r.pendienteNube;
-      delete r.errorNube;
+      if (!data[id] || data[id].savedAt !== (savedAt || '')) return;
+      delete data[id];
     }
-    try {
-      localStorage.setItem(HISTORIAL_KEY, JSON.stringify(records));
-    } catch (e) {
-      console.warn('[arpa-cloud-sync] setPendienteNube', e);
-    }
+    setPendientes(data);
     global.ArpaHistorial?.render?.();
   }
+
+  /** Subidas en curso por id: el reintento no vuelve a mandar lo que ya va en camino. */
+  const enVuelo = new Set();
 
   /**
    * Sube un registro. Antes de enviar queda "pendiente de subir"; solo se quita
@@ -234,6 +245,7 @@
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve(false);
     setPendienteNube(record.id, record.savedAt, true);
+    enVuelo.add(record.id);
     return postJson({
       accion: 'savehistorialentry',
       licencia,
@@ -251,22 +263,30 @@
       registrarErrorNube('savehistorialentry', err);
       setPendienteNube(record.id, record.savedAt, true, err && err.message);
       return false;
+    }).finally(() => {
+      enVuelo.delete(record.id);
     });
   }
 
   let reintentoEnCurso = null;
 
-  /** Vuelve a subir, uno por uno, los registros marcados "pendiente de subir". */
+  /** Vuelve a subir, uno por uno, los registros "pendiente de subir". */
   function reintentarPendientes() {
     if (reintentoEnCurso) return reintentoEnCurso;
     if (!getLicenseCode()) return Promise.resolve(0);
-    const pendientes = readHistorialLocal().filter((r) => r && r.pendienteNube && r.id);
-    if (!pendientes.length) return Promise.resolve(0);
+    const ids = Object.keys(getPendientes());
+    if (!ids.length) return Promise.resolve(0);
     let subidos = 0;
-    reintentoEnCurso = pendientes.reduce((cadena, r) => cadena.then(() => {
+    reintentoEnCurso = ids.reduce((cadena, id) => cadena.then(() => {
+      if (enVuelo.has(id) || !estaPendiente(id)) return null;
       // Se lee de nuevo: pudo cambiar o borrarse mientras subían los anteriores.
-      const actual = readHistorialLocal().find((x) => x.id === r.id);
-      if (!actual || !actual.pendienteNube) return null;
+      const actual = readHistorialLocal().find((x) => x.id === id);
+      if (!actual) {
+        const data = getPendientes();
+        delete data[id];
+        setPendientes(data);
+        return null;
+      }
       return pushHistorialEntry(actual).then((ok) => { if (ok) subidos += 1; });
     }), Promise.resolve())
       .then(() => subidos)
@@ -300,6 +320,13 @@
     return 'formato';
   }
 
+  /** Sheets devuelve la fecha como texto de Date ("Mon Oct 12 2026 …"): se pasa a ISO para ordenar bien. */
+  function fechaIso(valor) {
+    if (!valor) return '';
+    const d = new Date(valor);
+    return isNaN(d.getTime()) ? '' : d.toISOString();
+  }
+
   function cloudEntryToRecord(entry) {
     const tipo = entry.tipo || '';
     const modulo = inferModuloFromTipo(tipo);
@@ -317,7 +344,7 @@
       fecha: entry.fecha || '',
       // La fecha del documento, no "ahora": si no, cada sincronización volvía
       // "de este mes" todo lo bajado de la nube (inflaba "Cotizado mes").
-      savedAt: entry.fecha || new Date().toISOString()
+      savedAt: fechaIso(entry.fecha) || new Date().toISOString()
     };
     if (entry.concepto) record.concepto = String(entry.concepto);
     if (monto !== '' && monto != null && !Number.isNaN(Number(monto))) {
@@ -446,15 +473,17 @@
 
     // Agregar registros locales que la nube no tiene (offline-created).
     // Un registro local "pendiente de subir" NUNCA lo reemplaza la nube: es más nuevo.
-    // Si gana la nube, se conserva lo que la nube no guarda (detalle y fecha de guardado).
+    // Si gana la nube, se conserva lo que la nube no guarda (detalle, estado de la
+    // orden, aviso de número repetido, fecha de guardado…).
+    const pendientes = getPendientes();
     localRecords.forEach((r) => {
       if (!r.id) return;
       const cloud = merged.get(r.id);
-      if (!cloud || r.pendienteNube) {
+      if (!cloud || pendientes[r.id]) {
         merged.set(r.id, r);
         return;
       }
-      merged.set(r.id, Object.assign({}, cloud, {
+      merged.set(r.id, Object.assign({}, r, cloud, {
         fullSnapshot: cloud.fullSnapshot || r.fullSnapshot,
         savedAt: r.savedAt || cloud.savedAt
       }));
@@ -489,10 +518,10 @@
   function restoreCloudDataIfNeeded() {
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve({ catalog: false, historial: false });
-    // Primero se sube lo pendiente; después se baja de la nube.
-    return reintentarPendientes()
-      .catch(() => 0)
-      .then(() => pullCloudData(licencia));
+    // Se reintenta lo pendiente sin hacer esperar la bajada ni el arranque de la app:
+    // la fusión nunca reemplaza un registro pendiente, así que el orden no importa.
+    reintentarPendientes().catch(() => 0);
+    return pullCloudData(licencia);
   }
 
   function pullCloudData(licencia) {
@@ -592,6 +621,7 @@
     scheduleCatalogCloudSync,
     pushHistorialEntry,
     reintentarPendientes,
+    estaPendiente,
     deleteHistorialEntry,
     // Pull (nube → local)
     restoreCloudDataIfNeeded,

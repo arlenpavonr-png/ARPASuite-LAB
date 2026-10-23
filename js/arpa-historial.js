@@ -331,12 +331,22 @@
     delete data[modulo];
     setEdiciones(data);
   }
+  /** Números ya usados en ese módulo (un solo recorrido del historial). */
+  function numerosUsados(modulo) {
+    const set = new Set();
+    getRecords().forEach((r) => {
+      const n = String(r.numero || '').trim();
+      if (n && inferModulo(r) === modulo) set.add(n);
+    });
+    return set;
+  }
   function existeNumero(modulo, numero) {
     const n = String(numero || '').trim();
-    if (!n) return false;
-    return getRecords().some(
-      (r) => inferModulo(r) === modulo && String(r.numero || '').trim() === n
-    );
+    return !!n && numerosUsados(modulo).has(n);
+  }
+  function mismoCliente(a, b) {
+    const x = String(a || '').trim().toLowerCase();
+    return !!x && x === String(b || '').trim().toLowerCase();
   }
   function addRecord(record) {
     const records = getRecords();
@@ -345,14 +355,32 @@
     let finalRecord = record;
     let numeroRepetido = false;
     const edicion = numero ? getEdiciones()[modulo] : null;
-    const editIdx = edicion && edicion.numero === numero
+    let editIdx = edicion
       ? records.findIndex((r) => r.id === edicion.id && inferModulo(r) === modulo)
       : -1;
+    // El abierto solo se actualiza con su mismo número, salvo que sea uno marcado
+    // "número repetido": cambiarle el número es justo lo que pide el aviso.
+    if (editIdx !== -1 && edicion.numero !== numero && !records[editIdx].numeroRepetido) {
+      editIdx = -1;
+    }
+    if (editIdx === -1 && numero) {
+      // Sin marca de edición (documento guardado antes de esta versión, o la marca
+      // se perdió): mismo número y mismo cliente es el mismo documento.
+      editIdx = records.findIndex((r) => inferModulo(r) === modulo
+        && String(r.numero || '').trim() === numero && mismoCliente(r.cliente, record.cliente));
+    }
     if (editIdx !== -1) {
       // Se está editando ese mismo documento: se actualiza, no se duplica.
       const existing = records[editIdx];
       finalRecord = { ...existing, ...record, id: existing.id };
       records.splice(editIdx, 1);
+      const otros = records.some((r) => inferModulo(r) === modulo && String(r.numero || '').trim() === numero);
+      if (otros) {
+        numeroRepetido = !existing.numeroRepetido || String(existing.numero || '').trim() !== numero;
+        finalRecord.numeroRepetido = true;
+      } else {
+        delete finalRecord.numeroRepetido;
+      }
     } else if (numero && existeNumero(modulo, numero)) {
       // Documento nuevo con un número que ya existe: se guarda aparte y se avisa.
       numeroRepetido = true;
@@ -515,7 +543,7 @@
   }
   function renderAvisos(r) {
     const avisos = [];
-    if (r.pendienteNube) avisos.push(window.ArpaI18n.t('ui.historial.sin_subir'));
+    if (global.ArpaCloudSync?.estaPendiente?.(r.id)) avisos.push(window.ArpaI18n.t('ui.historial.sin_subir'));
     if (r.numeroRepetido) avisos.push(window.ArpaI18n.t('ui.historial.numero_repetido'));
     return avisos.map((txt) =>
       `<div class="historial-aviso" role="status" style="margin:6px 0 0;padding:6px 10px;border-radius:6px;` +
@@ -843,6 +871,7 @@
     captureFromCuentaCobro,
     dedupeRecords,
     existeNumero,
+    numerosUsados,
     marcarEdicion,
     olvidarEdicion,
     render,
