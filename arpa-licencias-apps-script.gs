@@ -1630,140 +1630,113 @@ function getCatalogo_(licencia) {
 
 
 
-function saveHistorialEntry_(licencia, entrada) {
+// ─── Historial en la nube (una fila por documento) ─────────────────────────
+// Antes, cada guardado agregaba una fila nueva (también al editar o reintentar)
+// y borrar quitaba solo una: el documento borrado volvía al sincronizar.
+// Ahora se actualiza la fila del mismo id y el borrado quita todas sus filas.
 
-  const e = entrada || {};
-
-  const entradaId = String(e.id || e.entradaId || '').trim();
-
-  if (!entradaId) {
-
-    return { ok: false, mensaje: 'EntradaId requerido.' };
-
+/** Filas (número de fila de la hoja, desde 2) de esa licencia y ese id. */
+function filasHistorialDeId_(values, licencia, entradaId) {
+  const filas = [];
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0] || '').trim().toUpperCase() !== licencia) continue;
+    if (String(values[i][1] || '').trim() !== entradaId) continue;
+    filas.push(i + 1);
   }
-
-
-
-  const sheet = getHistorialSheet_();
-
-  sheet.appendRow([
-
-    licencia,
-
-    entradaId,
-
-    String(e.tipo || ''),
-
-    String(e.subtipo || ''),
-
-    String(e.numero || ''),
-
-    String(e.cliente || ''),
-
-    String(e.ciudad || ''),
-
-    String(e.fecha || ''),
-
-    e.monto != null && e.monto !== '' ? Number(e.monto) : '',
-
-    String(e.concepto || '')
-
-  ]);
-
-
-
-  return { ok: true };
-
+  return filas;
 }
 
-
+function saveHistorialEntry_(licencia, entrada) {
+  const e = entrada || {};
+  const entradaId = String(e.id || e.entradaId || '').trim();
+  if (!entradaId) {
+    return { ok: false, mensaje: 'EntradaId requerido.' };
+  }
+  const fila = [
+    licencia,
+    entradaId,
+    String(e.tipo || ''),
+    String(e.subtipo || ''),
+    String(e.numero || ''),
+    String(e.cliente || ''),
+    String(e.ciudad || ''),
+    String(e.fecha || ''),
+    e.monto != null && e.monto !== '' ? Number(e.monto) : '',
+    String(e.concepto || '')
+  ];
+  // Sin el candado, dos guardados del mismo documento al tiempo podrían crear dos filas.
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    // La app deja el documento "pendiente de subir" y lo reintenta.
+    return { ok: false, mensaje: 'Servidor ocupado. Se reintentará.' };
+  }
+  try {
+    const sheet = getHistorialSheet_();
+    const filas = filasHistorialDeId_(sheet.getDataRange().getValues(), licencia, entradaId);
+    if (!filas.length) {
+      sheet.appendRow(fila);
+      return { ok: true, actualizado: false };
+    }
+    sheet.getRange(filas[0], 1, 1, fila.length).setValues([fila]);
+    // Copias que dejaron las versiones anteriores: se quitan de abajo hacia arriba.
+    for (let k = filas.length - 1; k >= 1; k--) sheet.deleteRow(filas[k]);
+    return { ok: true, actualizado: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
 
 function deleteHistorialEntry_(licencia, entradaId) {
-
   const id = String(entradaId || '').trim();
-
   if (!id) {
-
     return { ok: false, mensaje: 'EntradaId requerido.' };
-
   }
-
-
-
-  const sheet = getHistorialSheet_();
-
-  const values = sheet.getDataRange().getValues();
-
-  let deleted = false;
-
-
-
-  for (let i = values.length - 1; i >= 1; i--) {
-
-    if (String(values[i][0] || '').trim().toUpperCase() !== licencia) continue;
-
-    if (String(values[i][1] || '').trim() !== id) continue;
-
-    sheet.deleteRow(i + 1);
-
-    deleted = true;
-
-    break;
-
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return { ok: false, mensaje: 'Servidor ocupado. Intente de nuevo.' };
   }
-
-
-
-  return { ok: true, deleted: deleted };
-
+  try {
+    const sheet = getHistorialSheet_();
+    const filas = filasHistorialDeId_(sheet.getDataRange().getValues(), licencia, id);
+    for (let k = filas.length - 1; k >= 0; k--) sheet.deleteRow(filas[k]);
+    return { ok: true, deleted: filas.length > 0, filas: filas.length };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
-
+/** Sheets convierte "2026-10-12" en fecha: se devuelve otra vez como AAAA-MM-DD. */
+function fechaHistorialTexto_(valor) {
+  if (valor instanceof Date && !isNaN(valor.getTime())) {
+    return Utilities.formatDate(valor, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(valor || '');
+}
 
 function getHistorial_(licencia) {
-
   const sheet = getHistorialSheet_();
-
   const values = sheet.getDataRange().getValues();
-
-  const entradas = [];
-
-
-
+  // Si quedaron copias del mismo id (versiones anteriores), se entrega solo la última.
+  const porId = {};
+  const orden = [];
   for (let i = 1; i < values.length; i++) {
-
     if (String(values[i][0] || '').trim().toUpperCase() !== licencia) continue;
-
+    const id = String(values[i][1] || '');
     const monto = values[i][8];
-
-    entradas.push({
-
-      id: String(values[i][1] || ''),
-
+    if (!porId[id]) orden.push(id);
+    porId[id] = {
+      id: id,
       tipo: String(values[i][2] || ''),
-
       subtipo: String(values[i][3] || ''),
-
       numero: String(values[i][4] || ''),
-
       cliente: String(values[i][5] || ''),
-
       ciudad: String(values[i][6] || ''),
-
-      fecha: String(values[i][7] || ''),
-
+      fecha: fechaHistorialTexto_(values[i][7]),
       monto: monto === '' || monto == null ? '' : Number(monto),
-
       concepto: String(values[i][9] || '')
-
-    });
-
+    };
   }
-
-
-
-  return { ok: true, entradas: entradas };
-
+  return { ok: true, entradas: orden.map(function (id) { return porId[id]; }) };
 }
 
 
