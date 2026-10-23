@@ -132,3 +132,12 @@ Arlen (dueño) ── autoriza
 - 2026-10-19: el servidor estuvo caído desde la publicación del 18-oct por una letra
   suelta; se arregla y se verifica el respaldo del catálogo (846 productos).
   Se crea la regla de probar `/exec` en incógnito después de cada publicación.
+- 2026-10-23: se reproduce en el LAB la pérdida de AP-COT-186 (número local repetido →
+  pisaba la del 12-oct → subida fallaba en silencio → la nube ganaba al sincronizar).
+  Arreglo en el PR #24 del LAB (rama `claude/arpa-lost-quote-186-fix-vay66q`, borrador,
+  sin publicar): número local libre, nunca pisar otro documento, "⚠ Sin subir a la nube"
+  con reintento, la nube no reemplaza lo pendiente. Toca `js/arpa-cloud-sync.js` (archivo
+  protegido): Arlen lo autorizó el 23-oct; el Production Fence sale en rojo solo por eso.
+  Pendiente: revisión línea por línea, PR a producción y rehacer la cotización perdida.
+  Pendiente del servidor (otro PR): `saveHistorialEntry_` siempre agrega fila y no guarda
+  el detalle (`fullSnapshot`).
