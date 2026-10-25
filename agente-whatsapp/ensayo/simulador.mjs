@@ -205,10 +205,10 @@ export function claudeSimulado(body) {
       '. Mientras tanto, ¿me puede enviar fotos de la puerta y su barrio?');
   }
   if (/corredi/.test(ultimo)) {
-    return respuestaTexto('Para puerta corrediza tenemos Accessmatic desde $1.099.900 y BFT Deimos BT A400 desde $1.948.900, sin IVA; la instalación se cotiza aparte según la puerta. ¿Me envía fotos de su puerta y las medidas?');
+    return respuestaTexto('Para portón corredizo tenemos el kit Accessmatic desde $1.099.900 y el BFT Deimos BT A400 desde $1.948.900, con IVA incluido; la instalación se cotiza aparte según la puerta. ¿Me envía fotos de su puerta y las medidas?');
   }
   if (/garaje/.test(ultimo)) {
-    return respuestaTexto('Para puerta levadiza de garaje está el motor de techo Accessmatic Fox 1000 Pro desde $799.900, sin IVA; la instalación se cotiza aparte. ¿En qué barrio o municipio está la puerta?');
+    return respuestaTexto('Para puerta de garaje el precio depende de las medidas: Arlen se lo da al ver las fotos. ¿Me envía una foto de la puerta y en qué barrio o municipio está?');
   }
   return respuestaTexto('¡Hola! 👋 Gracias por escribir a Automatismos ARPA. ¿Qué tipo de puerta desea automatizar: corrediza, batiente o de garaje?');
 }

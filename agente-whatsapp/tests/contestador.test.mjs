@@ -11,11 +11,12 @@ const NEG = gs.NEGOCIOS.automatismos;
 const COL = (y, m, d, h, min = 0) => Date.UTC(y, m - 1, d, h + 5, min); // hora Colombia → ms UTC
 
 test('filtro de precios: deja pasar solo los de la ficha', () => {
-  const ok = gs.filtrarPrecios_('Corrediza Accessmatic desde $1.099.900 sin IVA; visita técnica $80.000.', NEG.preciosPermitidos);
+  const ok = gs.filtrarPrecios_('Corrediza Accessmatic desde $1.099.900 con IVA incluido; visita técnica $80.000.', NEG.preciosPermitidos);
   assert.equal(ok.ok, true);
   assert.deepEqual([...ok.encontrados], [1099900, 80000]);
   assert.equal(gs.filtrarPrecios_('La visita vale 80 mil pesos', NEG.preciosPermitidos).ok, true);
-  assert.equal(gs.filtrarPrecios_('Fox 1000 Pro desde $ 799.900', NEG.preciosPermitidos).ok, true);
+  // El Fox 1000 Pro se quitó de la web el 18-oct: su precio ya no puede salir.
+  assert.equal(gs.filtrarPrecios_('Fox 1000 Pro desde $ 799.900', NEG.preciosPermitidos).ok, false);
   assert.equal(gs.filtrarPrecios_('Garantía de 2 años y 50 % de anticipo', NEG.preciosPermitidos).ok, true);
 });
 
