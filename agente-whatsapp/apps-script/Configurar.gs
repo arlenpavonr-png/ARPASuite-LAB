@@ -5,6 +5,7 @@
  *   probarClaude()        → prueba la clave de Claude con una pregunta (no envía WhatsApp).
  *   encenderAsistente() / apagarAsistente() → el interruptor general.
  *   conectarCuentaWhatsApp() → una vez: conecta la cuenta de WhatsApp con la app de Meta.
+ *   revisarNumeroWhatsApp()  → solo lectura: estado del número en Meta.
  */
 
 function configurar() {
@@ -102,4 +103,42 @@ function conectarCuentaWhatsApp() {
     console.log('Cuenta ' + id + ': suscribir → ' + post.getResponseCode() + ' ' + post.getContentText().slice(0, 200) +
       ' | apps suscritas → ' + get.getContentText().slice(0, 300));
   });
+}
+
+/** Solo lectura: le pregunta a Meta el estado del número de Automatismos (no cambia nada, no muestra el token). */
+function revisarNumeroWhatsApp() {
+  var token = metaToken_('automatismos');
+  var phoneId = prop_('PHONE_ID_AUTOMATISMOS');
+  if (!token || !phoneId) { console.log('Falta META_TOKEN o PHONE_ID_AUTOMATISMOS.'); return; }
+  var version = leerConfig_().metaVersion;
+  var campos = 'display_phone_number,verified_name,status,platform_type,code_verification_status,quality_rating,name_status,is_on_biz_app,messaging_limit_tier,throughput';
+  var r = UrlFetchApp.fetch('https://graph.facebook.com/' + version + '/' + phoneId + '?fields=' + campos,
+    { headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true });
+  console.log('Número → ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 600));
+}
+
+/**
+ * Solo para el video de la revisión de Meta: manda UN mensaje de texto desde el número 315 187 8378
+ * (cuenta "Automatismos Arpa Motores Para Puertas") al celular de Arlen. Arlen debe escribirle primero
+ * a ese número desde su celular (abre la ventana de 24 horas). No muestra el token.
+ */
+function enviarMensajeRevision() {
+  var token = metaToken_('automatismos');
+  var phoneId = prop_('PHONE_ID_REVISION') || '752775974586548';
+  var destino = prop_('DESTINO_REVISION') || '573003208557';
+  var version = leerConfig_().metaVersion;
+  // La app tiene que estar suscrita a la cuenta del 315 para poder enviar desde ella.
+  var waba = prop_('WABA_REVISION') || '2562892354065147';
+  var sub = UrlFetchApp.fetch('https://graph.facebook.com/' + version + '/' + waba + '/subscribed_apps',
+    { method: 'post', headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true });
+  console.log('Suscribir app a la cuenta ' + waba + ' → ' + sub.getResponseCode() + ' ' + sub.getContentText().slice(0, 200));
+  var r = UrlFetchApp.fetch('https://graph.facebook.com/' + version + '/' + phoneId + '/messages', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + token },
+    payload: JSON.stringify({
+      messaging_product: 'whatsapp', recipient_type: 'individual', to: destino, type: 'text',
+      text: { preview_url: false, body: 'Hola, le escribimos de Automatismos ARPA. Este es un mensaje de prueba enviado desde nuestra app con la API de WhatsApp.' }
+    })
+  });
+  console.log('Enviar → ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 300));
 }

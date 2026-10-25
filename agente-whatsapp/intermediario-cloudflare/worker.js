@@ -21,6 +21,10 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    if (request.method === 'GET' && url.pathname === '/conectar') {
+      return new Response(PAGINA_CONECTAR, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+    }
+
     if (request.method === 'GET') {
       const ok = url.searchParams.get('hub.mode') === 'subscribe' &&
         env.VERIFY_TOKEN && url.searchParams.get('hub.verify_token') === env.VERIFY_TOKEN;
@@ -75,3 +79,59 @@ export async function firmaValida(cuerpo, cabecera, secreto) {
   for (let i = 0; i < esperado.length; i += 1) diff |= esperado.charCodeAt(i) ^ dado.charCodeAt(i);
   return diff === 0;
 }
+
+/**
+ * Página "Conectar WhatsApp" (registro insertado de Meta, flujo de coexistencia):
+ * Arlen entra con su Facebook, elige "conectar mi WhatsApp Business existente" y escanea
+ * el QR en el celular. El número sigue funcionando en la app y queda también en la Cloud API.
+ * No guarda nada: solo muestra en pantalla el resultado que devuelve Meta.
+ */
+const PAGINA_CONECTAR = `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conectar WhatsApp · Automatismos ARPA</title>
+<style>
+body{margin:0;background:#0f0f0f;color:#e8e8e8;font-family:system-ui,sans-serif;line-height:1.5}
+main{max-width:560px;margin:0 auto;padding:32px 16px}
+h1{color:#FFD700;font-size:28px;margin:0 0 8px}
+button{background:#25D366;color:#0f0f0f;border:0;border-radius:10px;padding:14px 20px;font-size:18px;font-weight:700;cursor:pointer;width:100%}
+pre{white-space:pre-wrap;background:#1a1a1a;border-radius:10px;padding:12px;font-size:14px}
+li{margin-bottom:6px}
+</style></head><body><main>
+<h1>Conectar el WhatsApp de Automatismos</h1>
+<ol>
+<li>Toque el botón verde y entre con su Facebook.</li>
+<li>Elija el portafolio <b>ARPA Technology Global</b>.</li>
+<li>Cuando pregunte por el número, elija <b>conectar su app WhatsApp Business existente</b> y ponga el <b>300 568 3914</b>.</li>
+<li>En el celular, abra WhatsApp Business y escanee el código QR que le muestre Meta. Acepte compartir el historial.</li>
+</ol>
+<button id="btn">Conectar WhatsApp</button>
+<h2 style="font-size:18px">Resultado</h2>
+<pre id="res">Todavía nada.</pre>
+</main>
+<script>
+const res = document.getElementById('res');
+function mostrar(t){ res.textContent = t; }
+window.addEventListener('message', (event) => {
+  if (!event.origin.endsWith('facebook.com')) return;
+  try {
+    const data = JSON.parse(event.data);
+    if (data.type === 'WA_EMBEDDED_SIGNUP') mostrar('Evento: ' + data.event + String.fromCharCode(10) + JSON.stringify(data.data || {}, null, 2));
+  } catch (e) {}
+});
+window.fbAsyncInit = function () {
+  FB.init({ appId: '1652083093092009', autoLogAppEvents: true, xfbml: true, version: 'v26.0' });
+};
+document.getElementById('btn').onclick = function () {
+  if (!window.FB) { mostrar('Todavía está cargando Facebook. Espere unos segundos y vuelva a tocar el botón.'); return; }
+  FB.login(function (response) {
+    if (!response.authResponse) mostrar(res.textContent + String.fromCharCode(10) + '(Inicio de sesión cancelado o sin respuesta)');
+  }, {
+    config_id: '1094876990119399',
+    response_type: 'code',
+    override_default_response_type: true,
+    extras: { setup: {}, featureType: 'whatsapp_business_app_onboarding', sessionInfoVersion: '3' }
+  });
+};
+</script>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/es_LA/sdk.js"></script>
+</body></html>`;
