@@ -4,6 +4,7 @@
  *   revisarConfiguracion()→ dice qué falta.
  *   probarClaude()        → prueba la clave de Claude con una pregunta (no envía WhatsApp).
  *   encenderAsistente() / apagarAsistente() → el interruptor general.
+ *   conectarCuentaWhatsApp() → una vez: conecta la cuenta de WhatsApp con la app de Meta.
  */
 
 function configurar() {
@@ -78,4 +79,27 @@ function encenderAsistente() {
 function apagarAsistente() {
   PropertiesService.getScriptProperties().setProperty('ASISTENTE_ACTIVO', 'NO');
   console.log('Asistente APAGADO: guarda los mensajes pero no responde a nadie.');
+}
+
+/**
+ * Una sola vez, después de poner META_TOKEN: le dice a la cuenta de WhatsApp de Automatismos
+ * que le pase los mensajes a la app de Meta (sin esto el webhook no recibe nada).
+ * Prueba los identificadores de cuenta conocidos y deja suscrita la que responde.
+ * No muestra el token.
+ */
+function conectarCuentaWhatsApp() {
+  var token = metaToken_('automatismos');
+  if (!token) { console.log('Falta META_TOKEN.'); return; }
+  var version = leerConfig_().metaVersion;
+  var cuentas = String(prop_('WABA_IDS') || '244264513764691,1604859234622379').split(',');
+  var auth = { Authorization: 'Bearer ' + token };
+  cuentas.forEach(function (id) {
+    id = id.trim();
+    if (!id) return;
+    var base = 'https://graph.facebook.com/' + version + '/' + id + '/subscribed_apps';
+    var post = UrlFetchApp.fetch(base, { method: 'post', headers: auth, muteHttpExceptions: true });
+    var get = UrlFetchApp.fetch(base, { method: 'get', headers: auth, muteHttpExceptions: true });
+    console.log('Cuenta ' + id + ': suscribir → ' + post.getResponseCode() + ' ' + post.getContentText().slice(0, 200) +
+      ' | apps suscritas → ' + get.getContentText().slice(0, 300));
+  });
 }

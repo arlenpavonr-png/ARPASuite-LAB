@@ -8,7 +8,7 @@ Nada de esto le escribe a ningún cliente hasta que usted haga los pasos de abaj
 Un asistente que responde solo, las 24 horas, el WhatsApp de Automatismos (300 568 3914):
 
 - Contesta de **usted**, en mensajes cortos, con lo que dice la ficha (qué hacemos, zonas, visita de $80.000,
-  garantía, pagos, preguntas frecuentes y los precios "desde" de la web, siempre sin IVA y con la instalación aparte).
+  garantía, pagos, preguntas frecuentes y los precios "desde" de la web, siempre con IVA incluido y con la instalación aparte).
 - **Nunca da precios de instalación ni de mano de obra.** Si la respuesta trae un valor en pesos que no está en la
   ficha, no se envía: se manda un mensaje de "le paso su caso a Arlen".
 - **Le pasa el caso a usted** (y le manda un correo con nombre, número, resumen y el link para responder) cuando el
