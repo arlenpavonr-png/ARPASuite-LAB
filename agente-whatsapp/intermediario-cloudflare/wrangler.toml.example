@@ -1,0 +1,10 @@
+# Ejemplo de configuración para desplegar el intermediario con Wrangler (Cloudflare).
+# NO contiene secretos. Los secretos se cargan aparte con:
+#   npx wrangler secret put VERIFY_TOKEN
+#   npx wrangler secret put META_APP_SECRET
+#   npx wrangler secret put APPS_SCRIPT_URL
+#   npx wrangler secret put RELAY_TOKEN
+# (También se puede pegar worker.js en el editor web de Cloudflare, sin instalar nada.)
+name = "arpa-contestador-whatsapp"
+main = "worker.js"
+compatibility_date = "2026-10-01"
