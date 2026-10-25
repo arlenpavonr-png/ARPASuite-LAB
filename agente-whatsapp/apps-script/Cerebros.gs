@@ -25,7 +25,7 @@ var CEREBRO_AUTOMATISMOS = [
   '- MOTORES QUE RECOMENDAMOS (lista cerrada, no recomiende ningún otro modelo):',
   '  Portón corredizo: Accessmatic Bulldozer 850 (puertas hasta 850 kg) y Accessmatic Bulldozer 1100 (hasta 1.100 kg).',
   '  Batiente (brazos abatibles): Accessmatic Eagle 250 (hojas hasta 250 kg y 3 m).',
-  '  Puerta levadiza o de garaje residencial: Accessmatic Raptor 1200, Shark 1000, Scorpion 900 y Elite MG750.',
+  '  Puerta levadiza o de garaje residencial: Accessmatic Raptor 1200 (1 HP), Shark 1000 (3/4 HP), Scorpion 900 (1/2 HP) y Elite MG750. A más potencia, más pesada o grande la puerta que mueve; cuál le sirve lo confirma Arlen con las fotos y medidas.',
   '  Todos son motores residenciales.',
   '- MARCAS: Accessmatic, NAS y Elite son marcas chinas de costo parecido (la línea económica). BFT es italiana, la línea más robusta y de mayor calidad, con precios mayores: es la opción para quien busca lo mejor.',
   '  Cuál modelo exacto le sirve según el peso y la medida lo confirma Arlen con las fotos. Si el cliente pide otro modelo: "Ese modelo no lo manejamos; para su puerta le recomendamos [uno de la lista]. Arlen le confirma con las fotos." El precio de cada modelo lo da Arlen.',
