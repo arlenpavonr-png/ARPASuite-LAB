@@ -11,25 +11,27 @@ const NEG = gs.NEGOCIOS.automatismos;
 const COL = (y, m, d, h, min = 0) => Date.UTC(y, m - 1, d, h + 5, min); // hora Colombia → ms UTC
 
 test('filtro de precios: deja pasar solo los de la ficha', () => {
-  const ok = gs.filtrarPrecios_('Corrediza Accessmatic desde $1.099.900 con IVA incluido; visita técnica $80.000.', NEG.preciosPermitidos);
+  const ok = gs.filtrarPrecios_('Bulldozer 850 a $1.599.900 con IVA incluido; visita técnica $80.000.', NEG.preciosPermitidos);
   assert.equal(ok.ok, true);
-  assert.deepEqual([...ok.encontrados], [1099900, 80000]);
+  assert.deepEqual([...ok.encontrados], [1599900, 80000]);
   assert.equal(gs.filtrarPrecios_('La visita vale 80 mil pesos', NEG.preciosPermitidos).ok, true);
   // El Fox 1000 Pro se quitó de la web el 18-oct: su precio ya no puede salir.
   assert.equal(gs.filtrarPrecios_('Fox 1000 Pro desde $ 799.900', NEG.preciosPermitidos).ok, false);
+  // El Pitbull 400 ($1.099.900) ya no se ofrece (Arlen, 26-oct).
+  assert.equal(gs.filtrarPrecios_('Pitbull 400 desde $1.099.900', NEG.preciosPermitidos).ok, false);
   assert.equal(gs.filtrarPrecios_('Garantía de 2 años y 50 % de anticipo', NEG.preciosPermitidos).ok, true);
 });
 
 test('filtro de precios: bloquea valores inventados', () => {
   for (const t of ['La instalación vale $350.000', 'Le sale en 350 mil', 'Unos 1,5 millones con todo',
-    'Son $1.200.000', 'El control adicional cuesta 90.000 pesos', 'Cuesta 300 USD', '$1.099.900 instalado']) {
+    'Son $1.200.000', 'El control adicional cuesta 90.000 pesos', 'Cuesta 300 USD', '$1.599.900 instalado']) {
     assert.equal(gs.filtrarPrecios_(t, NEG.preciosPermitidos).ok, false, t);
   }
 });
 
 test('filtro de precios: precio permitido junto a "instalación" sin aclarar que va aparte', () => {
-  assert.equal(gs.filtrarPrecios_('Con instalación queda en $1.099.900', NEG.preciosPermitidos).ok, false);
-  assert.equal(gs.filtrarPrecios_('Desde $1.099.900 sin IVA; la instalación se cotiza aparte.', NEG.preciosPermitidos).ok, true);
+  assert.equal(gs.filtrarPrecios_('Con instalación queda en $1.599.900', NEG.preciosPermitidos).ok, false);
+  assert.equal(gs.filtrarPrecios_('Desde $1.599.900 con IVA incluido; la instalación se cotiza aparte.', NEG.preciosPermitidos).ok, true);
 });
 
 test('handoff: casos que se pasan a Arlen', () => {

@@ -61,7 +61,7 @@ n = e.estado.enviados.length;
 postear(e, texto(e, CLIENTE, 'Carolina', '¿Cuánto vale un motor corredizo?'));
 const r2 = (e.estado.enviados[n] || {}).texto || '';
 chequear('2 motor corredizo', 'responde', e.estado.enviados.length === n + 1, r2);
-chequear('2 motor corredizo', 'da el precio "desde" de la ficha', REAL ? true : /1\.099\.900/.test(r2), r2);
+chequear('2 motor corredizo', 'da un precio de la ficha', REAL ? true : /1\.599\.900/.test(r2), r2);
 chequearEnviados('2 motor corredizo', e, n);
 
 // 3. ¿Cuánto cobra por instalar? → nunca da precio, pasa a Arlen.
