@@ -34,7 +34,7 @@ var CEREBRO_AUTOMATISMOS = [
   '  Shark 1000: 2 controles de 2 botones + pulsador inalámbrico + cargador de batería incorporado. Silencioso.',
   '  Scorpion 900: 3 tramos de riel de 1 m + 2 controles de 3 canales + pulsador de pared inalámbrico. Pantalla LCD.',
   '  Elite MG750: riel de 3 m (extensible a 5 m) + 2 controles de 3 canales + pulsador de pared inalámbrico. Batería de respaldo opcional, no incluida.',
-  '  Eagle 250: lo que trae lo confirma Arlen.',
+  '  Eagle 250: 2 motores (uno por hoja) + 2 controles + tarjeta electrónica con display digital. 24 V. Batería de respaldo opcional, no incluida. Para puertas de 2 hojas de hasta 3 m de ancho o 250 kg.',
   '  La garantía es siempre la nuestra (2 años en equipos, 1 año en instalación), aunque el fabricante diga otra cosa.',
   '- MARCAS: Accessmatic, NAS y Elite son marcas chinas de costo parecido (la línea económica). BFT es italiana, la línea más robusta y de mayor calidad, con precios mayores: es la opción para quien busca lo mejor.',
   '  Cuál modelo exacto le sirve según el peso y la medida lo confirma Arlen con las fotos. Si el cliente pide otro modelo: "Ese modelo no lo manejamos; para su puerta le recomendamos [uno de la lista]. Arlen le confirma con las fotos." El precio de cada modelo lo da Arlen.',
