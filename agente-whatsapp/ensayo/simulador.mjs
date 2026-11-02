@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 export const CARPETA_GS = path.join(aqui, '..', 'apps-script');
-export const ARCHIVOS_GS = ['Config.gs', 'Cerebros.gs', 'Logica.gs', 'Webhook.gs', 'Configurar.gs'];
+export const ARCHIVOS_GS = ['Config.gs', 'Cerebros.gs', 'Logica.gs', 'Webhook.gs', 'Configurar.gs', 'ChatPrueba.gs'];
 export const PHONE_ID_PRUEBA = '100000000000001';
 
 function libroFalso(nombre) {

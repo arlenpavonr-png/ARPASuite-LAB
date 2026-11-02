@@ -17,6 +17,7 @@ function doGet(e) {
   if (p['hub.mode'] === 'subscribe' && token && p['hub.verify_token'] === token) {
     return ContentService.createTextOutput(String(p['hub.challenge'] || ''));
   }
+  if (p.chat) return chatPrueba_(p.chat);
   return ContentService.createTextOutput('ARPA contestador');
 }
 
