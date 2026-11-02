@@ -142,3 +142,15 @@ function enviarMensajeRevision() {
   });
   console.log('Enviar → ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 300));
 }
+
+/** Una vez: deja el robot con el modelo económico Haiku 5.5 (Arlen, 26-oct). Después correr probarClaude. */
+function usarHaiku() {
+  PropertiesService.getScriptProperties().setProperty('CLAUDE_MODELO', 'claude-haiku-5-5');
+  console.log('Modelo: claude-haiku-5-5. Ahora corra probarClaude.');
+}
+
+/** Para volver al modelo anterior si Haiku no responde bien. */
+function usarSonnet() {
+  PropertiesService.getScriptProperties().setProperty('CLAUDE_MODELO', 'claude-sonnet-5-5');
+  console.log('Modelo: claude-sonnet-5-5.');
+}

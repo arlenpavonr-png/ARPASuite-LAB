@@ -333,14 +333,20 @@ function construirSistema_(negocio, ctx) {
 
 /** Cuerpo de la petición a la API de Claude (Messages API). */
 function cuerpoClaude_(modelo, sistema, mensajes) {
-  return {
+  var cuerpo = {
     model: modelo,
     max_tokens: CONTESTADOR_DEFAULTS.CLAUDE_MAX_TOKENS,
     output_config: { effort: CONTESTADOR_DEFAULTS.CLAUDE_EFFORT },
-    fallbacks: 'default',
     system: sistema,
     messages: mensajes
   };
+  // El reintento con otro modelo ante un rechazo por error solo existe en Sonnet 5.5, Opus y Fable; Haiku no lo tiene.
+  if (usaFallbacks_(modelo)) cuerpo.fallbacks = 'default';
+  return cuerpo;
+}
+
+function usaFallbacks_(modelo) {
+  return /^claude-(sonnet-5-5|opus-5|fable-5)/.test(String(modelo || ''));
 }
 
 /** Saca el texto de la respuesta de Claude. Devuelve { texto, rechazo }. */

@@ -146,7 +146,7 @@ function llamarClaude_(config, sistema, mensajes) {
   var opciones = {
     method: 'post',
     contentType: 'application/json',
-    headers: { 'x-api-key': config.claudeKey, 'anthropic-version': CLAUDE_VERSION, 'anthropic-beta': CLAUDE_BETAS },
+    headers: cabecerasClaude_(config),
     payload: JSON.stringify(cuerpoClaude_(config.modelo, sistema, mensajes)),
     muteHttpExceptions: true
   };
@@ -268,4 +268,11 @@ function registrar_(nivel, evento, detalle) {
   } catch (err) {
     console.log('registro falló', nivel, evento, detalle, err);
   }
+}
+
+/** Cabeceras para la API de Claude; la beta de reintento solo va con los modelos que la tienen. */
+function cabecerasClaude_(config) {
+  var h = { 'x-api-key': config.claudeKey, 'anthropic-version': CLAUDE_VERSION };
+  if (usaFallbacks_(config.modelo)) h['anthropic-beta'] = CLAUDE_BETAS;
+  return h;
 }
