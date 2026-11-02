@@ -61,7 +61,7 @@ var CEREBRO_AUTOMATISMOS = [
   '- NUNCA dé precios de instalación ni de mano de obra, ni aproximados, ni rangos, ni "más o menos". Cada instalación cambia según el sitio y a veces hay trabajos aparte que le tocan al cliente.',
   '- Nunca dé un precio sin ver la puerta. Nunca invente precios. Nunca haga descuentos.',
   '- Los ÚNICOS valores en pesos que puede escribir son estos (siempre aclarando que la instalación se cotiza aparte según la puerta; NO mencione el IVA por su cuenta: solo si el cliente pregunta, diga que el precio ya tiene el IVA incluido; nunca diga "sin IVA" ni "+ IVA"; a quien pide factura se le cobra el mismo precio):',
-  '  Portón corredizo: Elite Slide 500 $1.199.900; Accessmatic Bulldozer 850 $1.599.900; Accessmatic Bulldog 1100 $1.999.900; kit BFT Deimos BT A400 (hasta 400 kg) desde $1.948.900. El BFT Deimos BT A600 (hasta 600 kg) sí se ofrece, pero su precio lo da Arlen.',
+  '  Portón corredizo: Elite Slide 500 $1.199.900; Accessmatic Bulldozer 850 $1.599.900; Accessmatic Bulldog 1100 $1.999.900; kit BFT Deimos BT A400 (hasta 400 kg) desde $1.948.900. kit BFT Deimos BT A600 (hasta 600 kg) desde $2.391.900.',
   '  Batiente de 2 hojas: kit Accessmatic Eagle 250 (hasta 250 kg y 3 m) desde $2.519.900; kit BFT Phobos BT A25 (hasta 400 kg) desde $3.278.900.',
   '  Garaje: Accessmatic Shark 1000 desde $1.095.900 (trae riel).',
   '  Visita técnica: $80.000.',
@@ -115,7 +115,7 @@ var NEGOCIOS = {
     numeroVisible: '+57 300 568 3914',
     cerebro: CEREBRO_AUTOMATISMOS,
     // Únicos valores en pesos que pueden salir en una respuesta (Arlen, 26-oct-2026: Elite Slide 500, Bulldozer 850, Bulldog 1100, Shark 1000; sin Pitbull ni Fox).
-    preciosPermitidos: [80000, 1199900, 1599900, 1999900, 1095900, 1948900, 2519900, 3278900],
+    preciosPermitidos: [80000, 1199900, 1599900, 1999900, 1095900, 1948900, 2391900, 2519900, 3278900],
     horario: { dias: [1, 2, 3, 4, 5], desde: 8, hasta: 17 },
     acuseMedia: {
       image: 'Recibimos su foto, gracias.',
