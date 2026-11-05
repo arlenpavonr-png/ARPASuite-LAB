@@ -113,3 +113,11 @@ cambios del LAB a producción.
 Duplicados sin internet: pendiente decisión de Arlen.
 Sin conexión, la app usa su contador local + 1 y puede repetir un número que ya existe en la nube
 (otro celular con la misma licencia, respuesta perdida, app reinstalada). Opciones propuestas en la sesión del 2026-09-27.
+
+### 2026-11-05 — ARPA IA: prompts estructurados (rama `agent/arpa-ia-prompts-estructurados`)
+Commit `d62c101`: `<texto_tecnico>`/`<hechos_ot>` como datos, 3 ejemplos de extracción, JSON Schema
+estricto con reintento a `json_object`, llamadas a OpenAI unificadas. Solo `backend-dev` (DEV).
+- Sintaxis del `.gs`: OK. Fence: PASS. Regresión: 201 OK, 1 FAIL = test 15 (el ya conocido, ver arriba).
+- Falta: probarlo de verdad contra OpenAI en el Apps Script DEV.
+- Se guardó en `git stash` un cambio suelto en `next/` (`<base href="/next/">` y `start_url` absoluto):
+  rompería NEXT publicado en `github.io/ARPASuite-LAB/next/`. No se aplicó.
