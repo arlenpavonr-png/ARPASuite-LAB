@@ -388,7 +388,7 @@ Modelo: licencia de por vida + actualización anual paga. NEXT es la primera act
 ### 2026-11-05 — ARPA IA: prompts estructurados (rama `agent/arpa-ia-prompts-estructurados`)
 Commit `d62c101`: `<texto_tecnico>`/`<hechos_ot>` como datos, 3 ejemplos de extracción, JSON Schema
 estricto con reintento a `json_object`, llamadas a OpenAI unificadas. Solo `backend-dev` (DEV).
-- Sintaxis del `.gs`: OK. Fence: PASS. Regresión: 201 OK, 1 FAIL = test 15 (el ya conocido, ver arriba).
+- Sintaxis del `.gs`: OK. Fence: PASS. Regresión (con la base al día): todo PASS (279 + 105 + 202 + 141), test 15 incluido.
 - Falta: probarlo de verdad contra OpenAI en el Apps Script DEV.
 - Se guardó en `git stash` un cambio suelto en `next/` (`<base href="/next/">` y `start_url` absoluto):
   rompería NEXT publicado en `github.io/ARPASuite-LAB/next/`. No se aplicó.
