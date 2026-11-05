@@ -1,5 +1,5 @@
 import { esc, fmtDate, severityLabel } from './ui.js';
-import { EQUIPMENT_TYPES, SERVICE_TYPES, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel, serviceTypeLabel } from './ai/knowledge.js';
+import { EQUIPMENT_TYPES, SERVICE_TYPES, QUICK_CHIPS, PART_CHIPS, CAPTURE_HINT, equipmentTypeLabel, serviceTypeLabel } from './ai/knowledge.js';
 import { money, quoteTotals } from './quote.js';
 import { followUpLabel } from './followup.js';
 
@@ -29,15 +29,36 @@ function progress(step, total) {
     <p class="progress-label">Paso ${step} de ${total}</p>`;
 }
 
+function backupBlock(b) {
+  if (!b) return '';
+  const when = b.last ? fmtDate(b.last) : 'nunca';
+  const msg = b.pending
+    ? `${b.pending} servicio${b.pending === 1 ? '' : 's'} sin copia. Última copia: ${when}.`
+    : `Última copia: ${when}.`;
+  const c = b.cloud || {};
+  const cloudLine = c.enabled
+    ? (c.error
+      ? `Nube: no se pudo subir (${c.error}). Se reintenta sola cuando haya internet.`
+      : `Nube: respaldo automático activo${c.lastOk ? ' · última subida ' + fmtDate(c.lastOk) : ''}.`)
+    : '';
+  return `<section class="block backup${b.due ? ' is-due' : ''}">
+    <h2>Copia de seguridad</h2>
+    ${cloudLine ? `<p class="hint">${esc(cloudLine)}</p>` : ''}
+    <p class="hint">${esc(msg)} ${c.enabled ? 'También puede guardar una copia en Drive o WhatsApp.' : 'Guárdela en Drive o envíesela por WhatsApp: si pierde el celular, la recupera desde ahí.'}</p>
+    <button type="button" class="btn ${b.due ? 'btn-warn' : 'btn-secondary'} btn-block" data-act="backup-save">Guardar copia ahora</button>
+    <label class="btn btn-secondary btn-block">Restaurar una copia<input type="file" accept=".txt,.json,text/plain,application/json" data-restore hidden></label>
+  </section>`;
+}
+
 export function screenHome(d) {
   const open = d.openService;
   const follow = (d.followups || []).slice(0, 3);
   const recent = (d.recent || []).slice(0, 3);
   return `${top('ARPASuite NEXT')}
   <main class="sheet">
-    <p class="kicker">${esc(d.companyName || 'Laboratorio LAB')}</p>
+    <p class="kicker">${esc(d.companyName || 'ARPA Suite')}</p>
     <p class="lead">Inicie el servicio. La app organiza hallazgos, trabajo y recomendaciones.</p>
-    ${open ? `<a class="btn btn-warn btn-block" href="#/servicio/${esc(open.id)}/captura">Continuar ${esc(open.number)}</a>` : ''}
+    ${open ? `<a class="btn btn-warn btn-block" href="#/servicio/${esc(open.id)}/captura">Continuar ${esc(open.number || 'servicio en curso')}</a>` : ''}
     <a class="btn btn-primary btn-xl btn-block" href="#/servicio/nuevo">Iniciar servicio</a>
     ${follow.length ? `<section class="block"><h2>Pendiente</h2>${follow.map((f) =>
       `<a class="row-card" href="#/seguimiento"><strong>${esc(f.label || followUpLabel(f.type))}</strong><span>${esc(f.clientName || '')} · ${esc(fmtDate(f.dueDate))}</span></a>`
@@ -45,6 +66,7 @@ export function screenHome(d) {
     ${recent.length ? `<section class="block"><h2>Últimos servicios</h2>${recent.map((s) =>
       `<a class="row-card" href="#/servicio/${esc(s.id)}/listo"><strong>${esc(s.number)}</strong><span>${esc(s.clientName || '')} · ${esc(serviceTypeLabel(s.type))}</span></a>`
     ).join('')}</section>` : ''}
+    ${backupBlock(d.backup)}
     <p class="hint">Los documentos PDF clásicos siguen en la suite anterior.</p>
   </main>
   ${nav('home')}`;
@@ -158,7 +180,7 @@ export function screenCapture(d) {
       ${d.listening ? 'Detener dictado' : (d.voiceSupported ? 'Dictar hallazgo' : 'Dictado no disponible')}
     </button>
     ${d.interim ? `<p class="interim">${esc(d.interim)}</p>` : ''}
-    <textarea id="capture-text" class="area" rows="4" placeholder="O escriba: encontré desgaste del piñón, ajusté la cremallera…">${esc(d.buffer || '')}</textarea>
+    <textarea id="capture-text" class="area" rows="4" placeholder="${esc(CAPTURE_HINT)}">${esc(d.buffer || '')}</textarea>
     <button type="button" class="btn btn-secondary btn-block" data-act="parse-text">Organizar con IA local</button>
     <div class="chips wrap">
       ${QUICK_CHIPS.map((c) => `<button type="button" class="chip" data-act="chip" data-id="${c.id}">${esc(c.label)}</button>`).join('')}
@@ -297,6 +319,7 @@ export function screenClosed(d) {
     <a class="btn btn-primary btn-block" href="#/servicio/${esc(s.id)}/firma">Firmar e informar</a>
     <a class="btn btn-secondary btn-block" href="#/servicio/${esc(s.id)}/informe">Ver informe</a>
     <a class="btn btn-secondary btn-block" href="#/seguimiento">Ver seguimientos</a>
+    <button type="button" class="btn btn-secondary btn-block" data-act="backup-save">Guardar copia de seguridad</button>
     <a class="btn btn-secondary btn-block" href="#/">Ir al inicio</a>
   </main>
   ${nav('home')}`;
@@ -487,4 +510,27 @@ export function screenFollowups(d) {
 
 export function screenBoot(msg) {
   return `<main class="sheet boot"><p>${esc(msg || 'Cargando…')}</p></main>`;
+}
+
+const LOCK_MESSAGES = {
+  sin_licencia: 'Active su licencia de ARPA Suite para usar NEXT.',
+  pronto: 'ARPA NEXT llega como actualización anual de ARPA Suite. Escríbanos para saber cuándo estará disponible para su licencia.',
+  trial_vencido: 'Su prueba gratis terminó. Con una licencia de ARPA Suite y la actualización vigente puede usar NEXT.',
+  sin_fecha: 'Su licencia no tiene registrada la fecha de actualizaciones. Escríbanos y la revisamos.',
+  no_renovo: 'NEXT llegó después de que terminaran las actualizaciones de su licencia. Su ARPA Suite sigue funcionando igual; renueve la actualización anual para sumar NEXT.',
+  desconocida: 'No se pudo comprobar la actualización de su licencia. Abra ARPA Suite con internet y vuelva a intentar.',
+};
+
+/** Pantalla cuando la licencia no incluye la actualización NEXT. */
+export function screenLocked(d) {
+  const msg = LOCK_MESSAGES[d.reason] || LOCK_MESSAGES.desconocida;
+  return `${top('ARPASuite NEXT')}
+  <main class="sheet">
+    <p class="kicker">Actualización anual</p>
+    <h1>${esc(d.label || 'ARPA NEXT')}</h1>
+    <p class="lead">${esc(msg)}</p>
+    ${d.hasta ? `<p class="hint">Actualizaciones de su licencia hasta: ${esc(fmtDate(/^\d{4}-\d{2}-\d{2}$/.test(d.hasta) ? d.hasta + 'T12:00:00' : d.hasta))}.</p>` : ''}
+    ${d.renewUrl ? `<a class="btn btn-primary btn-xl btn-block" href="${esc(d.renewUrl)}" target="_blank" rel="noopener">Activar por WhatsApp</a>` : ''}
+    <a class="btn btn-secondary btn-block" href="../">Volver a ARPA Suite</a>
+  </main>`;
 }

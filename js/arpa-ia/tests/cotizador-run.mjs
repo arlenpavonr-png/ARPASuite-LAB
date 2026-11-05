@@ -536,7 +536,7 @@ section('Selector Configuración — taller_motos');
   const list = sandbox.ArpaOficios.getOficiosList();
   const ids = list.map((o) => o.id);
   assert(ids.includes('taller_motos'), 'OFICIOS incluye taller_motos');
-  assert(ids.length === 11, 'selector tiene 11 oficios');
+  assert(ids.length === 12, 'selector tiene 12 oficios (incluye construcción)');
   assert(ids.filter((id) => id === 'taller_motos').length === 1, 'taller_motos no está duplicado');
   assert(sandbox.ArpaOficios.getOficioById('taller_motos').id === 'taller_motos', 'getOficioById resuelve taller_motos');
   assert(sandbox.ArpaOficios.getOficioLabel('taller_motos') === 'Taller de motos', 'nombre visible Taller de motos');

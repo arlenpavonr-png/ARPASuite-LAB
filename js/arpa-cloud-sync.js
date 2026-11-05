@@ -14,7 +14,7 @@
 (function (global) {
   'use strict';
 
-  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbzKBeyDVWVqPG1R47EZTVKmCpa3SOwxs8LXrW4ipvRtiyyRV4trJKg7D4i89_cUTcH2/exec';
+  const LICENSE_API = 'https://script.google.com/macros/s/AKfycbw9wGLhbqFUt6FxRs0iLu_4xDntE8l2a4Vpd3BsXZyddPbII03BtFG6TpH7IpEe5Z3F/exec';
   const LICENSE_CODE_KEY      = 'arpa_suite_license_code';
   const CATALOG_PRODUCTS_KEY  = 'arpa_catalogo_usuario';
   const CATALOG_CATEGORIES_KEY= 'arpa_categorias_usuario';
@@ -61,34 +61,51 @@
 
   // ── HTTP ──────────────────────────────────────────────────────────────────
 
+  const ULTIMO_ERROR_KEY = 'arpa_ultimo_error_nube';
+
+  /** Deja el último error de la nube a la vista (Debug / soporte) en vez de perderlo en la consola. */
+  function registrarErrorNube(accion, err) {
+    const mensaje = String((err && (err.message || err.mensaje)) || err || 'error');
+    console.warn('[arpa-cloud-sync] ' + accion, mensaje);
+    try {
+      localStorage.setItem(ULTIMO_ERROR_KEY, JSON.stringify({ accion, mensaje, fecha: new Date().toISOString() }));
+    } catch (e) {}
+  }
+
   function postJson(payload) {
+    // Fuera del dominio de producción (LAB, localhost, red local) no se llama al servidor.
+    if (global.location?.hostname !== 'arpa.arpatechnologyglobal.com') {
+      return Promise.reject(new Error('network'));
+    }
     return fetch(LICENSE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
-    }).then((res) => res.json());
+    })
+      .then((res) => res.text())
+      .then((text) => {
+        // Si el servidor falla responde texto ("Error: ...") o una página HTML, no JSON:
+        // antes res.json() lo convertía en un error genérico y el mensaje se perdía.
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error('respuesta no JSON: ' + String(text || '').slice(0, 160));
+        }
+      });
   }
 
   // ── Catálogo local ────────────────────────────────────────────────────────
 
-  function getAllCategories() {
-    try {
-      const data = JSON.parse(localStorage.getItem(CATALOG_CATEGORIES_KEY) || '[]');
-      return Array.isArray(data) ? data : [];
-    } catch (e) { return []; }
+  function collectLocalCatalogProducts() {
+    const collected = global.ArpaMiCatalogo?.collectProductsForCloud?.();
+    return Array.isArray(collected) ? collected : [];
   }
 
-  function getAllProducts() {
-    try {
-      const data = JSON.parse(localStorage.getItem(CATALOG_PRODUCTS_KEY) || '[]');
-      return Array.isArray(data) ? data : [];
-    } catch (e) { return []; }
-  }
-
-  function getCategoryName(categoriaId) {
-    if (!categoriaId) return 'General';
-    const cat = getAllCategories().find((c) => c.id === categoriaId);
-    return cat?.name || 'General';
+  function isLocalCatalogEmpty() {
+    if (typeof global.ArpaMiCatalogo?.isLocalCatalogEmpty === 'function') {
+      return global.ArpaMiCatalogo.isLocalCatalogEmpty();
+    }
+    return collectLocalCatalogProducts().length === 0;
   }
 
   // ── Push catálogo → nube ──────────────────────────────────────────────────
@@ -96,22 +113,16 @@
   let catalogSyncTimer = null;
   let suppressCatalogSync = false;
 
-  function productToCloud(p) {
-    return {
-      id: p.id,
-      cod: p.cod,
-      nom: p.nom,
-      pvp: p.pvp,
-      unidad: p.unidad || '',
-      marca: p.marca || '',
-      categoria: getCategoryName(p.categoriaId)
-    };
-  }
-
   function pushCatalogo() {
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve();
-    const productos = getAllProducts().map(productToCloud);
+    const productos = collectLocalCatalogProducts();
+    if (productos.length) {
+      global.ArpaMiCatalogo?.markEverHadProducts?.();
+    }
+    if (!productos.length && !global.ArpaMiCatalogo?.hasEverHadProducts?.()) {
+      return Promise.resolve();
+    }
     return postJson({ accion: 'savecatalogo', licencia, productos }).catch((err) => {
       console.warn('[arpa-cloud-sync] savecatalogo', err);
     });
@@ -130,8 +141,28 @@
 
   let suppressHistorialSync = false;
 
+  function stripBase64(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) {
+      return obj.map((item) =>
+        (typeof item === 'string' && item.startsWith('data:')) ? null : stripBase64(item)
+      );
+    }
+    const result = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === 'string' && v.startsWith('data:')) {
+        result[k] = null;
+      } else if (v && typeof v === 'object') {
+        result[k] = stripBase64(v);
+      } else {
+        result[k] = v;
+      }
+    }
+    return result;
+  }
+
   function recordToCloudEntry(record) {
-    return {
+    const entry = {
       id: record.id,
       tipo: record.documento || record.tipo || '',
       subtipo: record.subtipo || '',
@@ -142,19 +173,125 @@
       monto: record.total != null ? record.total : '',
       concepto: record.concepto || ''
     };
+    if (record.fullSnapshot) {
+      try {
+        entry.fullSnapshot = JSON.stringify(stripBase64(record.fullSnapshot));
+      } catch (e) {}
+    }
+    return entry;
   }
 
+  function readHistorialLocal() {
+    try {
+      const data = JSON.parse(localStorage.getItem(HISTORIAL_KEY) || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ── Pendientes de subir ───────────────────────────────────────────────────
+  // Lista pequeña aparte del historial ({ id: { savedAt, error } }): se guarda
+  // aunque el historial (con fotos) tenga el almacenamiento casi lleno.
+  const PENDIENTES_KEY = 'arpa_historial_pendientes_nube';
+
+  function getPendientes() {
+    try {
+      const data = JSON.parse(localStorage.getItem(PENDIENTES_KEY) || '{}');
+      return data && typeof data === 'object' ? data : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function setPendientes(data) {
+    try {
+      localStorage.setItem(PENDIENTES_KEY, JSON.stringify(data));
+    } catch (e) {
+      registrarErrorNube('pendientes', e);
+    }
+  }
+
+  function estaPendiente(id) {
+    return !!(id && getPendientes()[id]);
+  }
+
+  /**
+   * Marca o desmarca "pendiente de subir".
+   * Solo desmarca si sigue pendiente la misma versión que se subió
+   * (si se volvió a guardar mientras subía, queda pendiente la versión nueva).
+   */
+  function setPendienteNube(id, savedAt, pendiente, error) {
+    const data = getPendientes();
+    if (pendiente) {
+      data[id] = { savedAt: savedAt || '', error: error ? String(error).slice(0, 200) : '' };
+    } else {
+      if (!data[id] || data[id].savedAt !== (savedAt || '')) return;
+      delete data[id];
+    }
+    setPendientes(data);
+    global.ArpaHistorial?.render?.();
+  }
+
+  /** Subidas en curso por id: el reintento no vuelve a mandar lo que ya va en camino. */
+  const enVuelo = new Set();
+
+  /**
+   * Sube un registro. Antes de enviar queda "pendiente de subir"; solo se quita
+   * la marca si el servidor responde ok:true. Devuelve true si subió.
+   */
   function pushHistorialEntry(record) {
-    if (suppressHistorialSync || !record) return Promise.resolve();
+    if (suppressHistorialSync || !record || !record.id) return Promise.resolve(false);
     const licencia = getLicenseCode();
-    if (!licencia) return Promise.resolve();
+    if (!licencia) return Promise.resolve(false);
+    setPendienteNube(record.id, record.savedAt, true);
+    enVuelo.add(record.id);
     return postJson({
       accion: 'savehistorialentry',
       licencia,
       entrada: recordToCloudEntry(record)
+    }).then((data) => {
+      if (data && data.ok) {
+        setPendienteNube(record.id, record.savedAt, false);
+        return true;
+      }
+      const msg = (data && data.mensaje) || 'el servidor no confirmó (ok:false)';
+      registrarErrorNube('savehistorialentry', msg);
+      setPendienteNube(record.id, record.savedAt, true, msg);
+      return false;
     }).catch((err) => {
-      console.warn('[arpa-cloud-sync] savehistorialentry', err);
+      registrarErrorNube('savehistorialentry', err);
+      setPendienteNube(record.id, record.savedAt, true, err && err.message);
+      return false;
+    }).finally(() => {
+      enVuelo.delete(record.id);
     });
+  }
+
+  let reintentoEnCurso = null;
+
+  /** Vuelve a subir, uno por uno, los registros "pendiente de subir". */
+  function reintentarPendientes() {
+    if (reintentoEnCurso) return reintentoEnCurso;
+    if (!getLicenseCode()) return Promise.resolve(0);
+    const ids = Object.keys(getPendientes());
+    if (!ids.length) return Promise.resolve(0);
+    let subidos = 0;
+    reintentoEnCurso = ids.reduce((cadena, id) => cadena.then(() => {
+      if (enVuelo.has(id) || !estaPendiente(id)) return null;
+      // Se lee de nuevo: pudo cambiar o borrarse mientras subían los anteriores.
+      const actual = readHistorialLocal().find((x) => x.id === id);
+      if (!actual) {
+        const data = getPendientes();
+        delete data[id];
+        setPendientes(data);
+        return null;
+      }
+      return pushHistorialEntry(actual).then((ok) => { if (ok) subidos += 1; });
+    }), Promise.resolve())
+      .then(() => subidos)
+      .finally(() => { reintentoEnCurso = null; });
+    return reintentoEnCurso;
   }
 
   function deleteHistorialEntry(entradaId) {
@@ -183,6 +320,13 @@
     return 'formato';
   }
 
+  /** Sheets devuelve la fecha como texto de Date ("Mon Oct 12 2026 …"): se pasa a ISO para ordenar bien. */
+  function fechaIso(valor) {
+    if (!valor) return '';
+    const d = new Date(valor);
+    return isNaN(d.getTime()) ? '' : d.toISOString();
+  }
+
   function cloudEntryToRecord(entry) {
     const tipo = entry.tipo || '';
     const modulo = inferModuloFromTipo(tipo);
@@ -198,11 +342,20 @@
       cliente: entry.cliente || '',
       ciudad: entry.ciudad || '',
       fecha: entry.fecha || '',
-      savedAt: new Date().toISOString()
+      // La fecha del documento, no "ahora": si no, cada sincronización volvía
+      // "de este mes" todo lo bajado de la nube (inflaba "Cotizado mes").
+      savedAt: fechaIso(entry.fecha) || new Date().toISOString()
     };
     if (entry.concepto) record.concepto = String(entry.concepto);
     if (monto !== '' && monto != null && !Number.isNaN(Number(monto))) {
       record.total = Number(monto);
+    }
+    if (entry.fullSnapshot) {
+      try {
+        record.fullSnapshot = typeof entry.fullSnapshot === 'string'
+          ? JSON.parse(entry.fullSnapshot)
+          : entry.fullSnapshot;
+      } catch (e) {}
     }
     return record;
   }
@@ -217,8 +370,7 @@
    */
   function needsCatalogRestore() {
     if (!hasActiveLicense()) return false;
-    if (getAllProducts().length === 0) return true;  // vacío → siempre restaurar
-    return shouldSyncNow();                          // con datos → solo si toca
+    return isLocalCatalogEmpty();
   }
 
   function needsHistorialRestore() {
@@ -236,42 +388,47 @@
 
   function applyCatalogFromCloud(productos) {
     if (!Array.isArray(productos) || !productos.length) return false;
+    if (!isLocalCatalogEmpty()) return false;
+
+    const oficioId = global.ArpaMiCatalogo?.getActiveOficioId?.()
+      || global.ArpaOficios?.normalizeOficioId?.(null)
+      || 'automatismos';
 
     const categories = [];
     const catKeyToId = new Map();
 
-    function ensureCategory(name, oficioId) {
+    function ensureCategory(name) {
       const label = String(name || 'General').trim() || 'General';
-      const oid = global.ArpaOficios?.normalizeOficioId?.(oficioId) || 'automatismos';
-      const key = oid + '::' + label.toLowerCase();
+      const key = oficioId + '::' + label.toLowerCase();
       if (catKeyToId.has(key)) return catKeyToId.get(key);
-      const cat = { id: newId(), name: label, oficioId: oid };
+      const cat = { id: newId(), name: label, oficioId };
       categories.push(cat);
       catKeyToId.set(key, cat.id);
       return cat.id;
     }
 
-    const products = productos.map((p) => {
-      const oficioId = 'automatismos';
-      const categoriaId = ensureCategory(p.categoria, oficioId);
-      return {
-        id: p.id || newId(),
-        cod: String(p.cod || '').trim(),
-        nom: String(p.nom || '').trim(),
-        pvp: Number(p.pvp) || 0,
-        unidad: String(p.unidad || 'unidad').trim() || 'unidad',
-        marca: String(p.marca || '').trim(),
-        categoriaId,
-        oficioId
-      };
-    }).filter((p) => p.cod && p.nom);
+    const products = productos.map((p) => ({
+      id: p.id || newId(),
+      cod: String(p.cod || '').trim(),
+      nom: String(p.nom || '').trim(),
+      pvp: Number(p.pvp) || 0,
+      unidad: String(p.unidad || 'unidad').trim() || 'unidad',
+      marca: String(p.marca || '').trim(),
+      categoriaId: ensureCategory(p.categoria),
+      oficioId
+    }));
 
     if (!products.length) return false;
 
     suppressCatalogSync = true;
     try {
-      localStorage.setItem(CATALOG_CATEGORIES_KEY, JSON.stringify(categories));
-      localStorage.setItem(CATALOG_PRODUCTS_KEY, JSON.stringify(products));
+      if (typeof global.ArpaMiCatalogo?.writeCategoriesRaw === 'function') {
+        global.ArpaMiCatalogo.writeCategoriesRaw(oficioId, categories);
+        global.ArpaMiCatalogo.writeProductsRaw(oficioId, products);
+      } else {
+        localStorage.setItem(CATALOG_CATEGORIES_KEY, JSON.stringify(categories));
+        localStorage.setItem(CATALOG_PRODUCTS_KEY, JSON.stringify(products));
+      }
       global.ArpaCatalogo?.invalidateListaCache?.();
       global.ArpaCotizacion?.updateCatalogHint?.();
       global.ArpaMiCatalogo?.refreshView?.();
@@ -314,9 +471,22 @@
     const merged = new Map();
     cloudRecords.forEach((r) => merged.set(r.id, r));
 
-    // Agregar registros locales que la nube no tiene (offline-created)
+    // Agregar registros locales que la nube no tiene (offline-created).
+    // Un registro local "pendiente de subir" NUNCA lo reemplaza la nube: es más nuevo.
+    // Si gana la nube, se conserva lo que la nube no guarda (detalle, estado de la
+    // orden, aviso de número repetido, fecha de guardado…).
+    const pendientes = getPendientes();
     localRecords.forEach((r) => {
-      if (r.id && !merged.has(r.id)) merged.set(r.id, r);
+      if (!r.id) return;
+      const cloud = merged.get(r.id);
+      if (!cloud || pendientes[r.id]) {
+        merged.set(r.id, r);
+        return;
+      }
+      merged.set(r.id, Object.assign({}, r, cloud, {
+        fullSnapshot: cloud.fullSnapshot || r.fullSnapshot,
+        savedAt: r.savedAt || cloud.savedAt
+      }));
     });
 
     // Ordenar: más reciente primero
@@ -348,7 +518,13 @@
   function restoreCloudDataIfNeeded() {
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve({ catalog: false, historial: false });
+    // Se reintenta lo pendiente sin hacer esperar la bajada ni el arranque de la app:
+    // la fusión nunca reemplaza un registro pendiente, así que el orden no importa.
+    reintentarPendientes().catch(() => 0);
+    return pullCloudData(licencia);
+  }
 
+  function pullCloudData(licencia) {
     const tasks = [];
 
     if (needsCatalogRestore()) {
@@ -423,9 +599,14 @@
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve(null);
     return postJson({ accion: 'siguientenumero', licencia, tipo, clienteUltimo })
-      .then((res) => (res && res.ok ? res.numero : null))
+      .then((res) => {
+        if (res && res.ok) return res.numero;
+        // Antes se descartaba el motivo que da el servidor (ej. "Licencia requerida.").
+        registrarErrorNube('siguientenumero', (res && res.mensaje) || 'el servidor no confirmó (ok:false)');
+        return null;
+      })
       .catch((err) => {
-        console.warn('[arpa-cloud-sync] siguientenumero', err);
+        registrarErrorNube('siguientenumero', err);
         return null;
       });
   }
@@ -439,6 +620,8 @@
     pushCatalogo,
     scheduleCatalogCloudSync,
     pushHistorialEntry,
+    reintentarPendientes,
+    estaPendiente,
     deleteHistorialEntry,
     // Pull (nube → local)
     restoreCloudDataIfNeeded,
@@ -453,4 +636,11 @@
     // Numeración
     obtenerSiguienteNumeroCloud
   };
-})(window);
+
+  // Al volver la conexión se suben los pendientes.
+  global.addEventListener?.('online', () => { reintentarPendientes(); });
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { stripBase64 };
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

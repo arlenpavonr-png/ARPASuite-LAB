@@ -61,10 +61,11 @@
     return Math.max(getStoredCounter(storageKey), parseSequenceNumber(fieldValue));
   }
 
-  function formatWithPrefix(seq, pad) {
+  /** Con código de técnico: AP-180 (formato), AP-COT-180 (cotización), AP-CC-012 (cuenta de cobro). */
+  function formatWithPrefix(seq, pad, docTag) {
     const code = getTechnicianCode();
     if (!code) return null;
-    return code + '-' + String(seq).padStart(pad, '0');
+    return code + '-' + (docTag ? docTag + '-' : '') + String(seq).padStart(pad, '0');
   }
 
   function formatFormNumber(n) {
@@ -72,11 +73,11 @@
   }
 
   function formatCotNumber(n) {
-    return formatWithPrefix(n, 3) || ('COT-' + String(n).padStart(3, '0'));
+    return formatWithPrefix(n, 3, 'COT') || ('COT-' + String(n).padStart(3, '0'));
   }
 
   function formatCcNumber(n) {
-    return formatWithPrefix(n, 3) || ('CC-' + String(n).padStart(3, '0'));
+    return formatWithPrefix(n, 3, 'CC') || ('CC-' + String(n).padStart(3, '0'));
   }
 
   const FORMATTERS = {
@@ -85,7 +86,27 @@
     cc: formatCcNumber
   };
 
+  function hasActiveLicenseCode() {
+    try {
+      return !!String(localStorage.getItem('arpa_suite_license_code') || '').trim();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function blockIfNoLicense() {
+    if (hasActiveLicenseCode()) return true;
+    const msg = (window.ArpaI18n && window.ArpaI18n.t)
+      ? window.ArpaI18n.t('alert.numeracion.sin_licencia')
+      : 'Sin licencia activa. Revise Configuración → Licencia.';
+    alert(msg);
+    return false;
+  }
+
   function nextNumber(docType, fieldValue) {
+    if (!hasActiveLicenseCode()) {
+      return { sequence: 0, value: '', blocked: true };
+    }
     const storageKey = KEYS[docType] || KEYS.formato;
     const next = getMaxCounter(storageKey, fieldValue) + 1;
     setCounter(storageKey, next);
@@ -93,7 +114,42 @@
     return { sequence: next, value: format(next) };
   }
 
-  async function nextNumberAsync(docType, fieldValue) {
+  /**
+   * Pedidos de número en curso, uno por tipo de documento.
+   * Si llega un segundo pedido mientras la nube aún no responde el primero
+   * (abrir la app + tocar el módulo, o doble toque en "+ NUEVO N°"),
+   * se devuelve el MISMO pedido en vez de reservar otro número.
+   * Antes eso consumía dos números y se saltaba uno (COT-004 → COT-005).
+   */
+  const pendingRequests = {};
+
+  function nextNumberAsync(docType, fieldValue) {
+    const key = KEYS[docType] ? docType : 'formato';
+    if (pendingRequests[key]) return pendingRequests[key];
+    const request = requestNextNumber(key, fieldValue);
+    pendingRequests[key] = request;
+    const clear = () => { if (pendingRequests[key] === request) delete pendingRequests[key]; };
+    request.then(clear, clear);
+    return request;
+  }
+
+  /** Módulo del Historial que corresponde a cada tipo de numeración. */
+  const MODULO_HISTORIAL = {
+    formato: 'formato',
+    cot: 'cotizacion',
+    cc: 'cuenta-cobro'
+  };
+
+  /** Números ya usados en el Historial de este dispositivo para ese tipo de documento. */
+  function numerosEnHistorial(docType) {
+    const modulo = MODULO_HISTORIAL[docType] || 'formato';
+    return global.ArpaHistorial?.numerosUsados?.(modulo) || new Set();
+  }
+
+  async function requestNextNumber(docType, fieldValue) {
+    if (!hasActiveLicenseCode()) {
+      return { sequence: 0, value: '', sincronizado: false, blocked: true };
+    }
     const storageKey = KEYS[docType] || KEYS.formato;
     const localBase = getMaxCounter(storageKey, fieldValue);
     const format = FORMATTERS[docType] || formatFormNumber;
@@ -108,8 +164,57 @@
     } catch (e) {
       // sin conexión u otro error — se usa el número local calculado arriba
     }
+    if (!sincronizado) {
+      // Sin nube, el contador local puede ir atrás de documentos hechos en otro
+      // dispositivo (pasó con AP-COT-186): se sube hasta un número libre en el Historial.
+      const usados = numerosEnHistorial(docType);
+      let intentos = 0;
+      while (usados.has(format(numero)) && intentos < 1000) {
+        numero += 1;
+        intentos += 1;
+      }
+    }
+    // Documento nuevo: lo que se guarde con este número no reemplaza al que estaba abierto.
+    global.ArpaHistorial?.olvidarEdicion?.(MODULO_HISTORIAL[docType] || 'formato');
     setCounter(storageKey, numero);
     return { sequence: numero, value: format(numero), sincronizado };
+  }
+
+  /**
+   * Número reservado que todavía no se ha usado en un documento guardado.
+   * Antes, abrir la app con el formulario vacío pedía un número nuevo cada vez
+   * (abrir y cerrar 3 veces gastaba 171, 172 y 173). Ahora se reutiliza el
+   * reservado hasta que el documento se guarde en el Historial.
+   */
+  const RESERVED_PREFIX = 'arpa_numero_reservado_';
+
+  function getReserved(docType) {
+    try {
+      const value = String(localStorage.getItem(RESERVED_PREFIX + docType) || '').trim();
+      // Un reservado que ya quedó usado en el Historial no se vuelve a entregar.
+      if (value && numerosEnHistorial(docType).has(value)) {
+        localStorage.removeItem(RESERVED_PREFIX + docType);
+        return '';
+      }
+      return value;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function setReserved(docType, value) {
+    try {
+      if (value) localStorage.setItem(RESERVED_PREFIX + docType, String(value));
+    } catch (e) { /* ignore */ }
+  }
+
+  /** Libera el reservado solo si es el número que se acaba de usar (si se reabrió un documento viejo, se conserva). */
+  function clearReserved(docType, usedValue) {
+    try {
+      const used = String(usedValue || '').trim();
+      if (used && getReserved(docType) !== used) return;
+      localStorage.removeItem(RESERVED_PREFIX + docType);
+    } catch (e) { /* ignore */ }
   }
 
   function blockIfPymeMissingCode() {
@@ -185,7 +290,12 @@
     formatCcNumber,
     nextNumber,
     nextNumberAsync,
+    hasActiveLicenseCode,
+    blockIfNoLicense,
     blockIfPymeMissingCode,
+    getReserved,
+    setReserved,
+    clearReserved,
     asegurarNumero
   };
 })(typeof window !== 'undefined' ? window : globalThis);

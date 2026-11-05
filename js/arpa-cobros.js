@@ -188,7 +188,7 @@
     if (!list || !defaults) return;
     store.lines = Object.keys(defaults).map((key) => {
       const item = list[key] || {};
-      return createLine(item.label || global.ArpaPricing?.getDefaultLabel?.(key) || key, item.value, {
+      return createLine(item.label || global.ArpaI18n?.t?.(defaults[key].labelKey) || global.ArpaPricing?.getDefaultLabel?.(key) || key, item.value, {
         priceKey: key,
         valueCop: defaults[key].value,
         userEdited: !!item.userEdited
@@ -247,7 +247,7 @@
 
   function setLines(storeId, rawLines, options) {
     const store = getStore(storeId);
-    store.lines = (rawLines || []).map(function(l) {
+    store.lines = (rawLines || []).map(function (l) {
       return createLine(l.desc || l.nom || '', l.value != null ? l.value : (l.pvp || 0), {
         valueCop: l.valueCop,
         userEdited: !!l.userEdited,
@@ -258,6 +258,7 @@
     if (store.lines.length) refreshPrecargadoValues(storeId);
     else renderEditor(storeId);
   }
+
   function notifyChange(storeId) {
     if (storeId === 'cot') global.ArpaCotizacion?.renderTablaCot?.(false);
   }

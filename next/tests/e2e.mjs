@@ -19,6 +19,8 @@ const browser = await puppeteer.launch({
 const page = await browser.newPage();
 page.setDefaultTimeout(20000);
 await page.evaluateOnNewDocument(() => {
+  // NEXT es una actualización con licencia; en el LAB se abre con la demo (?labdemo=1).
+  try { sessionStorage.setItem('arpa_lab_demo', '1'); } catch (e) { /* ignore */ }
   window.__arpaFiles = [];
   window.__arpaOpens = [];
   const origOpen = window.open;

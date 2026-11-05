@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Recuperar respaldo — ARPA Suite</title>
+  <meta name="theme-color" content="#1a2a4a">
+  <link rel="icon" type="image/png" href="./icon-192.png">
+  <style>
+    :root { --navy: #1a2a4a; --blue: #2563eb; --bg: #f3f5f9; --line: #dfe4ec; --muted: #5b6577; --ok: #1f7a4a; --warn: #b45309; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--navy); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+    header { background: var(--navy); color: #fff; padding: 18px 16px; }
+    header h1 { margin: 0; font-size: 20px; }
+    main { max-width: 560px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .card { background: #fff; border: 1.5px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .muted { color: var(--muted); font-size: 14px; margin: 0; }
+    p { margin: 0; }
+    .btn { display: flex; align-items: center; justify-content: center; min-height: 48px; border: 0; border-radius: 12px; font-weight: 700; font-size: 16px; font-family: inherit; cursor: pointer; padding: 0 16px; text-decoration: none; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-secondary { background: #fff; color: var(--navy); border: 1.5px solid var(--line); }
+    .btn[disabled] { opacity: .5; cursor: default; }
+    select { min-height: 44px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px; font: inherit; background: #fff; }
+    .tag { font-size: 12px; font-weight: 700; color: var(--ok); text-transform: uppercase; letter-spacing: .05em; }
+    #msg { font-weight: 600; }
+    #msg.err { color: #b42318; }
+    #msg.ok { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <header><h1>Recuperar respaldo</h1></header>
+  <main>
+    <p class="muted">Use esta página en un celular nuevo, o si se borraron los datos. Trae de la nube los datos de ARPA Suite y de ARPA NEXT guardados por su licencia.</p>
+    <div id="estado" class="card"><p>Revisando su licencia…</p></div>
+    <div id="lista"></div>
+    <p id="msg" role="status"></p>
+    <a class="btn btn-secondary" href="./">Volver a ARPA Suite</a>
+  </main>
+
+  <script>window.ARPA_RESPALDO_NO_AUTO = true;</script>
+  <script src="./js/arpa-cloud-sync.js"></script>
+  <script src="./js/arpa-respaldo-nube.js"></script>
+  <script type="module">
+    import { groupCloudFiles, downloadNextFromCloud } from './next/js/cloud.js';
+    import { restoreBackup } from './next/js/backup.js';
+    import { openStore } from './next/js/store.js';
+
+    const nube = window.ArpaRespaldoNube;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const fecha = (iso) => {
+      const d = new Date(iso);
+      return isNaN(d) ? '—' : d.toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+    function msg(text, kind) {
+      $('msg').textContent = text;
+      $('msg').className = kind || '';
+    }
+
+    function devicesFrom(suiteFiles, nextFiles) {
+      const map = new Map();
+      const get = (tag) => map.get(tag) || map.set(tag, { tag, dias: new Set() }).get(tag);
+      for (const a of suiteFiles) {
+        let m = /^suite-([a-z0-9]+)-ultimo\.json$/.exec(a.nombre);
+        if (m) get(m[1]).suite = a;
+        m = /^suite-([a-z0-9]+)-(\d{4}-\d{2}-\d{2})\.json$/.exec(a.nombre);
+        if (m) get(m[1]).dias.add(m[2]);
+      }
+      for (const g of groupCloudFiles(nextFiles)) get(g.tag).next = g;
+      for (const a of nextFiles) {
+        const m = /^next-([a-z0-9]+)-datos-(\d{4}-\d{2}-\d{2})\.json$/.exec(a.nombre);
+        if (m) get(m[1]).dias.add(m[2]);
+      }
+      const last = (d) => String(d.suite?.actualizado || '') > String(d.next?.actualizado || '') ? d.suite?.actualizado : d.next?.actualizado;
+      return [...map.values()].map((d) => ({ ...d, last: last(d), dias: [...d.dias].sort().reverse() }))
+        .sort((a, b) => String(b.last).localeCompare(String(a.last)));
+    }
+
+    async function restaurar(dev, dia) {
+      const cuando = dia ? 'del ' + dia : 'más reciente';
+      if (!confirm(`¿Recuperar la copia ${cuando} del celular ${dev.tag}?\n\nLos datos de ARPA Suite de este celular se reemplazan por los de la copia. En NEXT se suman sin borrar nada.`)) return;
+      msg('Recuperando… no cierre esta página.');
+      try {
+        let partes = [];
+        const suiteNombre = dia ? `suite-${dev.tag}-${dia}.json` : `suite-${dev.tag}-ultimo.json`;
+        const s = await nube.post('respaldoleer', { app: 'suite', nombre: suiteNombre });
+        if (s?.ok) {
+          const r = nube.restoreSuite(s.contenido);
+          partes.push(`ARPA Suite (${r.keys} datos)`);
+        }
+        if (dev.next) {
+          try {
+            const copia = await downloadNextFromCloud(dev.tag, dia);
+            const r = await restoreBackup(await openStore(), copia);
+            partes.push(`ARPA NEXT (${r.added} nuevos, ${r.updated} actualizados)`);
+          } catch (err) {
+            if (!partes.length) throw err;
+          }
+        }
+        if (!partes.length) throw new Error('No se encontró esa copia.');
+        msg('Listo: se recuperó ' + partes.join(' y ') + '. Abra ARPA Suite.', 'ok');
+      } catch (err) {
+        msg('No se pudo recuperar: ' + (err.message || err), 'err');
+      }
+    }
+
+    async function cargar() {
+      if (!nube?.enabled()) {
+        $('estado').innerHTML = '<p><strong>Primero active su licencia.</strong></p><p class="muted">Abra ARPA Suite en este celular, ingrese su código de licencia y vuelva a esta página. El respaldo en la nube es para licencias pagas.</p>';
+        return;
+      }
+      $('estado').innerHTML = '<p>Buscando sus respaldos…</p>';
+      const [s, n] = await Promise.all([
+        nube.post('respaldolistar', { app: 'suite' }),
+        nube.post('respaldolistar', { app: 'next' }),
+      ]);
+      if (!s?.ok && !n?.ok) {
+        $('estado').innerHTML = `<p><strong>No se pudo consultar la nube.</strong></p><p class="muted">${esc(s?.mensaje || n?.mensaje || 'Revise su conexión a internet.')}</p>`;
+        return;
+      }
+      const devs = devicesFrom(s?.archivos || [], n?.archivos || []);
+      if (!devs.length) {
+        $('estado').innerHTML = '<p><strong>Aún no hay respaldos en la nube para esta licencia.</strong></p><p class="muted">Se crean solos cuando usa ARPA Suite o NEXT con internet.</p>';
+        return;
+      }
+      const yo = nube.deviceTag();
+      $('estado').innerHTML = `<p><strong>${devs.length} celular${devs.length === 1 ? '' : 'es'} con respaldo.</strong></p><p class="muted">Elija de cuál recuperar. El primero es el más reciente.</p>`;
+      $('lista').innerHTML = devs.map((d, i) => `
+        <div class="card">
+          ${d.tag === yo ? '<span class="tag">Este celular</span>' : ''}
+          <p><strong>Celular ${esc(d.tag)}</strong></p>
+          <p class="muted">ARPA Suite: ${d.suite ? esc(fecha(d.suite.actualizado)) : 'sin copia'} · NEXT: ${d.next ? esc(fecha(d.next.actualizado)) : 'sin copia'}</p>
+          <button class="btn btn-primary" data-i="${i}" data-dia="">Recuperar la copia más reciente</button>
+          ${d.dias.length ? `<select data-sel="${i}"><option value="">Otro día…</option>${d.dias.map((x) => `<option>${esc(x)}</option>`).join('')}</select>
+          <button class="btn btn-secondary" data-i="${i}" data-otro="1">Recuperar el día elegido</button>` : ''}
+        </div>`).join('');
+      $('lista').addEventListener('click', (ev) => {
+        const b = ev.target.closest('button[data-i]');
+        if (!b) return;
+        const i = Number(b.dataset.i);
+        let dia = '';
+        if (b.dataset.otro) {
+          dia = document.querySelector(`select[data-sel="${i}"]`)?.value || '';
+          if (!dia) { msg('Elija un día en la lista.', 'err'); return; }
+        }
+        restaurar(devs[i], dia);
+      });
+    }
+
+    cargar().catch((err) => msg('Error: ' + (err.message || err), 'err'));
+  </script>
+</body>
+</html>

@@ -30,7 +30,7 @@
 
  * COLUMNAS Sheet (fila 1): CODIGO | PLAN | CLIENTE | EMAIL | VENCIMIENTO | ACTIVO | DEVICE_ID
  *
- * Prefijos: ARPA-FREE- | ARPA-PRO- | ARPA-PYME- | ARPA-WL- | ARPA-FOUNDER-7X9K2M4QZ1 (fundador, permanente)
+ * Prefijos: ARPA-FREE- | ARPA-PRO- | ARPA-PYME- | ARPA-WL- | código fundador: en Script Properties → FOUNDER_CODE (NUNCA en el código)
 
  *
 
@@ -54,6 +54,20 @@
  *   { accion: 'siguientenumero', licencia, tipo: 'formato'|'cot'|'cc', clienteUltimo }
  *
  * Pestaña Numeracion: Licencia | Tipo | UltimoNumero
+
+ *
+
+ * Pestaña Trials: Nombre | Oficio | Telefono | FechaInicio | FechaVencimiento | TrialId | Notificado | Convertido | Secuencia | Detener | Pais
+
+ *   Secuencia, Detener y Pais se agregan solas al final si faltan. Trigger diario 8-9 a. m. → revisarSecuenciaPruebas
+
+ *   (o el trigger viejo revisarTrialsDia6, que ahora llama a la misma función).
+
+ *
+
+ * Pestaña VentasManuales (pagos por Nequi / llave Bre-B): Fecha | Nombre | Email | Telefono | Plan | MontoCOP | Medio | Referencia | Codigo | Estado
+
+ *   Menú del Sheet ARPA → "Crear licencias de pagos manuales" (procesarVentasManuales). Se crea sola si falta.
  *
  */
 
@@ -67,9 +81,9 @@ const CONFIG = {
 
   MANUAL_URL: 'https://arlenpavonr-png.github.io/Formato-Arlenpav/manual.html',
 
-  SUPPORT_WHATSAPP: '573005683914',
+  SUPPORT_WHATSAPP: '573016092542',
 
-  SUPPORT_WHATSAPP_DISPLAY: '+57 300-568-3914',
+  SUPPORT_WHATSAPP_DISPLAY: '+57 301-609-2542',
 
   EMAIL_FROM_NAME: 'ARPA Technology Global',
 
@@ -86,7 +100,7 @@ const CONFIG = {
   },
 
   /** Licencia fundador — nunca expira, exenta de bloqueos. */
-  FOUNDER_CODE: 'ARPA-FOUNDER-7X9K2M4QZ1',
+  // FOUNDER_CODE se lee de Script Properties (ver getFounderCode_). No escribirlo aquí.
 
   EMPRESAS_SHEET_NAME: 'Empresas',
 
@@ -99,7 +113,7 @@ const CONFIG = {
   TRIAL_NOTIFY_EMAIL: 'support@arpatechnologyglobal.com',
 
   /** Link Gumroad plan Técnico Independiente ($83 USD) — actualizar si cambia */
-  TRIAL_UPGRADE_GUMROAD_URL: 'https://arpatechnologyglobal.com/',
+  TRIAL_UPGRADE_GUMROAD_URL: 'https://arpatech.gumroad.com/l/arpa-suite-tecnico',
 
 };
 
@@ -380,7 +394,7 @@ function buildValidationResult_(row, cols, codigo) {
 
           pma_vencido: true,
 
-          founder: codigo === CONFIG.FOUNDER_CODE,
+          founder: codigo === getFounderCode_(),
 
           white_label: String(codigo || '').indexOf('ARPA-WL-') === 0,
 
@@ -408,7 +422,7 @@ function buildValidationResult_(row, cols, codigo) {
 
     vencimiento: permanent ? '' : vencStr,
 
-    founder: codigo === CONFIG.FOUNDER_CODE,
+    founder: codigo === getFounderCode_(),
 
     white_label: String(codigo || '').indexOf('ARPA-WL-') === 0,
 
@@ -418,11 +432,18 @@ function buildValidationResult_(row, cols, codigo) {
 
 
 
+/** Código fundador guardado en Project Settings → Script Properties → FOUNDER_CODE. */
+function getFounderCode_() {
+  const v = PropertiesService.getScriptProperties().getProperty('FOUNDER_CODE');
+  const c = String(v || '').trim().toUpperCase();
+  return c || '__SIN_FOUNDER_CONFIGURADO__';
+}
+
 function isPermanentLicense_(codigo) {
 
   const c = String(codigo || '').trim().toUpperCase();
 
-  return c === CONFIG.FOUNDER_CODE;
+  return c === getFounderCode_();
 
 }
 
@@ -431,7 +452,7 @@ function isPermanentLicense_(codigo) {
 /** Ejecutar una vez en Apps Script para registrar el código founder en el Sheet. */
 function seedFounderLicense() {
 
-  const codigo = CONFIG.FOUNDER_CODE;
+  const codigo = getFounderCode_();
 
   const sheet = getLicenseSheet_();
 
@@ -1289,15 +1310,23 @@ function handleSyncPost_(e) {
 
   }
 
+  if (accion === 'respaldoguardar') {
+    return respondJson_(respaldoGuardar_(licencia, body));
+  }
+  if (accion === 'respaldolistar') {
+    return respondJson_(respaldoListar_(licencia, body));
+  }
+  if (accion === 'respaldoleer') {
+    return respondJson_(respaldoLeer_(licencia, body));
+  }
   if (accion === 'siguientenumero') {
 
     return respondJson_(siguienteNumero_(licencia, body.tipo, body.clienteUltimo));
 
   }
 
-
-
-  return null;
+  // Pedido JSON que este servidor no conoce: responder JSON, nunca seguir al flujo de Gumroad.
+  return respondJson_({ ok: false, mensaje: 'Acción desconocida.' });
 
 }
 
@@ -1739,7 +1768,7 @@ function getHistorial_(licencia) {
 
 
 
-const TRIALS_HEADERS_ = ['Nombre', 'Oficio', 'Telefono', 'FechaInicio', 'FechaVencimiento', 'TrialId', 'Notificado', 'Convertido'];
+const TRIALS_HEADERS_ = ['Nombre', 'Oficio', 'Telefono', 'FechaInicio', 'FechaVencimiento', 'TrialId', 'Notificado', 'Convertido', 'Secuencia', 'Detener', 'Pais'];
 
 
 
@@ -1769,11 +1798,41 @@ function ensureTrialsSheetHeaders_(sheet) {
 
   const first = String(row[0] || '').trim();
 
-  if (first === 'Nombre') return getTrialsColumnMap_(row);
+  if (first !== 'Nombre') {
 
-  sheet.getRange(1, 1, 1, TRIALS_HEADERS_.length).setValues([TRIALS_HEADERS_]);
+    sheet.getRange(1, 1, 1, TRIALS_HEADERS_.length).setValues([TRIALS_HEADERS_]);
 
-  return getTrialsColumnMap_(TRIALS_HEADERS_);
+    return getTrialsColumnMap_(TRIALS_HEADERS_);
+
+  }
+
+  // Hojas existentes: agrega al final las columnas que falten (p. ej. Secuencia, Detener) sin mover las demás.
+
+  const map = getTrialsColumnMap_(row);
+
+  let used = 0;
+
+  for (let i = 0; i < row.length; i++) {
+
+    if (String(row[i] || '').trim()) used = i + 1;
+
+  }
+
+  TRIALS_HEADERS_.forEach(function (h) {
+
+    const key = h.toLowerCase();
+
+    if (map[key] != null) return;
+
+    sheet.getRange(1, used + 1).setValue(h);
+
+    map[key] = used;
+
+    used += 1;
+
+  });
+
+  return map;
 
 }
 
@@ -1875,6 +1934,12 @@ function registerTrialUser_(body) {
 
   row[col.trialid != null ? col.trialid : 5] = trialId;
 
+  // País de la app (CO, MX, US, CL, PE) para armar bien el link de WhatsApp.
+
+  const pais = String(body.pais || '').trim().toUpperCase();
+
+  if (col.pais != null && TRIAL_PHONE_COUNTRIES_[pais]) row[col.pais] = pais;
+
   sheet.appendRow(row);
 
   return { ok: true };
@@ -1883,39 +1948,351 @@ function registerTrialUser_(body) {
 
 
 
-function normalizePhoneForWaMe_(telefono) {
+/**
 
-  let digits = String(telefono || '').replace(/\D/g, '');
+ * Países de la app (mismo listado que js/arpa-pricing.js): código de país y
 
-  if (!digits) return '';
+ * cuántos dígitos tiene el número nacional.
 
-  if (digits.length === 10) digits = '57' + digits;
+ */
 
-  if (digits.length === 11 && digits.charAt(0) === '3') digits = '57' + digits;
+const TRIAL_PHONE_COUNTRIES_ = {
 
-  return digits;
+  CO: { prefix: '57', national: 10 },
+
+  MX: { prefix: '52', national: 10 },
+
+  US: { prefix: '1', national: 10 },
+
+  CL: { prefix: '56', national: 9 },
+
+  PE: { prefix: '51', national: 9 }
+
+};
+
+
+
+/** ¿El número (ya con código) tiene la forma de un número de ese país? */
+
+function trialPhoneMatchesCountry_(digits, pais) {
+
+  const c = TRIAL_PHONE_COUNTRIES_[pais];
+
+  if (!c || digits.indexOf(c.prefix) !== 0) return false;
+
+  const rest = digits.slice(c.prefix.length);
+
+  if (pais === 'CO') return rest.length === 10 && (rest.charAt(0) === '3' || rest.indexOf('60') === 0);
+
+  if (pais === 'MX') return rest.length === 10 || (rest.length === 11 && rest.charAt(0) === '1');
+
+  if (pais === 'US') return rest.length === 10 && /^[2-9]/.test(rest);
+
+  return rest.length === c.national;
 
 }
 
 
 
-function buildTrialDay6WhatsAppMessage_(nombre) {
+/**
 
-  const gumroad = CONFIG.TRIAL_UPGRADE_GUMROAD_URL || 'https://arpatechnologyglobal.com/';
+ * Número para wa.me. Nunca adivina: si no es claro, devuelve phone '' y revisar true.
 
-  const first = String(nombre || '').trim().split(/\s+/)[0];
+ * telefono: lo que guardó la app (solo dígitos; puede traer "+").
 
-  const saludo = first ? ('Hola ' + first + '! ') : 'Hola! ';
+ * pais: CO, MX, US, CL o PE si la app lo envió; vacío en registros viejos.
 
-  return saludo + 'Vi que llevas usando ARPA Suite estos días. ¿Cómo te ha ido con las cotizaciones? Mañana se vence tu prueba gratis. Si te sirvió, el plan Técnico Independiente queda en $83 USD pago único, de por vida. ¿Quieres que te ayude a activarlo? Aquí está el link: ' + gumroad;
+ * → { phone: '573001234567' | '', revisar: bool, motivo: '' }
+
+ */
+
+function resolveTrialWaPhone_(telefono, pais) {
+
+  const raw = String(telefono == null ? '' : telefono).trim();
+
+  let digits = raw.replace(/\D/g, '');
+
+  const p = TRIAL_PHONE_COUNTRIES_[String(pais || '').trim().toUpperCase()] ? String(pais).trim().toUpperCase() : '';
+
+  if (!digits) return { phone: '', revisar: true, motivo: 'sin número' };
+
+  if (digits.indexOf('00') === 0) digits = digits.slice(2);
+
+
+
+  // 1. Ya trae código de país de la app (57, 52, 1, 56, 51) con el largo correcto.
+
+  const codes = Object.keys(TRIAL_PHONE_COUNTRIES_);
+
+  for (let i = 0; i < codes.length; i++) {
+
+    if (!trialPhoneMatchesCountry_(digits, codes[i])) continue;
+
+    if (p && p !== codes[i]) {
+
+      return { phone: '', revisar: true, motivo: 'el número parece de ' + codes[i] + ' pero el país de la app es ' + p };
+
+    }
+
+    return { phone: digits, revisar: false, motivo: '' };
+
+  }
+
+
+
+  // 2. Número nacional sin código.
+
+  if (p && digits.length === TRIAL_PHONE_COUNTRIES_[p].national) {
+
+    const full = TRIAL_PHONE_COUNTRIES_[p].prefix + digits;
+
+    if (trialPhoneMatchesCountry_(full, p)) return { phone: full, revisar: false, motivo: '' };
+
+  }
+
+  if (!p && digits.length === 10 && digits.charAt(0) === '3') {
+
+    return { phone: '57' + digits, revisar: false, motivo: '' }; // celular de Colombia
+
+  }
+
+
+
+  // 3. Escrito con "+" y largo internacional válido: se respeta tal cual.
+
+  if (raw.charAt(0) === '+' && digits.length >= 8 && digits.length <= 15) {
+
+    return { phone: digits, revisar: false, motivo: '' };
+
+  }
+
+  return { phone: '', revisar: true, motivo: 'no se sabe el código de país' };
 
 }
 
 
 
-function buildTrialWhatsAppLink_(telefono, message) {
+/** Compatibilidad: devuelve '' cuando el número no es claro (antes anteponía 57 siempre). */
 
-  const phone = normalizePhoneForWaMe_(telefono);
+function normalizePhoneForWaMe_(telefono, pais) {
+
+  return resolveTrialWaPhone_(telefono, pais).phone;
+
+}
+
+
+
+// ─── Secuencia de seguimiento de pruebas (días 0, 2, 5, 6, 7, 10 y 20) ─────────
+
+// Nada se envía solo al cliente: cada mañana Arlen recibe UN correo con los links
+
+// de WhatsApp listos y él los envía a mano.
+
+// day = día desde FechaInicio; hasta = último día en que todavía vale la pena
+
+// mandarlo si el trigger no corrió (después de eso se salta, no se manda atrasado).
+
+
+
+const TRIAL_SEQUENCE_ = [
+
+  { day: 0, hasta: 1, objetivo: 'Bienvenida y poner el logo', cuando: 'lo antes posible (8 a. m. a 6 p. m.)' },
+
+  { day: 2, hasta: 4, objetivo: 'Primer documento real', cuando: '9 a 10 a. m.' },
+
+  { day: 5, hasta: 5, objetivo: 'Mostrar valor y resolver dudas', cuando: '9 a 10 a. m.' },
+
+  { day: 6, hasta: 6, objetivo: 'Vence mañana: ofrecer el plan', cuando: '8 a 9 a. m.' },
+
+  { day: 7, hasta: 7, objetivo: 'Último día de la prueba', cuando: '10 a 11 a. m.' },
+
+  { day: 10, hasta: 12, objetivo: 'Recuperar al que no compró', cuando: 'en la mañana' },
+
+  { day: 20, hasta: 22, objetivo: 'Último intento, puerta abierta', cuando: 'en la mañana' }
+
+];
+
+
+
+/** Nombre del oficio para los mensajes (la app guarda el id, p. ej. "linea_blanca"). */
+
+const TRIAL_OFICIO_LABELS_ = {
+
+  automatismos: 'automatismos',
+
+  electricidad: 'electricidad',
+
+  gas: 'gas',
+
+  refrigeracion: 'refrigeración y aire acondicionado',
+
+  cctv: 'cámaras y seguridad electrónica',
+
+  plomeria: 'plomería',
+
+  metalmecanica: 'metalmecánica y soldadura',
+
+  plagas: 'control de plagas',
+
+  linea_blanca: 'línea blanca',
+
+  solar: 'energía solar'
+
+};
+
+
+
+function trialNormalizeText_(s) {
+
+  return String(s || '').trim().toLowerCase()
+
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+}
+
+
+
+function trialFirstName_(nombre) {
+
+  const first = String(nombre || '').trim().split(/\s+/)[0] || '';
+
+  if (!first) return '';
+
+  return first.charAt(0).toUpperCase() + first.slice(1);
+
+}
+
+
+
+function trialOficioLabel_(oficio) {
+
+  const raw = String(oficio || '').trim();
+
+  if (!raw) return '';
+
+  const key = trialNormalizeText_(raw).replace(/\s+/g, '_');
+
+  if (TRIAL_OFICIO_LABELS_[key]) return TRIAL_OFICIO_LABELS_[key];
+
+  return raw.replace(/_/g, ' ');
+
+}
+
+
+
+/** Variante del día 2: refrigeración, gas y mantenimiento. */
+
+function isTrialOficioMantenimiento_(oficio) {
+
+  const n = trialNormalizeText_(oficio).replace(/_/g, ' ');
+
+  if (!n) return false;
+
+  return /refrigeracion|aire acondicionado|mantenimiento/.test(n) || /(^|\s)gas(\s|$)/.test(n);
+
+}
+
+
+
+/** "[Nombre], texto" → "Nombre, texto" o, sin nombre, "Texto" (con ¿ respetado). */
+
+function trialNameLead_(first, rest) {
+
+  if (first) return first + ', ' + rest;
+
+  const m = String(rest).match(/^(¿|¡)?(.)([\s\S]*)$/);
+
+  if (!m) return rest;
+
+  return (m[1] || '') + m[2].toUpperCase() + m[3];
+
+}
+
+
+
+/**
+
+ * Texto aprobado (Manual de ventas, 11 oct 2026) para el día de la secuencia.
+
+ * Devuelve '' si el día no es parte de la secuencia.
+
+ */
+
+function buildTrialSequenceMessage_(day, nombre, oficio) {
+
+  const first = trialFirstName_(nombre);
+
+  const of = trialOficioLabel_(oficio);
+
+  const gumroad = CONFIG.TRIAL_UPGRADE_GUMROAD_URL || 'https://arpatech.gumroad.com/l/arpa-suite-tecnico';
+
+  const hola = first ? ('¡Hola ' + first + '!') : '¡Hola!';
+
+  const holaComa = first ? ('Hola ' + first + ',') : 'Hola,';
+
+  switch (Number(day)) {
+
+    case 0:
+
+      return hola + ' Bienvenido a ARPA Suite. Primer paso: en Configuración sube tu logo y los datos de tu empresa; desde ahí todos tus PDF salen con tu marca. Cualquier duda, me escribes aquí mismo.';
+
+    case 2: {
+
+      const tip = of ? ('Tip para ' + of + ': ') : 'Tip: ';
+
+      if (isTrialOficioMantenimiento_(oficio)) {
+
+        return trialNameLead_(first, '¿ya hiciste tu primera cotización? ' + tip + 'después de cada mantenimiento haz el Formato de Servicio con fotos; queda en tu historial y la app te recuerda a los 6 meses.');
+
+      }
+
+      return trialNameLead_(first, '¿ya hiciste tu primera cotización? ' + tip + 'agrega al Catálogo los 10 productos que más usas y la cotización sale en 2 minutos. Hazla con un cliente real y mándasela por WhatsApp.');
+
+    }
+
+    case 5:
+
+      return trialNameLead_(first, 'ya llevas 5 días con ARPA Suite. ¿Algún cliente te ha dicho algo del PDF? Si algo no te ha funcionado, dime y te ayudo hoy mismo.');
+
+    case 6:
+
+      return hola + ' Mañana vence tu prueba de ARPA Suite. Si te sirvió para tus trabajos' + (of ? (' de ' + of) : '') + ', el plan Técnico Independiente es $83 USD pago único, sin mensualidades: ' + gumroad + ' ¿Te quedó alguna duda?';
+
+    case 7:
+
+      return trialNameLead_(first, 'hoy es el último día de tu prueba. Cuando actives tu código sigues donde ibas. $83 USD una sola vez: ' + gumroad + ' ¿Lo dejamos activo hoy?');
+
+    case 10:
+
+      return holaComa + ' tu prueba de ARPA Suite terminó hace unos días. ¿Qué te faltó para decidirte: el precio, la forma de pago o algo de la app? Si quieres, te doy 7 días más para probarla con un trabajo real. Respóndeme y te la activo.';
+
+    case 20:
+
+      return holaComa + ' último mensaje de mi parte, no te quiero llenar el WhatsApp. Si más adelante quieres mandar tus cotizaciones' + (of ? (' de ' + of) : '') + ' en PDF con tu logo, ARPA Suite sigue siendo pago único: https://arpatechnologyglobal.com ¡Éxitos con tus trabajos!';
+
+    default:
+
+      return '';
+
+  }
+
+}
+
+
+
+/** Compatibilidad: el mensaje del día 6 ahora es el texto aprobado de la secuencia. */
+
+function buildTrialDay6WhatsAppMessage_(nombre, oficio) {
+
+  return buildTrialSequenceMessage_(6, nombre, oficio);
+
+}
+
+
+
+function buildTrialWhatsAppLink_(telefono, message, pais) {
+
+  const phone = normalizePhoneForWaMe_(telefono, pais);
 
   if (!phone) return '';
 
@@ -1927,145 +2304,757 @@ function buildTrialWhatsAppLink_(telefono, message) {
 
 
 
+/** "0,2,5" → [0, 2, 5] */
+
+function parseTrialSequenceDays_(value) {
+
+  return String(value == null ? '' : value).split(/[^0-9]+/)
+
+    .filter(function (s) { return s !== ''; })
+
+    .map(function (s) { return Number(s); });
+
+}
+
+
+
+function trialParseStartDate_(raw) {
+
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? null : stripTime_(raw);
+
+  const d = parseDateFromIsoString_(String(raw || ''));
+
+  return d ? stripTime_(d) : null;
+
+}
+
+
+
+function trialDaysSinceStart_(fechaInicio, today) {
+
+  return Math.round((stripTime_(today).getTime() - stripTime_(fechaInicio).getTime()) / 86400000);
+
+}
+
+
+
 /**
 
- * Revisar trials en día 6 (FechaInicio + 6 días). Marca Notificado y envía email con links WA.
+ * Qué mensaje toca hoy. Como máximo uno: el más reciente que ya llegó,
 
- * Configurar trigger: Time-driven → Day timer → 8am-9am → revisarTrialsDia6
+ * solo si no se ha preparado y todavía está dentro de su plazo ("hasta").
 
  */
 
-function revisarTrialsDia6() {
+function pickTrialSequenceStep_(daysSinceStart, sentDays) {
 
-  const sheet = getTrialsSheet_();
+  const n = Number(daysSinceStart);
 
-  const values = sheet.getDataRange().getValues();
+  if (!isFinite(n) || n < 0) return null;
 
-  if (values.length < 2) return;
+  let step = null;
 
+  TRIAL_SEQUENCE_.forEach(function (s) { if (s.day <= n) step = s; });
 
+  if (!step) return null;
 
-  const today = stripTime_(new Date());
+  if (n > step.hasta) return null;
 
-  const col = ensureTrialsSheetHeaders_(sheet);
+  if ((sentDays || []).indexOf(step.day) !== -1) return null;
 
-  const leads = [];
+  return step;
 
-
-
-  for (let i = 1; i < values.length; i++) {
-
-    const nombre = String(values[i][col.nombre != null ? col.nombre : 0] || '').trim();
-
-    const oficio = String(values[i][col.oficio != null ? col.oficio : 1] || '').trim();
-
-    const telefono = String(values[i][col.telefono != null ? col.telefono : 2] || '').trim();
-
-    const fechaInicioRaw = values[i][col.fechainicio != null ? col.fechainicio : 3];
-
-    const notificado = String(values[i][col.notificado != null ? col.notificado : 6] || '').trim();
-
-    if (!telefono || notificado) continue;
+}
 
 
 
-    let fechaInicio = null;
+/**
 
-    if (fechaInicioRaw instanceof Date) {
+ * Decide para una fila de la hoja Trials. Sin efectos: no escribe ni envía.
 
-      fechaInicio = stripTime_(fechaInicioRaw);
+ * row: { nombre, oficio, telefono, fechaInicio, trialId, notificado, convertido, secuencia, detener, pais }
 
-    } else {
+ */
 
-      fechaInicio = parseDateFromIsoString_(String(fechaInicioRaw || ''));
+function planTrialSequenceRow_(row, today) {
 
-      if (fechaInicio) fechaInicio = stripTime_(fechaInicio);
+  if (!row) return null;
 
-    }
+  if (String(row.convertido || '').trim()) return null;
 
-    if (!fechaInicio) continue;
+  if (String(row.detener || '').trim()) return null;
+
+  const telefono = String(row.telefono || '').trim();
+
+  if (!telefono) return null;
+
+  const fechaInicio = trialParseStartDate_(row.fechaInicio);
+
+  if (!fechaInicio) return null;
+
+  const sent = parseTrialSequenceDays_(row.secuencia);
+
+  // Filas avisadas por el revisarTrialsDia6 anterior (Notificado) ya tuvieron su día 6.
+
+  if (String(row.notificado || '').trim() && sent.indexOf(6) === -1) sent.push(6);
+
+  const days = trialDaysSinceStart_(fechaInicio, today);
+
+  const step = pickTrialSequenceStep_(days, sent);
+
+  if (!step) return null;
+
+  const nombre = String(row.nombre || '').trim();
+
+  const oficio = String(row.oficio || '').trim();
+
+  const message = buildTrialSequenceMessage_(step.day, nombre, oficio);
+
+  // Si el número no es claro no se adivina: va al correo sin link, marcado "revisar número".
+
+  const pais = String(row.pais || '').trim().toUpperCase();
+
+  const tel = resolveTrialWaPhone_(telefono, pais);
+
+  const waLink = tel.phone ? buildTrialWhatsAppLink_(tel.phone, message) : '';
+
+  return {
+
+    pais: pais,
+
+    revisarNumero: !waLink,
+
+    motivoNumero: waLink ? '' : (tel.motivo || 'número no claro'),
+
+    day: step.day,
+
+    objetivo: step.objetivo,
+
+    cuando: step.cuando,
+
+    nombre: nombre,
+
+    oficio: oficio,
+
+    oficioLabel: trialOficioLabel_(oficio),
+
+    telefono: telefono,
+
+    trialId: String(row.trialId || '').trim(),
+
+    message: message,
+
+    waLink: waLink,
+
+    secuenciaNueva: sent.filter(function (d) { return d !== step.day; })
+
+      .concat([step.day]).sort(function (a, b) { return a - b; }).join(',')
+
+  };
+
+}
 
 
 
-    const day6 = stripTime_(addDays_(fechaInicio, 6));
+function buildTrialSequenceEmailHtml_(leads, fechaLabel) {
 
-    if (day6.getTime() !== today.getTime()) continue;
+  const items = leads.map(function (lead, idx) {
 
+    const label = escapeHtml_(lead.nombre || 'Sin nombre') +
 
+      (lead.oficioLabel ? ' · ' + escapeHtml_(lead.oficioLabel) : '') +
 
-    const message = buildTrialDay6WhatsAppMessage_(nombre);
+      ' · ' + escapeHtml_(lead.telefono) +
 
-    const waLink = buildTrialWhatsAppLink_(telefono, message);
+      (lead.pais ? ' (' + escapeHtml_(lead.pais) + ')' : '');
 
-    sheet.getRange(i + 1, (col.notificado != null ? col.notificado : 6) + 1).setValue('Si');
+    const accion = lead.waLink
 
-    leads.push({
+      ? '<a href="' + lead.waLink + '">Abrir WhatsApp con el mensaje listo</a>'
 
-      nombre: nombre,
+      : '<strong style="color:#b00020;">REVISAR NÚMERO</strong> (' + escapeHtml_(lead.motivoNumero) +
 
-      oficio: oficio,
+        '): no se armó el link para no escribirle a otra persona. Confirma el código de país y copia el mensaje.';
 
-      telefono: telefono,
+    return '<li style="margin-bottom:14px;">' +
 
-      trialId: String(values[i][col.trialid != null ? col.trialid : 5] || ''),
+      '<strong>Día ' + lead.day + ' — ' + escapeHtml_(lead.objetivo) + '</strong><br>' +
 
-      waLink: waLink
+      (idx + 1) + '. ' + label + '<br>' +
 
-    });
+      'Enviar: ' + escapeHtml_(lead.cuando) + ' (hora del técnico) — ' +
 
-  }
+      accion +
 
+      '<blockquote style="border-left:3px solid #ccc;margin:6px 0;padding-left:12px;color:#444;">' +
 
-
-  if (!leads.length) return;
-
-
-
-  const lines = leads.map(function (lead, idx) {
-
-    const label = (lead.nombre || 'Sin nombre') +
-
-      (lead.oficio ? ' · ' + lead.oficio : '') +
-
-      ' · ' + lead.telefono +
-
-      (lead.trialId ? ' (' + lead.trialId + ')' : '');
-
-    return (idx + 1) + '. ' + label + ' — <a href="' + lead.waLink + '">Abrir WhatsApp</a>';
+      escapeHtml_(lead.message) + '</blockquote></li>';
 
   });
 
+  return '<p>Hola Arlen,</p>' +
+
+    '<p>Seguimiento de pruebas para hoy' + (fechaLabel ? ' (' + escapeHtml_(fechaLabel) + ')' : '') +
+
+    ': <strong>' + leads.length + (leads.length === 1 ? ' mensaje' : ' mensajes') + '</strong> para enviar por WhatsApp. ' +
+
+    'Toca cada link, revisa el texto y envíalo tú.</p>' +
+
+    '<ol style="padding-left:18px;">' + items.join('') + '</ol>' +
+
+    '<p style="color:#666;font-size:13px;">Si alguien responde o pide no recibir más mensajes, escribe algo en la columna ' +
+
+    '<strong>Detener</strong> de la hoja Trials. Si compra, marca <strong>Convertido</strong>. ' +
+
+    'La columna <strong>Secuencia</strong> guarda los días ya preparados.</p>';
+
+}
 
 
-  const htmlBody =
 
-    '<p>Hola,</p>' +
+function readTrialRow_(values, col) {
 
-    '<p>Estos usuarios de trial están en <strong>día 6</strong> (vence mañana). Contactar por WhatsApp:</p>' +
+  function cell(key, fallback) {
 
-    '<ul><li>' + lines.join('</li><li>') + '</li></ul>' +
+    const idx = col[key] != null ? col[key] : fallback;
 
-    '<p>Ejemplo de mensaje al cliente (personalizado con nombre):</p>' +
+    return idx == null ? '' : values[idx];
 
-    '<blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444;">' +
+  }
 
-    buildTrialDay6WhatsAppMessage_('Juan').replace(/</g, '&lt;') +
+  return {
 
-    '</blockquote>';
+    nombre: cell('nombre', 0),
+
+    oficio: cell('oficio', 1),
+
+    telefono: cell('telefono', 2),
+
+    fechaInicio: cell('fechainicio', 3),
+
+    trialId: cell('trialid', 5),
+
+    notificado: cell('notificado', 6),
+
+    convertido: cell('convertido', 7),
+
+    secuencia: cell('secuencia', null),
+
+    detener: cell('detener', null),
+
+    pais: cell('pais', null)
+
+  };
+
+}
 
 
+
+function runTrialSequence_(dryRun) {
+
+  const sheet = getTrialsSheet_();
+
+  const col = ensureTrialsSheetHeaders_(sheet);
+
+  const values = sheet.getDataRange().getValues();
+
+  if (values.length < 2) return [];
+
+  const today = stripTime_(new Date());
+
+  const leads = [];
+
+  for (let i = 1; i < values.length; i++) {
+
+    const plan = planTrialSequenceRow_(readTrialRow_(values[i], col), today);
+
+    if (!plan) continue;
+
+    plan.rowNumber = i + 1;
+
+    leads.push(plan);
+
+  }
+
+  if (!leads.length) {
+
+    Logger.log('Secuencia de pruebas: nada para hoy.');
+
+    return leads;
+
+  }
+
+  if (dryRun) {
+
+    leads.forEach(function (l) {
+
+      Logger.log('Fila ' + l.rowNumber + ' · día ' + l.day + ' · ' + (l.nombre || 'Sin nombre') + ' · ' + l.telefono + (l.revisarNumero ? ' · REVISAR NÚMERO: ' + l.motivoNumero : '') + '\n' + l.message);
+
+    });
+
+    return leads;
+
+  }
+
+  // Primero el correo; si falla, no se marca nada y se reintenta al día siguiente (dentro del plazo).
 
   MailApp.sendEmail({
 
     to: CONFIG.TRIAL_NOTIFY_EMAIL,
 
-    subject: 'ARPA Suite — Leads para contactar hoy (día 6)',
+    subject: 'ARPA Suite — Seguimiento de pruebas: ' + leads.length + (leads.length === 1 ? ' mensaje' : ' mensajes') + ' para enviar hoy',
 
-    htmlBody: htmlBody
+    htmlBody: buildTrialSequenceEmailHtml_(leads, formatDateEs_(today))
 
   });
 
+  leads.forEach(function (l) {
+
+    sheet.getRange(l.rowNumber, col.secuencia + 1).setValue(l.secuenciaNueva);
+
+    if (l.day === 6) {
+
+      sheet.getRange(l.rowNumber, (col.notificado != null ? col.notificado : 6) + 1).setValue('Si');
+
+    }
+
+  });
+
+  return leads;
+
 }
+
+
+
+/**
+
+ * Revisión diaria de la secuencia de pruebas (días 0, 2, 5, 6, 7, 10 y 20).
+
+ * Envía UN correo a CONFIG.TRIAL_NOTIFY_EMAIL con los links de WhatsApp listos.
+
+ * Trigger: Time-driven → Day timer → 8am-9am → revisarSecuenciaPruebas
+
+ */
+
+function revisarSecuenciaPruebas() {
+
+  return runTrialSequence_(false);
+
+}
+
+
+
+/** Vista previa en el editor: muestra en el registro qué saldría hoy. No escribe ni envía nada. */
+
+function previsualizarSecuenciaPruebas() {
+
+  return runTrialSequence_(true);
+
+}
+
+
+
+/**
+
+ * Compatibilidad: el trigger existente "revisarTrialsDia6" sigue funcionando
+
+ * y ahora prepara toda la secuencia (incluido el día 6).
+
+ */
+
+function revisarTrialsDia6() {
+
+  return revisarSecuenciaPruebas();
+
+}
+
+
+
+
+
+// ─── Ventas manuales (Nequi / llave Bre-B / otro) ─────────────────────────────
+
+// Arlen llena una fila en la pestaña VentasManuales y, desde el menú ARPA del Sheet,
+
+// "Crear licencias de pagos manuales". Se crea la licencia igual que una venta de
+
+// Gumroad y se envía el mismo correo de activación. Una fila con Codigo ya no se toca.
+
+
+
+const VENTAS_MANUALES_SHEET_NAME_ = 'VentasManuales';
+
+
+
+const VENTAS_MANUALES_HEADERS_ = ['Fecha', 'Nombre', 'Email', 'Telefono', 'Plan', 'MontoCOP', 'Medio', 'Referencia', 'Codigo', 'Estado'];
+
+
+
+/** Menú del Sheet (solo aparece si este script está ligado al Sheet de licencias). */
+
+function onOpen() {
+
+  try {
+
+    SpreadsheetApp.getUi()
+
+      .createMenu('ARPA')
+
+      .addItem('Crear licencias de pagos manuales', 'procesarVentasManuales')
+
+      .addToUi();
+
+  } catch (e) {
+
+    Logger.log('onOpen: ' + e.message);
+
+  }
+
+}
+
+
+
+function getVentasManualesSheet_() {
+
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+
+  let sheet = ss.getSheetByName(VENTAS_MANUALES_SHEET_NAME_);
+
+  if (!sheet) {
+
+    sheet = ss.insertSheet(VENTAS_MANUALES_SHEET_NAME_);
+
+    sheet.getRange(1, 1, 1, VENTAS_MANUALES_HEADERS_.length).setValues([VENTAS_MANUALES_HEADERS_]);
+
+    return { sheet: sheet, creada: true };
+
+  }
+
+  return { sheet: sheet, creada: false };
+
+}
+
+
+
+/** Columnas por nombre (sin importar mayúsculas); agrega al final las que falten. */
+
+function ensureVentasManualesHeaders_(sheet) {
+
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+
+  const row = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+
+  const map = {};
+
+  let used = 0;
+
+  row.forEach(function (h, i) {
+
+    const key = String(h || '').trim().toLowerCase();
+
+    if (key) {
+
+      map[key] = i;
+
+      used = i + 1;
+
+    }
+
+  });
+
+  VENTAS_MANUALES_HEADERS_.forEach(function (h) {
+
+    const key = h.toLowerCase();
+
+    if (map[key] != null) return;
+
+    sheet.getRange(1, used + 1).setValue(h);
+
+    map[key] = used;
+
+    used += 1;
+
+  });
+
+  return map;
+
+}
+
+
+
+function isValidEmail_(email) {
+
+  return /^[^\s@,;<>]+@[^\s@,;<>]+\.[A-Za-z]{2,}$/.test(String(email || '').trim());
+
+}
+
+
+
+/** "Técnico Independiente"/"Pro" → PRO, "PYME" → PYME, "White Label"/"WL" → WL. Free no se vende a mano. */
+
+function resolveManualPlan_(planRaw) {
+
+  const n = trialNormalizeText_(planRaw).replace(/\s+/g, ' ');
+
+  if (!n) return { error: 'falta el Plan' };
+
+  if (/free|gratis|prueba|trial/.test(n)) return { error: 'el plan Free no se vende a mano' };
+
+  if (n === 'pro' || n === 'plan pro' || n.indexOf('tecnico independiente') !== -1) return { plan: CONFIG.PLANS.PRO };
+
+  if (n === 'pyme' || n === 'plan pyme') return { plan: CONFIG.PLANS.PYME };
+
+  if (n === 'wl' || n === 'white label' || n === 'whitelabel' || n === 'plan white label') return { plan: CONFIG.PLANS.WL };
+
+  return { error: 'plan desconocido "' + String(planRaw).trim() + '" (usa Técnico Independiente, Pro, PYME o White Label)' };
+
+}
+
+
+
+/** Revisa una fila. Sin efectos. → { vacia } | { error } | { nombre, email, plan } */
+
+function validateVentaManual_(venta) {
+
+  const nombre = String(venta.nombre || '').trim();
+
+  const email = String(venta.email || '').trim().toLowerCase();
+
+  const planRaw = String(venta.plan || '').trim();
+
+  if (!nombre && !email && !planRaw) return { vacia: true };
+
+  if (!nombre) return { error: 'falta el Nombre' };
+
+  if (!email) return { error: 'falta el Email' };
+
+  if (!isValidEmail_(email)) return { error: 'email no válido "' + email + '"' };
+
+  const p = resolveManualPlan_(planRaw);
+
+  if (p.error) return { error: p.error };
+
+  return { nombre: nombre, email: email, plan: p.plan };
+
+}
+
+
+
+function showSheetAlert_(mensaje) {
+
+  try {
+
+    SpreadsheetApp.getUi().alert(mensaje);
+
+  } catch (e) {
+
+    Logger.log(mensaje);
+
+  }
+
+}
+
+
+
+/**
+
+ * Crea las licencias de la pestaña VentasManuales que todavía no tienen Codigo.
+
+ * Se usa desde el menú ARPA → "Crear licencias de pagos manuales" (o Ejecutar en el editor).
+
+ */
+
+function procesarVentasManuales() {
+
+  const resumen = { creadas: 0, errores: 0, codigos: [] };
+
+  const lock = LockService.getScriptLock();
+
+  if (!lock.tryLock(30000)) {
+
+    showSheetAlert_('Hay otro proceso creando licencias. Espera un minuto y vuelve a intentarlo.');
+
+    resumen.ocupado = true;
+
+    return resumen;
+
+  }
+
+  try {
+
+    const hoja = getVentasManualesSheet_();
+
+    const sheet = hoja.sheet;
+
+    if (hoja.creada) {
+
+      showSheetAlert_('Se creó la pestaña "VentasManuales". Llena una fila por pago (Nombre, Email, Plan, MontoCOP, Medio y Referencia) y vuelve a usar el menú.');
+
+      resumen.pestanaCreada = true;
+
+      return resumen;
+
+    }
+
+    const col = ensureVentasManualesHeaders_(sheet);
+
+    const values = sheet.getDataRange().getValues();
+
+    function cell(row, key) {
+
+      return col[key] != null && row[col[key]] != null ? row[col[key]] : '';
+
+    }
+
+    function setCell(rowNumber, key, value) {
+
+      sheet.getRange(rowNumber, col[key] + 1).setValue(value);
+
+    }
+
+    // Referencias que ya generaron licencia (para no pagar dos veces el mismo comprobante).
+
+    const refsUsadas = {};
+
+    for (let i = 1; i < values.length; i++) {
+
+      const ref = String(cell(values[i], 'referencia') || '').trim().toLowerCase();
+
+      if (ref && String(cell(values[i], 'codigo') || '').trim()) refsUsadas[ref] = true;
+
+    }
+
+
+
+    for (let i = 1; i < values.length; i++) {
+
+      const row = values[i];
+
+      const rowNumber = i + 1;
+
+      if (String(cell(row, 'codigo') || '').trim()) continue; // ya procesada: nunca se repite
+
+      const v = validateVentaManual_({ nombre: cell(row, 'nombre'), email: cell(row, 'email'), plan: cell(row, 'plan') });
+
+      if (v.vacia) continue;
+
+      const ref = String(cell(row, 'referencia') || '').trim();
+
+      let error = v.error;
+
+      if (!error && ref && refsUsadas[ref.toLowerCase()]) error = 'la Referencia ' + ref + ' ya tiene una licencia en otra fila';
+
+      if (error) {
+
+        setCell(rowNumber, 'estado', 'ERROR: ' + error);
+
+        resumen.errores += 1;
+
+        debugLog_('venta_manual_error', { fila: rowNumber, motivo: error });
+
+        continue;
+
+      }
+
+
+
+      const hoy = new Date();
+
+      const codigo = generateCode_(v.plan.prefix);
+
+      const vencimiento = addDays_(hoy, v.plan.days);
+
+      appendLicenseRow_({
+
+        CODIGO: codigo,
+
+        PLAN: v.plan.planLabel,
+
+        CLIENTE: v.nombre,
+
+        EMAIL: v.email,
+
+        VENCIMIENTO: vencimiento,
+
+        ACTIVO: 'SI',
+
+      });
+
+      // El Codigo se escribe apenas existe la licencia: aunque el correo falle, la fila no se repite.
+
+      setCell(rowNumber, 'codigo', codigo);
+
+      if (!cell(row, 'fecha')) setCell(rowNumber, 'fecha', hoy);
+
+      setCell(rowNumber, 'estado', 'Licencia creada, enviando correo…');
+
+      if (ref) refsUsadas[ref.toLowerCase()] = true;
+
+      SpreadsheetApp.flush();
+
+      debugLog_('venta_manual_licencia', {
+
+        fila: rowNumber, codigo: codigo, plan: v.plan.planLabel, email: v.email,
+
+        montoCOP: cell(row, 'montocop'), medio: cell(row, 'medio'), referencia: ref
+
+      });
+
+
+
+      try {
+
+        sendActivationEmail_(v.email, v.nombre, v.plan, codigo, vencimiento);
+
+        setCell(rowNumber, 'estado', 'Enviado ' + formatDateEs_(hoy));
+
+        resumen.creadas += 1;
+
+        resumen.codigos.push(codigo);
+
+      } catch (err) {
+
+        setCell(rowNumber, 'estado', 'ERROR: licencia ' + codigo + ' creada pero el correo falló (' + err.message + '). Envíale el código a mano.');
+
+        resumen.errores += 1;
+
+        debugLog_('venta_manual_correo_error', { fila: rowNumber, codigo: codigo, mensaje: err.message });
+
+      }
+
+    }
+
+  } finally {
+
+    lock.releaseLock();
+
+  }
+
+
+
+  let msg;
+
+  if (!resumen.creadas && !resumen.errores) {
+
+    msg = 'No hay ventas nuevas para procesar. (Las filas con Codigo ya fueron procesadas.)';
+
+  } else {
+
+    msg = 'Listo: ' + resumen.creadas + (resumen.creadas === 1 ? ' licencia creada y enviada' : ' licencias creadas y enviadas') + '.' +
+
+      (resumen.errores ? ' ' + resumen.errores + (resumen.errores === 1 ? ' fila con error' : ' filas con error') + ': mira la columna Estado.' : '');
+
+  }
+
+  resumen.mensaje = msg;
+
+  showSheetAlert_(msg);
+
+  return resumen;
+
+}
+
+
 
 
 
@@ -2418,4 +3407,121 @@ function getDispositivosSheet_() {
   return sheet;
 }
 
+// ─── Respaldo completo en Google Drive (suite y NEXT) ──────────────────────
+// Guarda archivos JSON en la carpeta "ARPA Respaldos/<licencia>/<app>/" del Drive
+// del dueño del script. Solo licencias pagas activas o fundador.
+// Al publicar esta versión, Google pide autorizar el acceso a Drive.
 
+const RESPALDO_CARPETA_ = 'ARPA Respaldos';
+const RESPALDO_APPS_ = ['suite', 'next'];
+const RESPALDO_NOMBRE_RE_ = /^[a-z0-9][a-z0-9_.-]{0,79}$/;
+const RESPALDO_MAX_BYTES_ = 20 * 1024 * 1024;
+const RESPALDO_DIARIOS_A_GUARDAR_ = 30;
+
+/** ¿Esta licencia puede guardar respaldos? Activa y no es prueba gratis. */
+function licenciaPuedeRespaldar_(licencia) {
+  const codigo = String(licencia || '').trim().toUpperCase();
+  if (!codigo || codigo.indexOf('ARPA-FREE-') === 0) return false;
+  const sheet = getLicenseSheet_();
+  const data = sheet.getDataRange().getValues();
+  const cols = getColumnMap_(normalizeHeaders_(data[0]));
+  if (cols.codigo < 0) return false;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][cols.codigo] || '').trim().toUpperCase() !== codigo) continue;
+    if (cols.activo < 0) return true;
+    return String(data[i][cols.activo] || '').trim().toUpperCase() === 'SI';
+  }
+  return false;
+}
+
+function respaldoSubcarpeta_(padre, nombre) {
+  const it = padre.getFoldersByName(nombre);
+  return it.hasNext() ? it.next() : padre.createFolder(nombre);
+}
+
+function respaldoCarpeta_(licencia, app) {
+  const props = PropertiesService.getScriptProperties();
+  let raiz = null;
+  const raizId = props.getProperty('RESPALDO_FOLDER_ID');
+  if (raizId) {
+    try { raiz = DriveApp.getFolderById(raizId); } catch (err) { raiz = null; }
+  }
+  if (!raiz) {
+    raiz = respaldoSubcarpeta_(DriveApp.getRootFolder(), RESPALDO_CARPETA_);
+    props.setProperty('RESPALDO_FOLDER_ID', raiz.getId());
+  }
+  const lic = respaldoSubcarpeta_(raiz, licencia.replace(/[^A-Z0-9-]/g, ''));
+  return respaldoSubcarpeta_(lic, app);
+}
+
+function respaldoValidar_(licencia, body, conNombre) {
+  const app = String(body.app || '').trim().toLowerCase();
+  if (RESPALDO_APPS_.indexOf(app) < 0) return { error: 'App no válida.' };
+  const nombre = String(body.nombre || '').trim().toLowerCase();
+  if (conNombre && !RESPALDO_NOMBRE_RE_.test(nombre)) return { error: 'Nombre de archivo no válido.' };
+  if (!licenciaPuedeRespaldar_(licencia)) return { error: 'La licencia no tiene respaldo en la nube.' };
+  return { app: app, nombre: nombre };
+}
+
+/** Borra los respaldos diarios más viejos (<prefijo>-AAAA-MM-DD.json), deja los últimos N. */
+function respaldoPodarDiarios_(carpeta, nombreGuardado) {
+  const m = /^(.*)-\d{4}-\d{2}-\d{2}\.json$/.exec(nombreGuardado);
+  if (!m) return;
+  const prefijo = m[1] + '-';
+  const diarios = [];
+  const it = carpeta.getFiles();
+  while (it.hasNext()) {
+    const f = it.next();
+    const n = f.getName();
+    if (n.indexOf(prefijo) === 0 && /-\d{4}-\d{2}-\d{2}\.json$/.test(n) && n.length === nombreGuardado.length) diarios.push(f);
+  }
+  diarios.sort(function (a, b) { return a.getName() < b.getName() ? 1 : -1; });
+  diarios.slice(RESPALDO_DIARIOS_A_GUARDAR_).forEach(function (f) { f.setTrashed(true); });
+}
+
+function respaldoGuardar_(licencia, body) {
+  const v = respaldoValidar_(licencia, body, true);
+  if (v.error) return { ok: false, mensaje: v.error };
+  const contenido = String(body.contenido == null ? '' : body.contenido);
+  if (!contenido) return { ok: false, mensaje: 'Respaldo vacío.' };
+  if (contenido.length > RESPALDO_MAX_BYTES_) return { ok: false, mensaje: 'Respaldo demasiado grande.' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const carpeta = respaldoCarpeta_(licencia, v.app);
+    const it = carpeta.getFilesByName(v.nombre);
+    let file;
+    if (it.hasNext()) {
+      file = it.next();
+      file.setContent(contenido);
+    } else {
+      file = carpeta.createFile(v.nombre, contenido, 'application/json');
+    }
+    respaldoPodarDiarios_(carpeta, v.nombre);
+    return { ok: true, nombre: v.nombre, bytes: contenido.length, actualizado: file.getLastUpdated().toISOString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function respaldoListar_(licencia, body) {
+  const v = respaldoValidar_(licencia, body, false);
+  if (v.error) return { ok: false, mensaje: v.error };
+  const carpeta = respaldoCarpeta_(licencia, v.app);
+  const archivos = [];
+  const it = carpeta.getFiles();
+  while (it.hasNext()) {
+    const f = it.next();
+    archivos.push({ nombre: f.getName(), bytes: f.getSize(), actualizado: f.getLastUpdated().toISOString() });
+  }
+  archivos.sort(function (a, b) { return a.nombre < b.nombre ? -1 : 1; });
+  return { ok: true, archivos: archivos };
+}
+
+function respaldoLeer_(licencia, body) {
+  const v = respaldoValidar_(licencia, body, true);
+  if (v.error) return { ok: false, mensaje: v.error };
+  const it = respaldoCarpeta_(licencia, v.app).getFilesByName(v.nombre);
+  if (!it.hasNext()) return { ok: false, mensaje: 'No existe ese respaldo.' };
+  return { ok: true, nombre: v.nombre, contenido: it.next().getBlob().getDataAsString('UTF-8') };
+}

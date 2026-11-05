@@ -26,6 +26,9 @@ const FINDING_CUES = [
   /juego excesivo/i,
   /golpead/i,
   /sucio|sucia|suciedad/i,
+  /sin tensi[oó]n/i,
+  /doblad/i,
+  /da[nñ]ad/i,
 ];
 
 const WORK_CUES = [
@@ -81,6 +84,9 @@ const PARTS = [
   { id: 'guia', re: /gu[ií]a(?:s)?/i, name: 'Guía' },
   { id: 'brazo', re: /brazo(?:s)?/i, name: 'Brazo' },
   { id: 'condensador', re: /condensador|capacitor/i, name: 'Condensador' },
+  { id: 'resorte', re: /resorte(?:s)?/i, name: 'Resortes de balance' },
+  { id: 'lama', re: /\blama(?:s)?\b|fleje(?:s)?/i, name: 'Lamas de cortina' },
+  { id: 'chapa', re: /\bchapa(?:s)?\b(?! el[eé]ctrica)|\bcerradura(?:s)?\b|\bguarda\b|candado/i, name: 'Chapa / cerradura' },
 ];
 
 function splitClauses(text) {

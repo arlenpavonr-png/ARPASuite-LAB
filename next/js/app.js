@@ -1,5 +1,5 @@
 import { buildAssistance } from './ai/recommend.js';
-import { getChecklist, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel } from './ai/knowledge.js';
+import { getChecklist, QUICK_CHIPS, PART_CHIPS, equipmentTypeLabel, EQUIPMENT_TYPES } from './ai/knowledge.js';
 import { quoteFromService, readLegacyCatalogProducts } from './quote.js';
 import { applyNoteToService, closeService } from './flow.js';
 import { planFollowups, isOverdue, followUpLabel, filterFollowups, serviceTypeFromFollowup } from './followup.js';
@@ -16,6 +16,11 @@ import { buildReportModel, buildQuoteModel, renderReportHtml, openReportWindow }
 import { pdfFileFromModel } from './pdf.js';
 import { bindClicks, val } from './ui.js';
 import * as S from './screens.js';
+import {
+  buildBackup, backupToFile, parseBackup, restoreBackup, markBackupDone, lastBackupAt,
+  backupStatus, requestPersistentStorage,
+} from './backup.js';
+import { syncNextToCloud, cloudStatus } from './cloud.js';
 
 let store;
 let company = { name: '', technician: '' };
@@ -26,7 +31,7 @@ let ui = {
   search: '',
   showNewClient: false,
   showNewEq: false,
-  newEqType: 'corrediza',
+  newEqType: EQUIPMENT_TYPES[0].id,
   buffer: '',
   interim: '',
   listening: false,
@@ -82,7 +87,25 @@ async function saveJob(patch) {
   if (!job) return null;
   const next = { ...job, ...patch, updatedAt: new Date().toISOString() };
   await store.put('services', next);
+  scheduleCloud();
   return next;
+}
+
+let cloudTimer;
+/** Sube a la nube lo nuevo unos segundos después del último cambio. */
+function scheduleCloud(delayMs = 15000) {
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(async () => {
+    try {
+      const r = await syncNextToCloud(store, { force: delayMs === 0 });
+      if (r.ok && !r.skipped) {
+        markBackupDone();
+        if (ui.screen === 'home') render();
+      }
+    } catch (err) {
+      console.warn('[arpa-next] nube', err);
+    }
+  }, delayMs);
 }
 
 function clientNameOf(clients, id) {
@@ -151,9 +174,9 @@ function applyParseToJob(job, text) {
 }
 
 async function startNewJob(type, technician, preset) {
-  const number = await store.nextServiceNumber();
+  // El número se asigna al cerrar o al generar el primer PDF: abrir un servicio no gasta número.
   const job = createService({
-    number,
+    number: '',
     type,
     technician,
     status: 'draft',
@@ -196,6 +219,7 @@ async function closeJob() {
   });
   if (!result.job) return;
   toast(result.skipped ? 'Servicio ya estaba cerrado' : 'Servicio cerrado');
+  scheduleCloud(2000);
   go('#/servicio/' + result.job.id + '/listo');
 }
 
@@ -308,7 +332,9 @@ async function render() {
       openService,
       followups: openFu,
       recent,
+      backup: { ...backupStatus(services, lastBackupAt()), cloud: cloudStatus() },
     });
+    wireRestore();
     return;
   }
 
@@ -516,6 +542,57 @@ async function render() {
   }
 }
 
+async function saveBackup() {
+  toast('Preparando copia…');
+  // También intenta subir a la nube ya mismo (sin esperar el reintento automático).
+  syncNextToCloud(store, { force: true }).then((r) => { if (r.ok && !r.skipped) markBackupDone(); if (ui.screen === 'home') render(); }).catch(() => {});
+  let file;
+  try {
+    file = backupToFile(await buildBackup(store));
+  } catch (err) {
+    console.warn('[arpa-next] copia', err);
+    toast('No se pudo preparar la copia');
+    return;
+  }
+  const result = await shareOrDownload({
+    file,
+    title: file.name,
+    text: 'Copia de seguridad de ARPA NEXT. Guárdela en Drive o en un chat.',
+  });
+  if (result === 'aborted') return;
+  markBackupDone();
+  toast(result === 'shared' ? 'Copia enviada' : 'Copia guardada en Descargas');
+  if (ui.screen === 'home') render();
+}
+
+function wireRestore() {
+  const input = root.querySelector('input[type="file"][data-restore]');
+  input?.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    let backup;
+    try {
+      backup = parseBackup(await file.text());
+    } catch (err) {
+      toast(err.message || 'No se pudo leer la copia');
+      return;
+    }
+    const n = (backup.data?.services || []).length;
+    const when = String(backup.exportedAt || '').slice(0, 10);
+    if (!window.confirm(`¿Restaurar la copia del ${when} (${n} servicios)? Lo que ya tiene en este celular se conserva.`)) return;
+    try {
+      const r = await restoreBackup(store, backup);
+      markBackupDone();
+      toast(`Copia restaurada: ${r.added} nuevos, ${r.updated} actualizados`);
+    } catch (err) {
+      console.warn('[arpa-next] restaurar', err);
+      toast('No se pudo restaurar la copia');
+    }
+    render();
+  });
+}
+
 function wireInputs() {
   const search = document.getElementById('client-search');
   search?.addEventListener('input', () => {
@@ -647,8 +724,14 @@ function wireSign(job) {
   });
 }
 
+/** Asigna número al servicio si aún no tiene (primer PDF antes de cerrar). */
+async function ensureJobNumber(job) {
+  if (!job || job.number) return job;
+  return saveJob({ number: await store.nextServiceNumber() });
+}
+
 async function shareCurrentDocument(kind, options = {}) {
-  const job = await getJob();
+  let job = await getJob();
   if (!job) return;
   const client = job.clientId ? await store.get('clients', job.clientId) : null;
   const equipment = job.equipmentId ? await store.get('equipment', job.equipmentId) : null;
@@ -657,6 +740,7 @@ async function shareCurrentDocument(kind, options = {}) {
     go('#/servicio/' + job.id + '/firma');
     return;
   }
+  job = await ensureJobNumber(job);
   const model = kind === 'quote'
     ? buildQuoteModel(job, client, company)
     : buildReportModel(job, client, equipment, company);
@@ -731,7 +815,7 @@ function actions() {
       const job = await getJob();
       const eq = createEquipment({
         clientId: job.clientId,
-        type: ui.newEqType || 'corrediza',
+        type: ui.newEqType || EQUIPMENT_TYPES[0].id,
         brand: val('new-eq-brand'),
         model: val('new-eq-model'),
         serial: val('new-eq-serial'),
@@ -853,6 +937,7 @@ function actions() {
       const patch = who === 'tech' ? { technician: { dataUrl: '' } } : { client: { dataUrl: '' } };
       await saveJob({ signatures: mergeSignatures(job.signatures, patch) });
     },
+    'backup-save': () => saveBackup(),
     'share-report': () => shareCurrentDocument('report'),
     'share-quote': () => shareCurrentDocument('quote'),
     'wa-report': () => shareCurrentDocument('report', { whatsapp: true }),
@@ -916,16 +1001,36 @@ function actions() {
   };
 }
 
+/** NEXT es una actualización anual: solo abre si la licencia la incluye. */
+function hasNextUpdate() {
+  const upd = window.ArpaActualizaciones;
+  const r = upd ? upd.check('next') : { ok: false, reason: 'desconocida', label: 'ARPA NEXT', hasta: '' };
+  if (r.ok) return true;
+  root.innerHTML = S.screenLocked({
+    reason: r.reason,
+    label: r.label,
+    hasta: r.hasta,
+    renewUrl: upd && r.reason !== 'sin_licencia' ? upd.renewUrl('next') : '',
+  });
+  return false;
+}
+
 export async function boot() {
   root = document.getElementById('app');
   root.innerHTML = S.screenBoot('Preparando ARPASuite NEXT…');
+  if (!hasNextUpdate()) return;
   store = await openStore();
+  requestPersistentStorage();
   company = readCompanySettings();
-  if (!company.name) company.name = 'ARPASuite LAB';
+  if (!company.name) company.name = 'ARPA Suite';
   bindVoice();
   await importLegacyData(store);
-  await seedDemoIfNeeded();
+  if (window.ArpaActualizaciones?.check('next').reason === 'lab_demo') await seedDemoIfNeeded();
   bindClicks(root, actions());
+  scheduleCloud(8000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') scheduleCloud(0);
+  });
   window.addEventListener('hashchange', async () => {
     ui.search = '';
     ui.showNewClient = false;

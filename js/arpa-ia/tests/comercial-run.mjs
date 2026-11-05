@@ -663,7 +663,7 @@ section('15. Integración LAB — panel, otros motores intactos, sin producción
   assert(panels.indexOf('id="formato-ia-informes"') >= 0, '15 IA Informes sigue en el formato');
   assert(panels.indexOf('arpa-ia-cot-panel') >= 0 || registry.indexOf('cotizador-ui.js') >= 0, '15 Cotizador IA sigue cargado');
   assert(views.indexOf('ArpaIaComercialUi') >= 0, '15 Historial refresca el panel al abrir');
-  assert(/ia-fase/.test(sw) && /importScripts/.test(sw) && /arpa-ia-cache\.js/.test(sw) && /ia-fase/.test(cacheCfg), '15 service worker actualizado');
+  assert(/importScripts/.test(sw) && /arpa-ia-cache\.js/.test(sw) && /self\.ARPA_CACHE_VERSION\s*=\s*'[^']+'/.test(cacheCfg), '15 service worker actualizado');
   assert(uiSrc.indexOf(PRODUCTION_LICENSE) === -1, '15 UI comercial sin LICENSE de producción');
   assert(uiSrc.indexOf('fetch(') === -1, '15 UI sin fetch');
   assert(uiSrc.indexOf('setItem') === -1, '15 UI no escribe storage');
