@@ -249,6 +249,39 @@ test('licencia PYME sin técnicos en la pestaña sigue con 3 celulares', () => {
   });
 });
 
+test('pasar de Pro a PYME: el mismo código queda de jefe y conserva celular, empresa, catálogo e historial', () => {
+  const PRO = 'ARPA-PRO-0001';
+  const { sb, sheets, post } = loadServer({ tecnicos: [] });
+  // Antes: cliente Pro con 1 celular y sus datos guardados.
+  assert.strictEqual(sb.validateLicense_(PRO, 'cel-pro-0000001').valido, true);
+  assert.strictEqual(sb.validateLicense_(PRO, 'cel-pro-0000002').valido, false, 'Pro: 1 celular');
+  assert.strictEqual(post({ accion: 'saveCompanyData', licencia: PRO, nombreEmpresa: 'Taller Pro' }).ok, true);
+  assert.strictEqual(post({ accion: 'savecatalogo', licencia: PRO, productos: [{ id: 'q1', nom: 'Motor', pvp: 700000 }] }).ok, true);
+  assert.strictEqual(post({ accion: 'savehistorialentry', licencia: PRO, entrada: { id: 'hp1', tipo: 'Cotización', monto: 700000 } }).ok, true);
+
+  // Arlen cambia el PLAN de esa fila a PYME y agrega 2 técnicos.
+  sheets['Hoja 1'].data.find((r) => r[0] === PRO)[1] = 'PYME';
+  sheets['Técnicos'].data.push(['ARPA-TEC-0201', PRO, 'AB', 'Ana', 'SI'], ['ARPA-TEC-0202', PRO, 'CD', 'Ciro', 'SI']);
+
+  const jefe = plain(sb.validateLicense_(PRO, 'cel-pro-0000001'));
+  assert.strictEqual(jefe.valido, true, 'el mismo celular sigue entrando');
+  assert.strictEqual(jefe.rol, 'jefe');
+  assert.strictEqual(jefe.plan, 'PYME');
+  assert.strictEqual(sb.validateLicense_(PRO, 'cel-pro-0000002').valido, false, 'el jefe sigue con 1 celular');
+  assert.strictEqual(plain(sb.getCompanyData_({ licencia: PRO })).nombreEmpresa, 'Taller Pro');
+  assert.strictEqual(post({ accion: 'getcatalogo', licencia: PRO }).productos[0].pvp, 700000);
+  assert.strictEqual(post({ accion: 'gethistorial', licencia: PRO }).entradas[0].id, 'hp1');
+
+  const tec = plain(sb.validateLicense_('ARPA-TEC-0201', 'cel-ana-0000001'));
+  assert.strictEqual(tec.valido, true);
+  assert.strictEqual(tec.licencia_jefe, PRO);
+  assert.strictEqual(plain(sb.getCompanyData_({ licencia: 'ARPA-TEC-0201' })).nombreEmpresa, 'Taller Pro');
+  assert.strictEqual(post({ accion: 'getcatalogo', licencia: 'ARPA-TEC-0201' }).productos[0].pvp, 0);
+  assert.strictEqual(post({ accion: 'gethistorial', licencia: 'ARPA-TEC-0201' }).entradas.length, 0, 'no ve la cotización del jefe');
+  assert.strictEqual(sb.validateLicense_('ARPA-TEC-0202', 'cel-ciro-000001').valido, true);
+  assert.strictEqual(sheets.Dispositivos.data.length - 1, 3, '1 jefe + 2 técnicos = 3 celulares');
+});
+
 test('el técnico no puede guardar empresa ni logo (GET y POST) y el jefe sí', () => {
   const { sb, sheets, post } = loadServer();
   const antes = JSON.stringify(sheets.Empresas.data);
