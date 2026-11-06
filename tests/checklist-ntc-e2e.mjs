@@ -4,7 +4,7 @@
  * a otro host, llena una puerta seccional con 2 "No cumple", guarda / recupera el borrador
  * y genera el PDF con la impresión real de la app (guardarPDF → window.print).
  *
- * Uso: node tests/checklist-ntc-e2e.mjs [ruta-del-pdf]
+ * Uso: node tests/checklist-ntc-e2e.mjs [ruta-del-pdf] [ruta-captura-celular.png]
  * Requiere Chrome instalado y puppeteer-core (está en next/node_modules).
  */
 import { createRequire } from 'node:module';
@@ -20,6 +20,7 @@ const puppeteer = require('puppeteer-core');
 const PORT = Number(process.env.NTC_PORT || 8765);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 const OUT_PDF = process.argv[2] || path.join(root, 'tmp-pdf-verify', 'checklist-ntc.pdf');
+const OUT_SHOT = process.argv[3] || OUT_PDF.replace(/\.pdf$/i, '-celular.png');
 const chrome = [
   process.env.CHROME,
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -112,18 +113,56 @@ try {
   const items = await page.$$eval('.ntc-item', (els) => els.map((e) => e.getAttribute('data-item')));
   const NO = { com_fotocelda: 'La fotocelda del lado derecho no detecta; limpiar o cambiar.', sec_cables: 'Cable derecho con hilos rotos; cambiar los dos cables.' };
   const NA = ['com_bateria', 'com_borde'];
-  for (const id of items) {
+  const progress = () => page.$eval('[data-ntc-progress]', (el) => ({
+    text: el.innerText.replace(/\s+/g, ' '),
+    ok: el.querySelector('[data-count="ok"]').textContent, no: el.querySelector('[data-count="no"]').textContent,
+    na: el.querySelector('[data-count="na"]').textContent,
+  }));
+  let shotTaken = false;
+  for (const [i, id] of items.entries()) {
     const v = NO[id] ? 'no' : NA.includes(id) ? 'na' : 'ok';
     await page.$eval(`.ntc-item[data-item="${id}"] [data-v="${v}"]`, (b) => { b.scrollIntoView({ block: 'center' }); b.click(); });
+    if (NO[id]) {
+      const openNo = await page.$eval(`.ntc-item[data-item="${id}"]`, (el) => ({
+        box: !!el.querySelector('.ntc-extra-no textarea[data-ntc="obs"]'), foto: !!el.querySelector('.ntc-extra-no [data-ntc="foto"]'),
+        stripe: getComputedStyle(el).borderLeftColor,
+      }));
+      assert(openNo.box && openNo.foto, `"No cumple" abre observación y foto (${id})`);
+      assert(openNo.stripe === 'rgb(220, 38, 38)', 'franja roja a la izquierda de la tarjeta');
+      await page.type(`.ntc-item[data-item="${id}"] [data-ntc="obs"]`, NO[id]);
+    }
+    if (i === 5 && !shotTaken) {
+      // Captura del celular con algunos puntos marcados (6 de 23).
+      shotTaken = true;
+      const pr = await progress();
+      assert(pr.text.includes('6 de 23 revisados') && pr.ok === '✓ 4' && pr.no === '✗ 1' && pr.na === 'N/A 1', 'progreso y contadores a mitad de camino: ' + pr.text);
+      const btnH = await page.$eval('.ntc-btn', (b) => b.getBoundingClientRect().height);
+      assert(btnH >= 44, 'botones de al menos 44 px de alto (' + Math.round(btnH) + ' px)');
+      // Pantalla más alta (mismo ancho de 390 px) para que se vea la tarjeta roja completa.
+      await page.setViewport({ width: 390, height: 1240, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+      await page.$eval('[data-ntc-progress]', (el) => el.scrollIntoView({ block: 'start' }));
+      await page.evaluate(() => window.scrollBy(0, -12));
+      fs.mkdirSync(path.dirname(OUT_SHOT), { recursive: true });
+      await page.screenshot({ path: OUT_SHOT });
+      console.log('  captura del celular:', OUT_SHOT);
+      await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    }
   }
-  for (const [id, obs] of Object.entries(NO)) {
-    await page.type(`.ntc-item[data-item="${id}"] input[data-ntc="obs"]`, obs);
-  }
+  const okToggle = await page.$eval('.ntc-item[data-item="com_senal"] [data-v="ok"]', (b) => b.getAttribute('aria-pressed'));
+  assert(okToggle === 'true', 'botón elegido queda marcado');
   const photo = await page.evaluate(PHOTO_JS);
   await page.evaluate((src) => window.ArpaChecklistNtc.setItem('sec_cables', { foto: src }), photo);
+  const pr0 = await progress();
+  assert(pr0.text.includes('23 de 23 revisados') && pr0.ok === '✓ 19' && pr0.no === '✗ 2' && pr0.na === 'N/A 2', 'contadores en pantalla: 19 / 2 / 2');
   const sumText = await page.$eval('[data-ntc-summary]', (el) => el.innerText);
-  assert(/19 Cumple/.test(sumText) && /2 No cumple/.test(sumText) && /2 No aplica/.test(sumText), 'resumen en pantalla: 19 / 2 / 2');
-  assert(sumText.includes('Cable derecho con hilos rotos'), 'el resumen lista los "No cumple" con la observación');
+  assert(sumText.includes('Cable derecho con hilos rotos'), 'abajo se listan los "No cumple" con la observación');
+  // Tocar de nuevo desmarca.
+  await page.$eval('.ntc-item[data-item="com_paro"] [data-v="ok"]', (b) => b.click());
+  assert((await progress()).text.includes('22 de 23 revisados'), 'tocar de nuevo desmarca y el progreso baja');
+  await page.$eval('.ntc-item[data-item="com_paro"] [data-v="ok"]', (b) => b.click());
+  // "+ Nota o foto" en un punto que cumple.
+  await page.$eval('.ntc-item[data-item="com_zona"] [data-ntc="more"]', (b) => b.click());
+  assert(!!(await page.$('.ntc-item[data-item="com_zona"] .ntc-extra-soft [data-ntc="obs"]')), '"+ Nota o foto" abre la nota en un punto que cumple');
 
   console.log('5) Guardar y recuperar (borrador)');
   await new Promise((r) => setTimeout(r, 700));
@@ -179,6 +218,10 @@ try {
       reco: !!t.querySelector('.ntc-pr-reco'),
       nota: t.querySelector('.ntc-pr-nota')?.textContent || '',
       fotos: t.querySelectorAll('.ntc-pr-foto img').length,
+      verdict: t.querySelector('.ntc-pr-verdict')?.getAttribute('data-verdict'),
+      verdictText: t.querySelector('.ntc-pr-verdict')?.textContent || '',
+      cells: t.querySelectorAll('.ntc-pr-cell').length,
+      cellsNo: [...t.querySelectorAll('.ntc-pr-cell.ntc-pr-cell-no')].map((c) => c.textContent),
       shown: getComputedStyle(t).display !== 'none',
       editorHiddenInPrint: true,
     };
@@ -188,6 +231,8 @@ try {
   assert(pr.reco, 'recomendaciones con los "No cumple"');
   assert(pr.nota.includes('no reemplaza la norma'), 'nota de responsabilidad');
   assert(pr.fotos === 1, 'foto del punto en el PDF');
+  assert(pr.verdict === 'no' && pr.verdictText.includes('REQUIERE ATENCIÓN') && pr.verdictText.includes('19 ✓ · 2 ✗ · 2 N/A'), 'veredicto rojo con la cuenta');
+  assert(pr.cells === 23 && pr.cellsNo.join('|') === '4Fotocelda|17Cables', 'cuadrícula: 23 cuadritos, rojos Fotocelda y Cables');
   assert(pr.shown, 'la tabla se muestra al imprimir');
   await page.emulateMediaType('print');
   const editorPrintDisplay = await page.$eval('#formato-checklist-ntc-section [data-ntc-editor]', (el) => getComputedStyle(el).display);
@@ -202,18 +247,22 @@ try {
   const after = await page.evaluate(() => ({
     print: document.querySelector('#formato-checklist-ntc-section [data-ntc-print]').innerHTML,
     items: document.querySelectorAll('.ntc-item').length,
-    obsInputs: document.querySelectorAll('.ntc-item input[data-ntc="obs"]').length,
+    obsInputs: document.querySelectorAll('.ntc-item [data-ntc="obs"]').length,
   }));
   assert(after.print === '' && after.items === 23 && after.obsInputs >= 2, 'después del PDF el formato vuelve a quedar editable');
 
   console.log('8) Celular: la sección cabe sin scroll horizontal');
   const overflow = await page.$eval('#formato-checklist-ntc-section', (el) => el.scrollWidth - el.clientWidth);
   assert(overflow <= 1, 'sin desborde horizontal en 390 px');
-  await page.$eval('#formato-checklist-ntc-section', (el) => el.scrollIntoView());
-  const shot = OUT_PDF.replace(/\.pdf$/i, '-celular.png');
-  const sec = await page.$('#formato-checklist-ntc-section');
-  await sec.screenshot({ path: shot });
-  console.log('  captura del celular:', shot);
+  for (const w of [360, 375]) {
+    await page.setViewport({ width: w, height: 800, isMobile: false, deviceScaleFactor: 1 });
+    const o = await page.$eval('#formato-checklist-ntc-section', (el) => {
+      const r = el.getBoundingClientRect();
+      const bad = [...el.querySelectorAll('.ntc-item, .ntc-btn, .ntc-progress')].filter((x) => x.getBoundingClientRect().right > r.right + 1).length;
+      return { diff: el.scrollWidth - el.clientWidth, bad };
+    });
+    assert(o.diff <= 1 && o.bad === 0, `sin desborde horizontal en ${w} px`);
+  }
 
   const own = errors.filter((e) => /ntc|checklist/i.test(e));
   assert(own.length === 0, 'sin errores de la lista en la consola' + (own.length ? ': ' + own.join(' | ') : ''));
