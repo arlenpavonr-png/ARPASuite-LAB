@@ -97,7 +97,10 @@ function crearApp(opts) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  ['js/arpa-numeracion.js', 'js/arpa-historial.js', 'js/arpa-cloud-sync.js'].forEach((rel) => {
+  // opts.conLicencia: carga también js/arpa-license.js (roles jefe / técnico del plan PYME).
+  const scripts = ['js/arpa-numeracion.js', 'js/arpa-historial.js', 'js/arpa-cloud-sync.js'];
+  if (opts && opts.conLicencia) scripts.unshift('js/arpa-license.js');
+  scripts.forEach((rel) => {
     vm.runInContext(read(rel), sandbox, { filename: rel });
   });
 
@@ -112,7 +115,8 @@ function crearApp(opts) {
     disparar: (type) => (listeners[type] || []).forEach((fn) => fn()),
     N: sandbox.ArpaNumeracion,
     H: sandbox.ArpaHistorial,
-    C: sandbox.ArpaCloudSync
+    C: sandbox.ArpaCloudSync,
+    L: sandbox.ArpaLicense
   };
 }
 
