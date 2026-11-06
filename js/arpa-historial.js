@@ -33,6 +33,20 @@
       return [];
     }
   }
+  /**
+   * Plan PYME: el técnico solo ve sus informes de trabajo (Formato de Servicio) y nunca montos.
+   * Solo filtra lo que se muestra; no borra nada guardado en el celular.
+   */
+  function isTechnician() {
+    return !!(global.ArpaLicense && typeof global.ArpaLicense.isTechnicianRole === 'function' && global.ArpaLicense.isTechnicianRole());
+  }
+  function getVisibleRecords() {
+    const records = getRecords();
+    if (!isTechnician()) return records;
+    return records
+      .filter(function (r) { return inferModulo(r) === 'formato'; })
+      .map(function (r) { const c = Object.assign({}, r); delete c.total; return c; });
+  }
   function isQuotaError(e) {
     return !!(e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014));
   }
@@ -579,7 +593,7 @@
       </article>`;
   }
   function verDocumento(id) {
-    const records = getRecords();
+    const records = getVisibleRecords();
     const r = records.find((rec) => rec.id === id);
     if (!r) {
       alert(window.ArpaI18n.t('alert.historial.registro_no_encontrado'));
@@ -716,7 +730,7 @@
       if (!isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
       return '';
     }
-    var records = getRecords();
+    var records = getVisibleRecords();
     var ahora = new Date();
     var mesActual = ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0');
     // Mes del documento (su fecha). La fecha de guardado solo cuenta si no tiene fecha:
@@ -739,7 +753,7 @@
     const list = document.getElementById('historial-list');
     const empty = document.getElementById('historial-empty');
     if (!list) return;
-    let records = getRecords();
+    let records = getVisibleRecords();
     const hayRegistros = records.length > 0;
     if (filtroActivo !== 'todos') {
       records = records.filter(function(r) { return inferModulo(r) === filtroActivo; });
@@ -775,7 +789,7 @@
     });
   }
   function exportCSV() {
-    const records = getRecords();
+    const records = getVisibleRecords();
     if (!records.length) {
       alert(window.ArpaI18n.t('alert.historial.no_hay_registros'));
       return;

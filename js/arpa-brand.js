@@ -348,9 +348,16 @@
     });
   }
 
+  /** Plan PYME: el técnico usa la empresa, el logo y el catálogo del jefe (solo lectura). */
+  function isTechnician() {
+    return !!(global.ArpaLicense && typeof global.ArpaLicense.isTechnicianRole === 'function' && global.ArpaLicense.isTechnicianRole());
+  }
+
   function needsCompanyRestoreFromSheets() {
     const licencia = getLicenseCode();
     if (!licencia) return false;
+    // Técnico: baja los datos del jefe cada vez que abre la app con internet.
+    if (isTechnician()) return true;
     // v2: también sincronizar si toca por intervalo (cada 30 min)
     // ArpaCloudSync carga después de arpa-brand en el HTML, pero este
     // código corre en DOMContentLoaded, cuando ya todos los scripts están listos.
@@ -368,6 +375,7 @@
 
   function pushCompanyDataToSheets(settings) {
     if (isDemoMode()) return;
+    if (isTechnician()) return; // el servidor igual lo rechaza: solo el jefe cambia la empresa
     const licencia = getLicenseCode();
     if (!licencia) return;
     const payload = {
@@ -416,6 +424,30 @@
           return false;
         }
         const current = getSettings();
+        if (isTechnician()) {
+          // Copia fiel de lo del jefe (sin datos bancarios) con el nombre e iniciales del técnico.
+          const patchTec = {
+            companyName: data.nombreEmpresa || '',
+            nit: data.nit || '',
+            address: data.direccion || '',
+            city: data.ciudad || '',
+            phone: data.telefono || '',
+            website: data.sitioWeb || '',
+            logoBase64: data.logoBase64 || current.logoBase64 || '',
+            bankName: '',
+            accountType: '',
+            accountNumber: '',
+            accountHolder: '',
+            accountHolderDocument: '',
+            technicianName: data.nombreTecnico || global.ArpaLicense.getTechnicianName() || '',
+            technicianDocument: '',
+            technicianCode: global.ArpaLicense.getTechnicianInitials() || data.codigoTecnico || ''
+          };
+          if (!saveSettings(patchTec)) return false;
+          if (String(patchTec.logoBase64 || '').trim()) setDedicatedLogo(patchTec.logoBase64);
+          try { localStorage.setItem(SETTINGS_CONFIGURED_KEY, 'true'); } catch (e) {}
+          return true;
+        }
         const patch = {
           companyName: data.nombreEmpresa || '',
           nit: data.nit || current.nit || '',
@@ -819,6 +851,11 @@
     const input = document.getElementById('settings-technician-code');
     if (req) req.hidden = !required;
     if (input) input.required = required;
+    if (input && isTechnician()) {
+      // El código del técnico queda fijo con sus iniciales (lo da el servidor).
+      input.value = global.ArpaLicense.getTechnicianInitials();
+      input.readOnly = true;
+    }
   }
 
   function applyBrandCustomizationPolicy() {
@@ -943,6 +980,7 @@
 
   function saveFromModal() {
     clearError();
+    if (isTechnician()) return false; // el técnico no cambia la empresa (Configuración está oculta)
     const canAppBrand = canCustomizeAppBrand();
     const companyName = document.getElementById('settings-company')?.value.trim();
     const nit = document.getElementById('settings-nit')?.value.trim();
@@ -1381,7 +1419,8 @@
     isDemoMode,
     enterDemoMode,
     exitDemoMode,
-    repairInvertedDemoIfNeeded
+    repairInvertedDemoIfNeeded,
+    restoreCompanyDataFromSheets
   };
 
   global.applyUserSettingsToUI = applyToUI;

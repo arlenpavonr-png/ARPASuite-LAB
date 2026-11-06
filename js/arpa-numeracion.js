@@ -27,6 +27,10 @@
   }
 
   function getTechnicianCode() {
+    // Plan PYME: el técnico usa siempre sus iniciales (las da el servidor; no se editan).
+    if (global.ArpaLicense?.isTechnicianRole?.()) {
+      return normalizeTechnicianCode(global.ArpaLicense.getTechnicianInitials());
+    }
     return normalizeTechnicianCode(getSettingsRaw().technicianCode);
   }
 
@@ -220,6 +224,11 @@
   function blockIfPymeMissingCode() {
     if (!global.ArpaLicense?.isPymePlan?.()) return true;
     if (getTechnicianCode()) return true;
+    if (global.ArpaLicense?.isTechnicianRole?.()) {
+      // El técnico no abre Configuración: sus iniciales las pone el jefe en la hoja.
+      alert('Tu código de técnico no tiene iniciales. Pídele a tu jefe que las agregue.');
+      return false;
+    }
     if (global.ArpaBrand?.openSettings) {
       global.ArpaBrand.openSettings();
       global.ArpaBrand.showError?.(

@@ -59,6 +59,11 @@
     return !!getLicenseCode();
   }
 
+  /** Plan PYME: el técnico solo lee el catálogo del jefe (sin precios) y guarda informes de trabajo. */
+  function isTechnician() {
+    return !!(global.ArpaLicense && typeof global.ArpaLicense.isTechnicianRole === 'function' && global.ArpaLicense.isTechnicianRole());
+  }
+
   // ── HTTP ──────────────────────────────────────────────────────────────────
 
   const ULTIMO_ERROR_KEY = 'arpa_ultimo_error_nube';
@@ -116,6 +121,7 @@
   function pushCatalogo() {
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve();
+    if (isTechnician()) return Promise.resolve(); // solo el jefe cambia el catálogo
     const productos = collectLocalCatalogProducts();
     if (productos.length) {
       global.ArpaMiCatalogo?.markEverHadProducts?.();
@@ -244,6 +250,9 @@
     if (suppressHistorialSync || !record || !record.id) return Promise.resolve(false);
     const licencia = getLicenseCode();
     if (!licencia) return Promise.resolve(false);
+    if (isTechnician() && inferModuloFromTipo(record.documento || record.tipo || record.modulo) !== 'formato') {
+      return Promise.resolve(false);
+    }
     setPendienteNube(record.id, record.savedAt, true);
     enVuelo.add(record.id);
     return postJson({
@@ -370,6 +379,7 @@
    */
   function needsCatalogRestore() {
     if (!hasActiveLicense()) return false;
+    if (isTechnician()) return true; // el técnico baja el catálogo del jefe cada vez que abre
     return isLocalCatalogEmpty();
   }
 
@@ -388,7 +398,9 @@
 
   function applyCatalogFromCloud(productos) {
     if (!Array.isArray(productos) || !productos.length) return false;
-    if (!isLocalCatalogEmpty()) return false;
+    const tecnico = isTechnician();
+    // El técnico reemplaza su copia con la del jefe; el jefe solo restaura si está vacío.
+    if (!tecnico && !isLocalCatalogEmpty()) return false;
 
     const oficioId = global.ArpaMiCatalogo?.getActiveOficioId?.()
       || global.ArpaOficios?.normalizeOficioId?.(null)
@@ -411,7 +423,7 @@
       id: p.id || newId(),
       cod: String(p.cod || '').trim(),
       nom: String(p.nom || '').trim(),
-      pvp: Number(p.pvp) || 0,
+      pvp: tecnico ? 0 : (Number(p.pvp) || 0),
       unidad: String(p.unidad || 'unidad').trim() || 'unidad',
       marca: String(p.marca || '').trim(),
       categoriaId: ensureCategory(p.categoria),
@@ -458,7 +470,13 @@
     if (!Array.isArray(entradas) || !entradas.length) return false;
 
     // Convertir entradas de la nube a formato local
-    const cloudRecords = entradas.map(cloudEntryToRecord);
+    let cloudRecords = entradas.map(cloudEntryToRecord);
+    if (isTechnician()) {
+      // El técnico solo guarda sus informes de trabajo y nunca montos.
+      cloudRecords = cloudRecords
+        .filter((r) => r.modulo === 'formato')
+        .map((r) => { const c = Object.assign({}, r); delete c.total; return c; });
+    }
 
     // Leer registros locales actuales
     let localRecords = [];
