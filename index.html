@@ -5296,6 +5296,10 @@ if ('serviceWorker' in navigator) {
       if (data.plan) localStorage.setItem(LICENSE_PLAN_KEY, data.plan);
       if (data.founder === true) localStorage.setItem('arpa_suite_license_founder', '1');
       else localStorage.removeItem('arpa_suite_license_founder');
+      // Plan PYME: rol jefe / técnico que respondió el servidor.
+      if (window.ArpaLicense && typeof window.ArpaLicense.saveRoleFromValidation === 'function') {
+        if (window.ArpaLicense.saveRoleFromValidation(data)) roleChangedOnValidation = true;
+      }
       localStorage.setItem(SALES_ENTRY_KEY, 'true');
       if (window.ArpaLicense && typeof window.ArpaLicense.markHadPaidLicenseIfNeeded === 'function') {
         window.ArpaLicense.markHadPaidLicenseIfNeeded(data.plan, data.founder === true, data.codigo);
@@ -5317,6 +5321,20 @@ if ('serviceWorker' in navigator) {
       localStorage.removeItem(LICENSE_PLAN_KEY);
       localStorage.removeItem('arpa_suite_license_founder');
     } catch (e) {}
+    if (window.ArpaLicense && typeof window.ArpaLicense.clearRole === 'function') {
+      window.ArpaLicense.clearRole();
+      window.ArpaLicense.applyRoleUI();
+    }
+  }
+
+  /** Plan PYME: aplica la vista del rol; el técnico vuelve a bajar empresa, logo y catálogo del jefe. */
+  var roleChangedOnValidation = false;
+  function applyLicenseRole() {
+    var L = window.ArpaLicense;
+    if (!L || typeof L.applyRoleUI !== 'function') return;
+    L.applyRoleUI();
+    if (roleChangedOnValidation && L.isTechnicianRole()) L.refreshTechnicianData();
+    roleChangedOnValidation = false;
   }
 
   function getSavedCode() {
@@ -5360,6 +5378,7 @@ if ('serviceWorker' in navigator) {
 
   function finishAppUnlock() {
     unlockApp();
+    applyLicenseRole();
     tryOnboarding();
     if (window.ArpaLicense && typeof window.ArpaLicense.refreshTrialBanner === 'function') {
       window.ArpaLicense.refreshTrialBanner();
@@ -5382,7 +5401,7 @@ if ('serviceWorker' in navigator) {
       finishAppUnlock();
     }
     validarLicenciaJsonp(saved).then(function (data) {
-      if (data && data.valido === true) saveLicenseData(data);
+      if (data && data.valido === true) { saveLicenseData(data); applyLicenseRole(); }
       else if (data && !data.valido) handleInvalidLicense(data);
     }).catch(function () {});
   }
