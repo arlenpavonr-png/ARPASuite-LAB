@@ -392,3 +392,43 @@ estricto con reintento a `json_object`, llamadas a OpenAI unificadas. Solo `back
 - Falta: probarlo de verdad contra OpenAI en el Apps Script DEV.
 - Se guardó en `git stash` un cambio suelto en `next/` (`<base href="/next/">` y `start_url` absoluto):
   rompería NEXT publicado en `github.io/ARPASuite-LAB/next/`. No se aplicó.
+
+### 2026-11-06 — Plan PYME: roles jefe y técnico, versión mínima (rama `agent/pyme-roles`)
+Aprobado por Arlen el 2026-11-06. **PYME = 3 celulares en total: 1 jefe + 2 técnicos.**
+Base: `origin/arpa-suite-next-gen` (`c7cb1b1`, 2026-11-05; tiene `js/arpa-respaldo-nube.js`).
+**Ojo:** a la base le faltan 38 commits de producción (9-oct a 5-nov: Apps Script v42/v43,
+llave del dispositivo #63, Modo Demo #64, historial #62…). Traerlos choca en 15 archivos, varios
+protegidos sin autorización (`service-worker.js`, workflows, `arpa-cotizacion.js`,
+`arpa-trial-capture.js`): queda como tarea aparte. Este cambio es aditivo para portarlo fácil.
+
+Servidor (`arpa-licencias-apps-script.gs`, sin desplegar):
+- Pestaña "Técnicos" (la crea Arlen; el servidor no la crea): `CodigoTecnico | LicenciaJefe |
+  Iniciales | Nombre | Activo` (Activo = SI).
+- Validar: el código del jefe responde `rol: "jefe"`; el del técnico `rol: "tecnico"`,
+  `licencia_jefe`, `iniciales`, `nombre_tecnico`. Técnico desactivado, 3.er técnico activo,
+  jefe inactivo o que no es PYME → no entra. Técnico: 1 celular. Jefe con técnicos: 1 celular.
+- PYME sin pestaña o sin técnicos: igual que antes (3 celulares con el mismo código).
+- Rechaza `saveCompanyData` y `savecatalogo` de un código de técnico. El técnico lee empresa y
+  logo del jefe (sin banco) y catálogo del jefe (precios en 0). Historial del técnico: bajo su
+  propio código, solo informes de trabajo, sin montos.
+- Pro → PYME: cambiar PLAN de la fila a PYME; el mismo código queda de jefe y conserva celular,
+  empresa, catálogo, historial y respaldo (todo va por el código). Probado (salvo respaldo en Drive,
+  que no se puede simular, pero va por el mismo código).
+
+App: `js/arpa-license.js` (rol, vista del técnico), `index.html` (guarda/borra el rol al validar),
+`js/arpa-brand.js`, `js/arpa-cloud-sync.js`, `js/arpa-numeracion.js`, `js/arpa-historial.js`.
+Técnico: menú OT / Catálogo / Historial; sin Cotización, Cuenta de cobro ni Configuración; catálogo
+sin precios ni edición; iniciales fijas; empresa y catálogo del jefe se bajan en cada apertura.
+
+Pruebas: `tests/pyme-roles.test.js` (15, servidor) y `tests/pyme-roles-app.test.js` (7, app).
+`npm test`: 197/197. Fence: PASS (tras commit; antes solo Capa A en los archivos autorizados).
+Regresión: OK 8/8. Navegador local (127.0.0.1:8765, sin servidores reales): vista técnico y jefe OK.
+
+Límites conocidos:
+- El servidor no tiene autenticación: quien conozca el código del jefe puede escribir con él.
+  Producción ya tiene la llave del dispositivo (#63); al portar, exigirla también aquí.
+- Si un PYME viejo ya tenía 3 celulares en "Dispositivos", al agregar técnicos esos 3 siguen
+  entrando como jefe: borrar a mano las filas sobrantes del jefe en "Dispositivos".
+- El técnico ve la bienvenida de elegir oficio y la oferta de precargar catálogos (sin precios).
+- No hay respaldo en Drive para códigos de técnico (sus informes van al historial de la nube).
+- No se subió `CACHE_VERSION` (`js/arpa-ia/arpa-ia-cache.js`): hacerlo al pasar a producción.
