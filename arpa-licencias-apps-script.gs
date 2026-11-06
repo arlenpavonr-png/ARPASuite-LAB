@@ -201,22 +201,20 @@ function validateLicense_(codigo, deviceId) {
 
     const planLabel = cols.plan >= 0 ? String(data[i][cols.plan] || '') : '';
 
-    const deviceCheck = checkAndRegisterDevice_(rowCodigo, planLabel, deviceId);
-
+    const deviceCheck = checkAndRegisterDevice_(rowCodigo, planLabel, deviceId, limiteCelularesJefe_(rowCodigo, planLabel));
     if (!deviceCheck.ok) {
-
       return { valido: false, mensaje: deviceCheck.mensaje, codigo: rowCodigo };
-
     }
-
-    return buildValidationResult_(data[i], cols, rowCodigo);
+    const resultado = buildValidationResult_(data[i], cols, rowCodigo);
+    if (resultado.valido) resultado.rol = 'jefe';
+    return resultado;
 
   }
-
-
+  // Plan PYME: ¿es un código de técnico de la pestaña "Técnicos"?
+  const tecnico = validateTecnico_(codigo, deviceId, data, cols);
+  if (tecnico) return tecnico;
 
   return { valido: false, mensaje: 'Código de licencia inválido.' };
-
 }
 
 
@@ -1063,6 +1061,8 @@ function saveCompanyData_(params) {
     return { ok: false, mensaje: 'Licencia requerida.' };
 
   }
+  const bloqueo = bloqueoTecnico_(licencia, 'los datos de la empresa ni el logo');
+  if (bloqueo) return bloqueo;
 
   const nombreEmpresa = readCompanyParam_(params, 'nombreEmpresa', 'nombreempresa');
 
@@ -1147,6 +1147,8 @@ function getCompanyData_(params) {
     return { ok: false, encontrado: false, mensaje: 'Licencia requerida.' };
 
   }
+  const tecnico = findTecnico_(licencia);
+  if (tecnico) return getCompanyDataTecnico_(tecnico);
 
   const sheet = getEmpresasSheet_();
 
@@ -1277,8 +1279,21 @@ function handleSyncPost_(e) {
     return respondJson_({ ok: false, mensaje: 'Licencia requerida.' });
 
   }
-
-
+  const tecnico = findTecnico_(licencia);
+  if (tecnico) {
+    if (accion === 'savecatalogo') {
+      return respondJson_(bloqueoTecnico_(licencia, 'el catálogo'));
+    }
+    if (accion === 'getcatalogo') {
+      return respondJson_(getCatalogoTecnico_(tecnico));
+    }
+    if (accion === 'savehistorialentry') {
+      return respondJson_(saveHistorialEntryTecnico_(tecnico, body.entrada));
+    }
+    if (accion === 'gethistorial') {
+      return respondJson_(getHistorialTecnico_(tecnico));
+    }
+  }
 
   if (accion === 'savecatalogo') {
 
@@ -3367,11 +3382,11 @@ const DISPOSITIVOS_SHEET_NAME_ = 'Dispositivos';
 
 const DISPOSITIVOS_HEADERS_ = ['Codigo', 'DeviceId', 'FechaActivacion'];
 
-function checkAndRegisterDevice_(codigo, planLabel, deviceId) {
+function checkAndRegisterDevice_(codigo, planLabel, deviceId, limiteForzado) {
   if (!deviceId) return { ok: true };
   if (isPermanentLicense_(codigo)) return { ok: true };
   if (String(codigo).indexOf('ARPA-FREE-') === 0) return { ok: true };
-  const limit = DEVICE_LIMITS_[planLabel];
+  const limit = limiteForzado || DEVICE_LIMITS_[planLabel];
   if (!limit) {
     debugLog_('device_check_plan_desconocido', { codigo: codigo, plan: planLabel });
     return { ok: true };
@@ -3524,4 +3539,242 @@ function respaldoLeer_(licencia, body) {
   const it = respaldoCarpeta_(licencia, v.app).getFilesByName(v.nombre);
   if (!it.hasNext()) return { ok: false, mensaje: 'No existe ese respaldo.' };
   return { ok: true, nombre: v.nombre, contenido: it.next().getBlob().getDataAsString('UTF-8') };
+}
+
+// ─── Plan PYME: roles jefe y técnico (pestaña "Técnicos") ──────────────────
+// PYME = 3 celulares en total: 1 jefe (su código de licencia, 1 celular) + hasta
+// 2 técnicos activos (un código propio cada uno, 1 celular cada uno).
+// Pestaña "Técnicos" (la crea Arlen a mano; el servidor nunca la crea solo):
+//   CodigoTecnico | LicenciaJefe | Iniciales | Nombre | Activo
+//   ej. ARPA-TEC-7K2M | ARPA-PYME-0003 | JP | Juan Pérez | SI
+// Activo = SI deja entrar; NO (o vacío) lo bloquea. Solo cuentan los 2 primeros
+// técnicos activos de cada jefe (en el orden de la hoja); un 3.º activo no entra.
+// Sin pestaña o sin técnicos para esa licencia: la licencia PYME funciona como antes
+// (3 celulares con el mismo código, todos como jefe).
+// El técnico solo LEE la empresa, el logo y el catálogo del jefe (sin precios ni
+// datos bancarios); el servidor rechaza cualquier cambio de esos datos que venga
+// de un código de técnico. Su historial queda bajo su propio código y sin montos.
+
+const TECNICOS_SHEET_NAMES_ = ['Técnicos', 'Tecnicos', 'TÉCNICOS', 'TECNICOS'];
+const PYME_MAX_TECNICOS_ = 2;
+const PYME_CELULARES_JEFE_CON_TECNICOS_ = 1;
+const TECNICO_CELULARES_ = 1;
+
+function getTecnicosSheet_() {
+  const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  for (let i = 0; i < TECNICOS_SHEET_NAMES_.length; i++) {
+    const sheet = ss.getSheetByName(TECNICOS_SHEET_NAMES_[i]);
+    if (sheet) return sheet;
+  }
+  return null;
+}
+
+function tecnicoHeaderKey_(h) {
+  return String(h || '').trim().toUpperCase()
+    .replace(/[ÁÀÄ]/g, 'A').replace(/[ÉÈË]/g, 'E').replace(/[ÍÌÏ]/g, 'I')
+    .replace(/[ÓÒÖ]/g, 'O').replace(/[ÚÙÜ]/g, 'U')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function tecnicoEsActivo_(valor) {
+  if (valor === true) return true;
+  const v = String(valor == null ? '' : valor).trim().toUpperCase();
+  return v === 'SI' || v === 'SÍ' || v === 'TRUE' || v === 'VERDADERO';
+}
+
+/** Lee la pestaña Técnicos. Sin pestaña → lista vacía (licencias PYME viejas siguen igual). */
+function leerTecnicos_() {
+  const sheet = getTecnicosSheet_();
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  if (!data.length) return [];
+  const keys = data[0].map(tecnicoHeaderKey_);
+  function col(nombres, porDefecto) {
+    for (let i = 0; i < nombres.length; i++) {
+      const idx = keys.indexOf(nombres[i]);
+      if (idx >= 0) return idx;
+    }
+    return porDefecto;
+  }
+  const c = {
+    codigo: col(['CODIGOTECNICO', 'CODIGODELTECNICO', 'CODIGO'], 0),
+    jefe: col(['LICENCIAJEFE', 'LICENCIADELJEFE', 'LICENCIA', 'JEFE'], 1),
+    iniciales: col(['INICIALES'], 2),
+    nombre: col(['NOMBRE', 'NOMBRETECNICO'], 3),
+    activo: col(['ACTIVO'], 4)
+  };
+  const out = [];
+  for (let i = 1; i < data.length; i++) {
+    const codigo = String(data[i][c.codigo] || '').trim().toUpperCase();
+    if (!codigo) continue;
+    out.push({
+      fila: i + 1,
+      codigo: codigo,
+      licenciaJefe: String(data[i][c.jefe] || '').trim().toUpperCase(),
+      iniciales: String(data[i][c.iniciales] || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4),
+      nombre: String(data[i][c.nombre] || '').trim(),
+      activo: tecnicoEsActivo_(data[i][c.activo])
+    });
+  }
+  return out;
+}
+
+function findTecnico_(codigo, lista) {
+  const c = String(codigo || '').trim().toUpperCase();
+  if (!c) return null;
+  const tecnicos = lista || leerTecnicos_();
+  for (let i = 0; i < tecnicos.length; i++) {
+    if (tecnicos[i].codigo === c) return tecnicos[i];
+  }
+  return null;
+}
+
+function tecnicosDeJefe_(licenciaJefe, lista) {
+  const j = String(licenciaJefe || '').trim().toUpperCase();
+  const tecnicos = lista || leerTecnicos_();
+  return tecnicos.filter(function (t) { return j && t.licenciaJefe === j; });
+}
+
+/** ¿Está entre los 2 primeros técnicos activos de su jefe? */
+function tecnicoDentroDelCupo_(tecnico, lista) {
+  const activos = tecnicosDeJefe_(tecnico.licenciaJefe, lista).filter(function (t) { return t.activo; });
+  for (let i = 0; i < activos.length && i < PYME_MAX_TECNICOS_; i++) {
+    if (activos[i].codigo === tecnico.codigo) return true;
+  }
+  return false;
+}
+
+/** Celulares que puede usar el código del jefe: 1 si ya tiene técnicos; si no, lo de su plan. */
+function limiteCelularesJefe_(codigo, planLabel, lista) {
+  if (String(planLabel || '').trim().toUpperCase() !== 'PYME') return null;
+  return tecnicosDeJefe_(codigo, lista).length ? PYME_CELULARES_JEFE_CON_TECNICOS_ : null;
+}
+
+/** Valida un código de técnico. Devuelve null si el código no es de técnico. */
+function validateTecnico_(codigo, deviceId, data, cols) {
+  const lista = leerTecnicos_();
+  const t = findTecnico_(codigo, lista);
+  if (!t) return null;
+  const base = { valido: false, codigo: t.codigo, rol: 'tecnico' };
+  if (!t.activo) {
+    return Object.assign(base, {
+      desactivado: true,
+      mensaje: 'Este código de técnico está desactivado. Habla con tu jefe.'
+    });
+  }
+  let filaJefe = null;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][cols.codigo] || '').trim().toUpperCase() === t.licenciaJefe) {
+      filaJefe = data[i];
+      break;
+    }
+  }
+  if (!filaJefe) {
+    return Object.assign(base, { mensaje: 'No se encontró la licencia de tu jefe. Habla con soporte: ' + CONFIG.SUPPORT_WHATSAPP_DISPLAY });
+  }
+  const planJefe = cols.plan >= 0 ? String(filaJefe[cols.plan] || '').trim() : '';
+  if (planJefe.toUpperCase() !== 'PYME') {
+    return Object.assign(base, { mensaje: 'Los códigos de técnico son solo para el plan PYME.' });
+  }
+  const jefe = buildValidationResult_(filaJefe, cols, t.licenciaJefe);
+  if (!jefe.valido) {
+    return Object.assign(base, { mensaje: 'La licencia de tu jefe no está activa. Habla con tu jefe.' });
+  }
+  if (!tecnicoDentroDelCupo_(t, lista)) {
+    return Object.assign(base, {
+      fuera_de_cupo: true,
+      mensaje: 'El plan PYME permite 1 jefe + ' + PYME_MAX_TECNICOS_ + ' técnicos activos, y tu jefe ya los tiene. Habla con tu jefe.'
+    });
+  }
+  const deviceCheck = checkAndRegisterDevice_(t.codigo, planJefe, deviceId, TECNICO_CELULARES_);
+  if (!deviceCheck.ok) {
+    return Object.assign(base, { mensaje: deviceCheck.mensaje });
+  }
+  return {
+    valido: true,
+    mensaje: 'Código de técnico válido.',
+    codigo: t.codigo,
+    plan: jefe.plan,
+    vencimiento: jefe.vencimiento,
+    pma_vencido: jefe.pma_vencido === true,
+    founder: false,
+    white_label: false,
+    rol: 'tecnico',
+    licencia_jefe: t.licenciaJefe,
+    iniciales: t.iniciales,
+    nombre_tecnico: t.nombre
+  };
+}
+
+/**
+ * Si el código es de un técnico, rechaza el cambio (empresa, logo, catálogo).
+ * Devuelve null cuando el código no es de técnico (se sigue como siempre).
+ */
+function bloqueoTecnico_(licencia, que) {
+  const t = findTecnico_(licencia);
+  if (!t) return null;
+  return {
+    ok: false,
+    rol: 'tecnico',
+    rechazado: true,
+    mensaje: 'Un técnico no puede cambiar ' + que + '. Solo el jefe puede hacerlo.'
+  };
+}
+
+/** Datos de empresa que ve el técnico: los del jefe, sin datos bancarios, con su nombre e iniciales. */
+function getCompanyDataTecnico_(t) {
+  if (!t.activo) {
+    return { ok: false, encontrado: false, rol: 'tecnico', desactivado: true, mensaje: 'Este código de técnico está desactivado.' };
+  }
+  const res = getCompanyData_({ licencia: t.licenciaJefe });
+  if (!res || !res.encontrado) return Object.assign({ rol: 'tecnico' }, res || { ok: true, encontrado: false });
+  res.licencia = t.codigo;
+  res.banco = '';
+  res.tipoCuenta = '';
+  res.numeroCuenta = '';
+  res.titularCuenta = '';
+  res.documentoTitular = '';
+  res.nombreTecnico = t.nombre;
+  res.documentoTecnico = '';
+  res.codigoTecnico = t.iniciales;
+  res.rol = 'tecnico';
+  return res;
+}
+
+/** Catálogo que ve el técnico: el del jefe, sin precios. */
+function getCatalogoTecnico_(t) {
+  if (!t.activo) return { ok: false, rol: 'tecnico', desactivado: true, mensaje: 'Este código de técnico está desactivado.' };
+  const res = getCatalogo_(t.licenciaJefe);
+  res.productos = (res.productos || []).map(function (p) {
+    const copia = Object.assign({}, p);
+    copia.pvp = 0;
+    return copia;
+  });
+  res.sin_precios = true;
+  res.rol = 'tecnico';
+  return res;
+}
+
+/** El técnico solo guarda informes de trabajo (Formato de Servicio) y nunca montos. */
+function saveHistorialEntryTecnico_(t, entrada) {
+  if (!t.activo) return { ok: false, rol: 'tecnico', desactivado: true, mensaje: 'Este código de técnico está desactivado.' };
+  const e = Object.assign({}, entrada || {});
+  const tipo = String(e.tipo || '').toLowerCase();
+  if (tipo.indexOf('cotiz') >= 0 || tipo.indexOf('cuenta') >= 0) {
+    return { ok: false, rol: 'tecnico', rechazado: true, mensaje: 'Un técnico solo guarda informes de trabajo.' };
+  }
+  e.monto = '';
+  return saveHistorialEntry_(t.codigo, e);
+}
+
+/** Historial del técnico: solo el suyo y sin montos. */
+function getHistorialTecnico_(t) {
+  const res = getHistorial_(t.codigo);
+  res.entradas = (res.entradas || []).map(function (e) {
+    const copia = Object.assign({}, e);
+    copia.monto = '';
+    return copia;
+  });
+  res.rol = 'tecnico';
+  return res;
 }
