@@ -432,3 +432,29 @@ Límites conocidos:
 - El técnico ve la bienvenida de elegir oficio y la oferta de precargar catálogos (sin precios).
 - No hay respaldo en Drive para códigos de técnico (sus informes van al historial de la nube).
 - No se subió `CACHE_VERSION` (`js/arpa-ia/arpa-ia-cache.js`): hacerlo al pasar a producción.
+
+### 2026-11-06 — Lista de verificación de puertas (basada en la NTC 5926-3) (rama `agent/checklist-ntc5926`)
+Pedido por Arlen el 2026-11-06 (cliente IECM; mantenimientos en Solística y DHL). Base: `origin/arpa-suite-next-gen` (`c7cb1b1`).
+Independiente de `agent/pyme-roles` (PR #28); los dos tocan `index.html`, `js/arpa-historial.js` y la
+línea de `npm test` de `package.json` en sitios distintos (conflicto pequeño en `package.json`).
+- Formato de Servicio, oficio Automatismos, en Instalación, Mantenimiento y Reparación (correctivo):
+  sección "Lista de verificación (NTC 5926-3)" con interruptor (apagada por defecto), después de las
+  fotos. Tipo de puerta: corrediza, batiente, seccional/levadiza, enrollable/cortina/rápida, peatonal
+  deslizante, barrera. Se toma solo de las casillas "Tipo de Puerta" al encenderla.
+- 16 puntos comunes + 5 a 7 por tipo. Cada punto: Cumple / No cumple / No aplica (tocar de nuevo
+  desmarca), observación y una foto opcionales (la foto se comprime a 900 px). Resumen automático.
+- PDF (impresión de la app): título "Lista de verificación basada en la NTC 5926-3", tipo de puerta,
+  cuadros Cumple / No cumple / No aplica (y Sin revisar si hay), recomendaciones con los "No cumple",
+  tabla con los "No cumple" en rojo, fotos de los puntos y la nota "Esta lista no reemplaza la norma…".
+  Apagada no sale. Textos en ES y EN (sigue el idioma del documento).
+- Derechos: los puntos son redacción propia (verificaciones prácticas); no hay texto ni numeración
+  de la NTC. Arlen debe validar la lista antes de producción.
+- Código: módulo `ArpaChecklistNtc` al final de `js/arpa-formato-tipo.js` (no en archivo nuevo: todo
+  script de `index.html` debe estar en la precarga de `service-worker.js`, protegido). Se guarda en el
+  borrador / historial con la llave `_checklistNtc`; si no hay espacio se quitan primero sus fotos
+  (`index.html`, `js/arpa-historial.js`). La nube ya quita las fotos (`stripBase64`).
+- Pruebas: `tests/checklist-ntc.test.js` (10, en `npm test`) y `tests/checklist-ntc-e2e.mjs`
+  (`npm run test:checklist-e2e`; Chrome + puppeteer-core de `next/node_modules`, servidor local
+  127.0.0.1:8765, bloquea todo host externo). Ejemplo: `Downloads\Muestra-IECM\Ejemplo-checklist-NTC5926.pdf`.
+- Límites: el PDF de "Compartir por WhatsApp" es una captura de la pantalla: muestra la lista como
+  se ve en pantalla (botones), no la tabla. Para producción subir `CACHE_VERSION`.
