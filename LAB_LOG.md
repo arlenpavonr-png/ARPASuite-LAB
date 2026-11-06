@@ -458,3 +458,30 @@ línea de `npm test` de `package.json` en sitios distintos (conflicto pequeño e
   127.0.0.1:8765, bloquea todo host externo). Ejemplo: `Downloads\Muestra-IECM\Ejemplo-checklist-NTC5926.pdf`.
 - Límites: el PDF de "Compartir por WhatsApp" es una captura de la pantalla: muestra la lista como
   se ve en pantalla (botones), no la tabla. Para producción subir `CACHE_VERSION`.
+
+### 2026-11-06 — Lista de verificación: diseño "Semáforo" (rama `agent/checklist-semaforo`)
+Elegido por Arlen el 2026-11-06. Base: `origin/arpa-suite-next-gen` (`786e565`, ya con checklist y roles PYME).
+Solo cambia la presentación: los puntos (texto, cantidad y grupos por tipo de puerta) no se tocaron.
+Archivos: `js/arpa-formato-tipo.js` (módulo `ArpaChecklistNtc`), `tests/checklist-ntc.test.js`,
+`tests/checklist-ntc-e2e.mjs`. No se tocaron `index.html`, `js/arpa-historial.js` ni `service-worker.js`.
+- Celular: una tarjeta por punto (título en negrita, franja izquierda del color marcado); tres botones
+  grandes (52 px) Cumple verde / No cumple rojo / No aplica gris; tocar de nuevo desmarca. "No cumple"
+  abre ya la observación (cuadro grande) y la foto, con fondo rojo claro. En Cumple / No aplica queda
+  un enlace discreto "+ Nota o foto". Arriba: "X de Y revisados", barra de colores y contadores
+  ✓ / ✗ / N/A. Abajo sigue la lista de "No cumple". Sin desborde a 360, 375 y 390 px. La app no
+  tiene modo oscuro: se usan sus colores (`--border`, `--muted`, `--blue`, `--text`).
+- PDF: título de la sección + tipo de puerta; franja de veredicto (rojo "⚠ REQUIERE ATENCIÓN" si hay
+  algún No cumple; verde "✓ PUERTA EN BUEN ESTADO" si todo está revisado; amarillo "REVISIÓN
+  INCOMPLETA" si faltan puntos) con "19 ✓ · 2 ✗ · 2 N/A" (y "N sin revisar" si faltan); cuadrícula de 6
+  por fila con número y nombre corto (verde, rojo en negrita, gris, blanco con borde punteado) y
+  leyenda; luego recomendaciones, fotos (las de No cumple con borde rojo), tabla completa y nota.
+  Franja y cuadrícula van en un bloque que no se parte entre páginas.
+- Nombres cortos (decididos por el agente, Arlen puede cambiarlos en `SHORT`): p. ej. Fotocelda, Paro,
+  Cables, Tierra, Riel, Anticaída, Paso seguro (peatonal: sensores de seguridad en el paso).
+- Pruebas: `npm test` 212/212 (5 nuevas del semáforo: nombres cortos, veredicto en los 3 casos,
+  cuadrícula, progreso/contadores, tarjetas). e2e ajustado al nuevo marcado (el resumen con conteos
+  pasó a la barra de arriba; la observación de "No cumple" es `textarea`): OK. Fence PASS. Regresión OK 8/8.
+- Muestras: `Downloads\Muestra-IECM\Ejemplo-checklist-NTC5926-semaforo.pdf` y
+  `Downloads\Muestra-IECM\Checklist-semaforo-celular.png` (390 px, 6 de 23 marcados).
+- Pendiente igual que antes: el PDF de "Compartir por WhatsApp" es captura de pantalla (muestra las
+  tarjetas, no el veredicto); para producción subir `CACHE_VERSION`.
