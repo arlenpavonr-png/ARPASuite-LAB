@@ -43,6 +43,7 @@
     });
     delete next.fullSnapshot.fotosAntes;
     delete next.fullSnapshot.fotosDespues;
+    global.ArpaChecklistNtc?.stripPhotos?.(next.fullSnapshot);
     return next;
   }
   function saveRecords(records) {

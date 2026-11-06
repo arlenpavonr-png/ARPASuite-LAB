@@ -3389,6 +3389,9 @@ document.documentElement.classList.add('license-checking');
       </div>
     </div>
 
+    <!-- LISTA DE VERIFICACIÓN (NTC 5926-3): la pinta ArpaChecklistNtc (js/arpa-formato-tipo.js) -->
+    <div class="section" id="formato-checklist-ntc-section" hidden></div>
+
     <!-- ARPA IA slot formato (paneles montados por js/arpa-ia) -->
     <div id="arpa-ia-slot-formato" class="arpa-ia-slot no-print"></div>
 
@@ -4332,6 +4335,7 @@ function collectFormatoDraft() {
   if (window.ArpaOT && typeof window.ArpaOT.enrichDraft === 'function') {
     window.ArpaOT.enrichDraft(data);
   }
+  window.ArpaChecklistNtc?.enrichDraft?.(data);
   const fotos = window.__arpaFormatoFotos || { antes: [], despues: [] };
   data.fotosAntes = Array.isArray(fotos.antes) ? fotos.antes.slice() : [];
   data.fotosDespues = Array.isArray(fotos.despues) ? fotos.despues.slice() : [];
@@ -4376,6 +4380,7 @@ function clearFormatoDocumentFields(options) {
   window.ArpaSignature?.clear?.('canvas-firma-cliente');
   window.ArpaSignature?.clear?.('canvas-firma-tecnico');
   window.ArpaOT?.resetMeta?.({ keepNumero: !!preserveNumero });
+  window.ArpaChecklistNtc?.reset?.();
 }
 
 function clearFormatoForm() {
@@ -4413,6 +4418,7 @@ function applyFormatoDraft() {
     if (window.ArpaOT && typeof window.ArpaOT.restoreFromDraft === 'function') {
       window.ArpaOT.restoreFromDraft(data);
     }
+    window.ArpaChecklistNtc?.restoreFromDraft?.(data);
     applyFormatoFotosFromDraft(data);
   } catch (e) {}
 }
@@ -4435,6 +4441,7 @@ function persistFormatoDraftToStorage() {
       const fallback = Object.assign({}, draft);
       delete fallback.fotosAntes;
       delete fallback.fotosDespues;
+      window.ArpaChecklistNtc?.stripPhotos?.(fallback);
       localStorage.setItem(key, JSON.stringify(fallback));
     } catch (e2) {}
     alert('Las fotos no se pudieron guardar en el borrador por espacio limitado. Exporta el PDF ahora para no perderlas.');
@@ -4579,6 +4586,7 @@ function guardarPDF() {
   window.ArpaFormatoTipo?.prepareFormatoTipoForPrint?.(formatoPrintSnapshot);
   window.ArpaFormatoTipo?.applyPrintSnapshot?.(formatoPrintSnapshot);
   window.ArpaBrand?.applyLegalCopyToDocuments?.({ onlyCustom: true });
+  window.ArpaChecklistNtc?.prepareForPrint?.();
 
   const { block: qrBlock, qrReady } = prepareVideoQrForPrint();
   if (qrBlock) document.body.classList.add('formato-has-video-qr');
@@ -4645,6 +4653,7 @@ function guardarPDF() {
       const lbl = document.querySelector(`label[for="${ch.id}"]`);
       if (lbl) lbl.style.fontWeight = '';
     });
+    window.ArpaChecklistNtc?.restoreAfterPrint?.();
     if (btnPDF) btnPDF.parentElement.style.display = '';
     scheduleFormatoDraftSave();
     window.ArpaWhatsApp?.showFormatoShareAfterPdf?.();
