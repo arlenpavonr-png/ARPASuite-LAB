@@ -11,9 +11,9 @@ const NEG = gs.NEGOCIOS.automatismos;
 const COL = (y, m, d, h, min = 0) => Date.UTC(y, m - 1, d, h + 5, min); // hora Colombia → ms UTC
 
 test('filtro de precios: deja pasar solo los de la ficha', () => {
-  const ok = gs.filtrarPrecios_('Bulldozer 850 a $1.599.900 con IVA incluido; visita técnica $80.000.', NEG.preciosPermitidos);
+  const ok = gs.filtrarPrecios_('Bulldozer 850 a $1.459.900 con IVA incluido; visita técnica $80.000.', NEG.preciosPermitidos);
   assert.equal(ok.ok, true);
-  assert.deepEqual([...ok.encontrados], [1599900, 80000]);
+  assert.deepEqual([...ok.encontrados], [1459900, 80000]);
   assert.equal(gs.filtrarPrecios_('La visita vale 80 mil pesos', NEG.preciosPermitidos).ok, true);
   // El Fox 1000 Pro se quitó de la web el 18-oct: su precio ya no puede salir.
   assert.equal(gs.filtrarPrecios_('Fox 1000 Pro desde $ 799.900', NEG.preciosPermitidos).ok, false);
@@ -24,14 +24,14 @@ test('filtro de precios: deja pasar solo los de la ficha', () => {
 
 test('filtro de precios: bloquea valores inventados', () => {
   for (const t of ['La instalación vale $350.000', 'Le sale en 350 mil', 'Unos 1,5 millones con todo',
-    'Son $1.200.000', 'El control adicional cuesta 90.000 pesos', 'Cuesta 300 USD', '$1.599.900 instalado']) {
+    'Son $1.200.000', 'El control adicional cuesta 90.000 pesos', 'Cuesta 300 USD', '$1.459.900 instalado']) {
     assert.equal(gs.filtrarPrecios_(t, NEG.preciosPermitidos).ok, false, t);
   }
 });
 
 test('filtro de precios: precio permitido junto a "instalación" sin aclarar que va aparte', () => {
-  assert.equal(gs.filtrarPrecios_('Con instalación queda en $1.599.900', NEG.preciosPermitidos).ok, false);
-  assert.equal(gs.filtrarPrecios_('Desde $1.599.900 con IVA incluido; la instalación se cotiza aparte.', NEG.preciosPermitidos).ok, true);
+  assert.equal(gs.filtrarPrecios_('Con instalación queda en $1.459.900', NEG.preciosPermitidos).ok, false);
+  assert.equal(gs.filtrarPrecios_('Desde $1.459.900 con IVA incluido; la instalación se cotiza aparte.', NEG.preciosPermitidos).ok, true);
 });
 
 test('handoff: casos que se pasan a Arlen', () => {
@@ -158,4 +158,11 @@ test('intermediario: reenvía a Apps Script con relay_token', async () => {
   assert.equal(llamadas[0].url, 'https://ejemplo.test/web?relay_token=abc');
   assert.equal(llamadas[0].opts.body, '{"a":1}');
   assert.equal(llamadas[0].opts.redirect, 'follow');
+});
+
+test('regla precio fijo, sin rebajas (Arlen 7-nov): está en el cerebro y pasa a Arlen si insiste', () => {
+  const c = NEG.cerebro;
+  const s = Array.isArray(c) ? c.join(' ') : String(c);
+  assert.match(s, /no manejamos rebajas/);
+  assert.match(s, /insiste en un descuento/);
 });
