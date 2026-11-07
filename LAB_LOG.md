@@ -1,5 +1,25 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-11-07 — Catálogo de Automatismos con precio de lista desde el inicio (`agent/catalogo-precios`)
+
+### Qué hace
+Decisión de Arlen (7-nov): el catálogo precargado de Automatismos ya no arranca en $0. Sale con el precio de
+lista del distribuidor (el mismo que traen "Cargar BFT + NAS" / "Cargar Accessmatic"), editable por el técnico.
+Motivo: en la primera prueba la app se veía vacía ("$ 0" en todos los motores) y parecía que no servía.
+
+### Cómo se integra
+- `js/arpa-catalogo.js`: `buildAutomatismosSeedProducts` usa `getSeedCop(cod)` en vez de `pvp: 0`.
+- `js/arpa-oficios.js`: `importSeedCatalog` toma el precio del seed también para Automatismos; versión del seed
+  `2026-11-precios-de-lista` y, al cambiar de versión, `resyncPrecargadoPrices()` llena los $0 de quien ya tenía
+  el catálogo. No toca precios editados por el técnico (precioPrecargado=false). Otros países: conversión de siempre.
+- Ojo: el LAB está atrás de producción en precios (p. ej. Bulldozer 850 sale $1.599.900; producción ya tiene la lista
+  01-09-2026, $1.459.900). Al pasar a producción se usan los precios de producción.
+
+### Pruebas
+- npm test 217/217, Fence PASS, regresión 8/8.
+- Navegador (LAB local): celular nuevo 844/844 productos con precio; celular con $0 y versión vieja -> se llenan al
+  abrir; un precio editado (2.000.000) se respeta.
+
 ## 2026-11-06 — Link de pago en cotización y cuenta de cobro (`agent/link-pago`)
 
 ### Qué hace
@@ -13,8 +33,8 @@ auditoría de mercado de Gemini (ventas/2026-11-06-gemini-auditoria-mercado.md, 
 ### Cómo se integra
 Módulo nuevo `js/arpa-link-pago.js` (localStorage `arpa_suite_payment_link`; no llama a ningún servidor).
 Se carga desde `js/arpa-cuenta-cobro.js` para NO tocar `index.html` (protegido). En la cuenta de cobro,
-3 líneas después de "Datos para consignación". El link aún no viaja en el respaldo en la nube (siguiente paso
-si se aprueba: agregarlo a los ajustes de arpa-brand.js, protegido).
+3 líneas después de "Datos para consignación". El link SÍ viaja en el respaldo en la nube: el respaldo copia todas
+las claves que empiezan por "arpa" (js/arpa-respaldo-nube.js), y esta no está excluida (corregido 7-nov).
 
 ### Pruebas
 - `tests/link-pago.test.js` (en `npm test`): validación de links, guardar/borrar, PDF sin link igual, PDF con
