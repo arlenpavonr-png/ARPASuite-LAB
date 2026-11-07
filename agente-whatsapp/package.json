@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Contestador de WhatsApp de ARPA (Apps Script + intermediario). Sin dependencias.",
+  "scripts": {
+    "test": "node --test tests/contestador.test.mjs",
+    "ensayo": "node ensayo/ensayo.mjs"
+  }
+}
