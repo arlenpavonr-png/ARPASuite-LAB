@@ -496,7 +496,8 @@
         nom,
         marca,
         categoria: normalizeAutomatismosCategory(p.categoria),
-        pvp: 0,
+        // Precio de lista del distribuidor (editable). Decisión de Arlen 7-nov-2026: no arrancar en $0.
+        pvp: getSeedCop(p.cod) || 0,
         unidad: p.unidad || 'unidad',
       };
     });
