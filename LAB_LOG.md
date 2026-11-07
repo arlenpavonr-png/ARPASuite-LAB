@@ -1,5 +1,26 @@
 # LAB_LOG — bitácora de experimentos LAB
 
+## 2026-11-06 — Link de pago en cotización y cuenta de cobro (`agent/link-pago`)
+
+### Qué hace
+Campo nuevo **"Link de pago (opcional)"** en Configuración, debajo del número de cuenta. El técnico pega
+su link de cobro (Nequi/Bre-B, Bold, Wompi, Mercado Pago, PayPal). Si hay link:
+- la **Cotización** muestra un recuadro "PAGAR EN LÍNEA" con el link y un código QR, debajo de los Datos Bancarios (sale en el PDF);
+- la **Cuenta de cobro** (PDF jsPDF) agrega el mismo recuadro con link clicable y QR.
+Sin link no cambia nada. Solo acepta http/https (rechaza javascript:, ftp:, etc.). Recomendado en la
+auditoría de mercado de Gemini (ventas/2026-11-06-gemini-auditoria-mercado.md, mejora 1).
+
+### Cómo se integra
+Módulo nuevo `js/arpa-link-pago.js` (localStorage `arpa_suite_payment_link`; no llama a ningún servidor).
+Se carga desde `js/arpa-cuenta-cobro.js` para NO tocar `index.html` (protegido). En la cuenta de cobro,
+3 líneas después de "Datos para consignación". El link aún no viaja en el respaldo en la nube (siguiente paso
+si se aprueba: agregarlo a los ajustes de arpa-brand.js, protegido).
+
+### Pruebas
+- `tests/link-pago.test.js` (en `npm test`): validación de links, guardar/borrar, PDF sin link igual, PDF con
+  recuadro + QR + link clicable, salto de página. npm test 217/217, Fence PASS, regresión 8/8.
+- Navegador (Playwright, LAB local): el campo aparece en Configuración y el recuadro con QR en la Cotización.
+
 ## 2026-10-11 — Licencias a mano para pagos por Nequi / llave Bre-B (`agent/secuencia-pruebas`)
 
 ### Qué hace

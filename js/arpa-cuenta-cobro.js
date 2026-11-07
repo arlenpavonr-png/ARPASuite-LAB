@@ -12,6 +12,17 @@
   let servicios = [{ desc: '', cant: 1, unit: 0 }];
   let draftSaveTimer = null;
 
+  // Link de pago opcional (js/arpa-link-pago.js): se carga desde aquí para no tocar index.html.
+  if (typeof document !== 'undefined' && !global.ArpaLinkPago && !document.querySelector('script[data-arpa-link-pago]')) {
+    try {
+      const s = document.createElement('script');
+      s.src = './js/arpa-link-pago.js';
+      s.async = false;
+      s.setAttribute('data-arpa-link-pago', '1');
+      (document.head || document.documentElement).appendChild(s);
+    } catch (e) { /* sin link de pago */ }
+  }
+
   // Idioma del documento para el cliente (ArpaDocLang en arpa-i18n.js). Con Español devuelven el texto
   // y la fecha exactamente como antes; con English, el PDF y el mensaje salen en inglés.
   function dt(key, esText) {
@@ -730,6 +741,10 @@
       py += 4.5;
     });
     y += consigBoxH + 6;
+
+    if (global.ArpaLinkPago?.get?.()) {
+      y = await global.ArpaLinkPago.addToPdf(doc, { x: m, y, width: pw - m * 2, pageHeight: ph, margin: m });
+    }
 
     if (d.observaciones) {
       const obsLines = doc.splitTextToSize(d.observaciones, pw - m * 2);
