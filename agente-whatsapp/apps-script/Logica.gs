@@ -79,7 +79,9 @@ function parsearWebhook_(payload) {
             timestampMs: parseInt(m.timestamp, 10) * 1000 || 0,
             msgTipo: String(m.type || ''),
             texto: textoDeMensaje_(m),
-            mediaId: ''
+            mediaId: '',
+            // Nombre del PDF que manda Arlen (cotización o cuenta de cobro de ARPA Suite): lo usa el contador.
+            archivo: String((m.document && m.document.filename) || '')
           });
         });
       }

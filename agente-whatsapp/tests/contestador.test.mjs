@@ -219,3 +219,61 @@ test('ARPA Suite: respaldo y acuse de tú', () => {
   assert.equal(gs.textoAcuse_(AS, 'image', 'hoy'), 'Recibimos tu foto, gracias. Arlen te responde hoy.');
   assert.equal(gs.textoAcuse_(NEG, 'image', 'hoy'), 'Recibimos su foto, gracias. Arlen le responde hoy.');
 });
+test('contador: escribieron, cotizados, compraron y mirones (sin que Arlen marque nada)', () => {
+  const dia = COL(2026, 11, 20, 0);
+  const h = (hora, min = 0) => COL(2026, 11, 20, hora, min);
+  const F = (ms, cliente, rol, tipo, texto, nota = '', nombre = '') => ({ ms, negocio: 'automatismos', cliente, nombre, rol, tipo, texto, nota });
+  const filas = [
+    // Mirón: pregunta el precio y se va.
+    F(h(9), '571', 'cliente', 'text', '¿Cuánto vale el motor corredizo?', 'normal', 'Pedro'),
+    F(h(9, 1), '571', 'asistente', 'text', 'Desde $1.459.900...', 'normal'),
+    // Cotizado: Arlen le manda la cotización de ARPA Suite desde el celular.
+    F(h(10), '572', 'cliente', 'text', 'Necesito instalar un motor batiente', 'handoff_precio_instalacion', 'Lucía'),
+    F(h(11), '572', 'arlen', 'document', '', 'eco;archivo=Cotizacion_AP-COT-213_Lucia_Gomez.pdf'),
+    // Venta casi segura: el cliente dice que ya consignó.
+    F(h(12), '573', 'cliente', 'text', 'Buenas, el control no me funciona', 'normal', 'Mario'),
+    F(h(13), '573', 'arlen', 'text', 'Le envío la cotización: $180.000', 'eco'),
+    F(h(15), '573', 'cliente', 'text', 'Listo, ya le consigné. ¿Cuándo vienen?', 'normal'),
+    // Venta confirmada: Arlen manda la cuenta de cobro de ARPA Suite (el cliente escribió ayer).
+    F(dia - 3600000, '574', 'cliente', 'text', 'Me interesa el Bulldozer', 'normal', 'Ana'),
+    F(h(16), '574', 'arlen', 'document', '', 'eco;archivo=CuentaCobro_CC-012_Ana_Ruiz.pdf'),
+    // Posible comprobante: foto después de la cotización.
+    F(h(8), '575', 'cliente', 'text', 'Precio de la fotocelda', 'normal', 'Juan'),
+    F(h(8, 30), '575', 'arlen', 'text', 'Cotización: el par queda en $120.000', 'eco'),
+    F(h(17), '575', 'cliente', 'image', '', 'media_image'),
+    // Chat que solo abrió Arlen: no cuenta.
+    F(h(18), '576', 'arlen', 'text', 'Hola, ¿cómo le fue con la puerta?', 'eco'),
+  ];
+  const chats = gs.clasificarChats_(filas, dia, h(23));
+  const por = Object.fromEntries(chats.map((c) => [c.cliente, c.estado]));
+  assert.equal(por['571'], 'solo_pregunto');
+  assert.equal(por['572'], 'cotizado');
+  assert.equal(por['573'], 'venta_probable');
+  assert.equal(por['574'], 'venta');
+  assert.equal(por['575'], 'venta_probable');
+  assert.equal(por['576'], undefined);
+  const r = gs.resumenEmbudo_(chats);
+  assert.equal(r.escribieron, 4); // Ana escribió ayer: cuenta por la venta, no como "escribió hoy"
+  assert.equal(r.nuevos, 4);
+  assert.equal(r.ventas, 1);
+  assert.equal(r.ventasProbables, 2);
+  assert.equal(r.cotizados, 1);
+  assert.equal(r.soloPreguntaron, 1);
+  assert.ok(r.temas['precio'] >= 2 && r.temas['instalación'] === 1);
+  const texto = gs.textoInformeEmbudo_(chats, { titulo: 'Hoy', negocios: { automatismos: 'Automatismos ARPA' }, preguntarVentas: true, bloqueGemini: true });
+  assert.match(texto, /Compraron: 1 \+ 2 casi seguro/);
+  assert.match(texto, /Solo preguntaron \(mirones\): 1/);
+  assert.match(texto, /Mario \+573/);
+  const gemini = texto.split('Para Gemini')[1];
+  assert.ok(gemini && !/57\d|Mario|Lucía|Pedro/.test(gemini), 'el bloque de Gemini no lleva nombres ni teléfonos');
+  // Un día después, sin movimiento: no aparece nadie.
+  assert.equal(gs.clasificarChats_(filas, h(23), h(23) + 86400000).length, 0);
+  assert.equal(gs.inicioDiaColombia_(h(15)), dia);
+});
+
+test('contador: el eco guarda el nombre del PDF que manda Arlen', () => {
+  const ev = gs.parsearWebhook_({ entry: [{ changes: [{ field: 'smb_message_echoes', value: { metadata: { phone_number_id: '1' },
+    message_echoes: [{ id: 'w1', to: '573001112233', timestamp: '1', type: 'document', document: { filename: 'Cotizacion_AP-COT-213_Diego_Villa.pdf' } }] } }] }] });
+  assert.equal(ev[0].archivo, 'Cotizacion_AP-COT-213_Diego_Villa.pdf');
+  assert.equal(gs.archivoDeNota_('eco;archivo=Cotizacion_AP-COT-213_Diego_Villa.pdf'), 'Cotizacion_AP-COT-213_Diego_Villa.pdf');
+});
