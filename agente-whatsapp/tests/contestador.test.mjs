@@ -10,6 +10,12 @@ const { gs } = crearEntorno({ silencioso: true });
 const NEG = gs.NEGOCIOS.automatismos;
 const COL = (y, m, d, h, min = 0) => Date.UTC(y, m - 1, d, h + 5, min); // hora Colombia → ms UTC
 
+test('paquete completo Medellín: los 3 totales pasan; la instalación suelta no', () => {
+  const r = gs.filtrarPrecios_('Paquete: Bulldozer 850 $2.054.900; BFT desde $2.543.900; Eagle 250 $2.973.400.', NEG.preciosPermitidos);
+  assert.equal(r.ok, true);
+  assert.equal(gs.filtrarPrecios_('La instalación vale $595.000', NEG.preciosPermitidos).ok, false);
+});
+
 test('filtro de precios: deja pasar solo los de la ficha', () => {
   const ok = gs.filtrarPrecios_('Bulldozer 850 a $1.459.900 con IVA incluido; visita técnica $80.000.', NEG.preciosPermitidos);
   assert.equal(ok.ok, true);

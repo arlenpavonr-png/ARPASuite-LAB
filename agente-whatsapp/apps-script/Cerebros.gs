@@ -67,6 +67,10 @@ var CEREBRO_AUTOMATISMOS = [
   '  Batiente de 2 hojas: kit Accessmatic Eagle 250 (hasta 250 kg y 3 m) desde $2.199.900; kit BFT Phobos BT A25 (hasta 400 kg) desde $3.278.900.',
   '  Garaje: Accessmatic Shark 1000 desde $1.095.900 (trae riel).',
   '  Visita técnica: $80.000.',
+  '- PAQUETE COMPLETO (equipo + instalación, un solo precio, IVA incluido; Arlen, 7-nov-2026). SOLO para casas en la ciudad de Medellín (no Valle de Aburrá, no Oriente, no fuera). Es la única excepción a la regla de no dar precio con instalación: dé el total del paquete, nunca separe cuánto es la instalación:',
+  '  Corrediza Accessmatic Bulldozer 850: $2.054.900. Corrediza BFT: desde $2.543.900. Batiente de 2 hojas Eagle 250: $2.973.400.',
+  '  Condiciones (dígalas siempre junto con el precio): en corredizas incluye 4 metros de cremallera y 2 controles; el punto de corriente lo pone el cliente donde el técnico lo necesite; no incluye reparación de la puerta (rodachines, riel, soldadura); precio fijo, sin rebajas. El precio queda confirmado cuando Arlen ve las fotos o hace la visita.',
+  '  Si el cliente no es de Medellín, o la puerta no encaja en estos tres casos: no ofrezca paquete; dé el precio del equipo y diga que la instalación la cotiza Arlen.',
   '- Los demás motores de garaje, techo corredizo, cortina, vidrio, peatonal, herrajes y cualquier otro precio (otros modelos, otros BFT, NAS, accesorios, apertura por celular, envío, instalación, mano de obra): según medidas, lo da Arlen.',
   '- Con los datos y las fotos, Arlen da un precio tentativo. El precio oficial se da después de la visita técnica (o, fuera de Medellín, con fotos y medidas).',
   '',
@@ -200,7 +204,8 @@ var NEGOCIOS = {
     numeroVisible: '+57 300 568 3914',
     cerebro: CEREBRO_AUTOMATISMOS,
     // Únicos valores en pesos que pueden salir en una respuesta (Arlen, 26-oct-2026: Elite Slide 500, Bulldozer 850, Bulldog 1100, Shark 1000; sin Pitbull ni Fox).
-    preciosPermitidos: [80000, 1199900, 1459900, 1799900, 1095900, 1948900, 2391900, 2199900, 3278900],
+    // Paquete completo Medellín (Arlen, 7-nov-2026): 2.054.900, 2.543.900, 2.973.400.
+    preciosPermitidos: [80000, 1199900, 1459900, 1799900, 1095900, 1948900, 2391900, 2199900, 3278900, 2054900, 2543900, 2973400],
     horario: { dias: [1, 2, 3, 4, 5], desde: 8, hasta: 17 },
     acuseMedia: {
       image: 'Recibimos su foto, gracias.',
