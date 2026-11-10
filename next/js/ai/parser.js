@@ -29,6 +29,11 @@ const FINDING_CUES = [
   /sin tensi[oó]n/i,
   /doblad/i,
   /da[nñ]ad/i,
+  // Así lo dice el técnico paisa (paquete de puertas, 10-nov-2026).
+  /reventad|desdentad|estallad|sulfatad|fisurad|quebrad|pandead|arrancad|desoldad/i,
+  /pegad[oa]|trabad[oa]|comid[oa]|desprogramad|descargad|perdid[oa]/i,
+  /pesad[oa]|no mueve|no responde|no carga|no retiene|se devuelve|se pasa|tiembla|caliente|a tirones|roza\b/i,
+  /entr[oó] agua|humedad/i,
 ];
 
 const WORK_CUES = [
@@ -60,7 +65,34 @@ const REC_CUES = [
   /cotizar/i,
   /pendiente\s+cambi/i,
   /programar\s+cambio/i,
+  /\btoca\b|\bnecesita\b/i,
+  /\b(cambiarle|ponerle|hacerle|limpiar|alinear|ajustar|calibrar|reprogramar|lubricar|engrasar|cambiar|reemplazar)\b/i,
 ];
+
+/**
+ * Palabras de la calle → palabras del informe (Colombia). Solo las que no se prestan a confusión:
+ * "el tope", "la chapa", "el rayo" o "la máquina" se dejan como las diga el técnico.
+ */
+const VOCABULARIO = [
+  [/\blos ojitos\b/gi, 'las fotoceldas'],
+  [/\bojitos\b/gi, 'fotoceldas'],
+  [/\b(?:tapad|llen)[oa]s? de (?:pantano|barro|mugre|polvo|tierra)\b/gi, 'con suciedad'],
+  [/\bel llaverito\b/gi, 'el control'],
+  [/\bllaveritos\b/gi, 'controles'],
+  [/\bllaverito\b/gi, 'control'],
+  [/\bel imancito\b/gi, 'el fin de carrera'],
+  [/\bimancitos\b/gi, 'fines de carrera'],
+  [/\bla aguja\b/gi, 'la barrera'],
+  [/\bel bicho\b/gi, 'el motor'],
+  [/\bel cerebro\b/gi, 'la tarjeta'],
+  [/\bla estera\b/gi, 'la cortina'],
+];
+
+export function normalizarVocabulario(text) {
+  let s = String(text || '');
+  for (const [re, rep] of VOCABULARIO) s = s.replace(re, rep);
+  return s;
+}
 
 const STATUS_RULES = [
   { code: 'out_of_service', re: /fuera de servicio|no opera|inoperativ|no funciona el (?:equipo|motor|sistema)/i, label: 'Equipo fuera de servicio' },
@@ -78,7 +110,10 @@ const PARTS = [
   { id: 'bateria', re: /bater[ií]a/i, name: 'Batería de respaldo' },
   { id: 'sensor', re: /sensor(?:es)?/i, name: 'Sensor' },
   { id: 'fin_carrera', re: /fin(?:es)? de carrera|limit switch/i, name: 'Fin de carrera' },
-  { id: 'rueda', re: /rueda|rodamiento|rodillo/i, name: 'Rueda / rodamiento' },
+  { id: 'rueda', re: /rueda|rodamiento|rodillo|balinera/i, name: 'Rueda / rodamiento' },
+  { id: 'electroiman', re: /electro.?im[aá]n/i, name: 'Electroimán' },
+  { id: 'panel_limpieza', re: /panel(?:es)? solar(?:es)?/i, name: 'Panel solar' },
+  { id: 'bisagra', re: /bisagra(?:s)?/i, name: 'Bisagras' },
   { id: 'electrocerradura', re: /electro.?cerradura|chapa el[eé]ctrica/i, name: 'Electrocerradura' },
   { id: 'lampara', re: /l[aá]mpara|luz de cortes[ií]a/i, name: 'Lámpara' },
   { id: 'guia', re: /gu[ií]a(?:s)?/i, name: 'Guía' },
@@ -92,11 +127,28 @@ const PARTS = [
 function splitClauses(text) {
   const raw = String(text || '').replace(/\s+/g, ' ').trim();
   if (!raw) return [];
-  return raw
+  const parts = raw
     .split(CONNECTORS)
     .map((c) => c.replace(/^[\s\-–—]+|[\s\.]+$/g, '').trim())
-    .filter((c) => c.length > 2);
+    .filter((c) => c.length > 2 && !/^(?:además|también|luego|después|entonces|bueno)$/i.test(c));
+  // "limpiar y alinear los sensores": el verbo solo se une con la frase que sigue.
+  const out = [];
+  for (let i = 0; i < parts.length; i += 1) {
+    if (BARE_VERB.test(parts[i]) && i + 1 < parts.length) {
+      parts[i + 1] = parts[i] + ' y ' + parts[i + 1];
+      continue;
+    }
+    out.push(parts[i]);
+  }
+  return out;
 }
+
+const VERBO_A_NOMBRE = {
+  limpiar: 'limpieza', alinear: 'alineación', ajustar: 'ajuste', calibrar: 'calibración',
+  lubricar: 'lubricación', engrasar: 'engrase', revisar: 'revisión', reprogramar: 'programación', programar: 'programación',
+};
+const BARE_VERB = new RegExp('^(?:' + Object.keys(VERBO_A_NOMBRE).join('|') + ')$', 'i');
+const VERB_PAIR = new RegExp('^(' + Object.keys(VERBO_A_NOMBRE).join('|') + ')(?:\\s+y\\s+(' + Object.keys(VERBO_A_NOMBRE).join('|') + '))?\\s+(?:el |la |los |las )?', 'i');
 
 function cueScore(text, cues) {
   let n = 0;
@@ -146,6 +198,15 @@ function tidyClause(clause, kind) {
     s = s.replace(/^se recomienda\s+/i, '');
     s = s.replace(/^cambiar\s+(?:el |la |los |las )?/i, 'Cambio de ');
     s = s.replace(/^hay que\s+cambi(?:ar)?\s+(?:el |la )?/i, 'Cambio de ');
+    s = s.replace(/^(?:toca|hay que|necesita)\s+(?:hacerle\s+)?/i, '');
+    s = s.replace(/^(?:un|una)\s+/i, '');
+    s = s.replace(/^(?:cambiarle|ponerle|cambiar|reemplazar)\s+(?:un |una |el |la |los |las )?/i, 'Cambio de ');
+    s = s.replace(VERB_PAIR, (m, v1, v2) => {
+      const a = VERBO_A_NOMBRE[v1.toLowerCase()];
+      const b = v2 ? VERBO_A_NOMBRE[v2.toLowerCase()] : '';
+      return capitalize(b ? a + ' y ' + b : a) + ' de ';
+    });
+    s = s.replace(/\s+nuev[oa]s?$/i, '');
   }
   return capitalize(s);
 }
@@ -202,7 +263,8 @@ function inferStatus(text, findings, recommendations) {
  */
 export function parseTechnicianNote(text) {
   const transcript = String(text || '').trim();
-  const clauses = splitClauses(transcript);
+  // El informe sale con las palabras técnicas; la transcripción guarda lo que dijo el técnico.
+  const clauses = splitClauses(normalizarVocabulario(transcript));
   const findings = [];
   const workDone = [];
   const recommendations = [];
@@ -223,7 +285,7 @@ export function parseTechnicianNote(text) {
     }
   }
 
-  const partsMentioned = extractParts(transcript);
+  const partsMentioned = extractParts(normalizarVocabulario(transcript));
   const classified = findings.length + workDone.length + recommendations.length;
   const confidence = clauses.length === 0
     ? 0

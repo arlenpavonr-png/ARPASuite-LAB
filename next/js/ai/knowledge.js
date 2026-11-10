@@ -13,6 +13,7 @@ const DOOR_EQUIPMENT = [
   { id: 'barrera', label: 'Barrera vehicular' },
   { id: 'techo_corredizo', label: 'Techo corredizo' },
   { id: 'cortina', label: 'Cortina enrollable' },
+  { id: 'peatonal', label: 'Puerta peatonal de vidrio' },
   { id: 'otro', label: 'Otro' },
 ];
 
@@ -33,6 +34,15 @@ const DOOR_CHIPS_QUICK = [
   { id: 'ciclo_ok', label: 'Ciclo de prueba OK', insert: 'Probé el ciclo de apertura y cierre, queda operativo.' },
   { id: 'cambio_pinon', label: 'Recomendar piñón', insert: 'Recomiendo cambiar el piñón.' },
   { id: 'control', label: 'Control fallando', insert: 'Encontré el control remoto fallando. Recomiendo cambiar el control.' },
+  // Paquete de puertas de Arlen (10-nov-2026): frases como las dice el técnico en campo.
+  { id: 'balineras', label: 'Balineras reventadas', insert: 'Encontré las balineras reventadas.' },
+  { id: 'pinon_desdentado', label: 'Piñón desdentado', insert: 'Encontré el piñón desdentado.' },
+  { id: 'capacitor', label: 'Capacitor estallado', insert: 'Encontré el capacitor estallado.' },
+  { id: 'desprogramados', label: 'Controles desprogramados', insert: 'Encontré los controles desprogramados.' },
+  { id: 'fin_carrera', label: 'Fin de carrera suelto', insert: 'Encontré el fin de carrera suelto.' },
+  { id: 'tarjeta', label: 'Tarjeta quemada', insert: 'Encontré la tarjeta quemada.' },
+  { id: 'panel_sucio', label: 'Panel solar sucio', insert: 'Encontré el panel solar sucio.' },
+  { id: 'bateria', label: 'Batería no retiene carga', insert: 'Encontré que la batería no retiene carga.' },
 ];
 
 const DOOR_PARTS = {
@@ -45,9 +55,20 @@ const DOOR_PARTS = {
   bateria: { name: 'Batería de respaldo', unitPrice: 180000, labor: 25000 },
   sensor: { name: 'Sensor de apertura', unitPrice: 90000, labor: 30000 },
   fin_carrera: { name: 'Fin de carrera', unitPrice: 35000, labor: 25000 },
-  rueda: { name: 'Rueda / rodamiento', unitPrice: 40000, labor: 30000 },
+  rueda: { name: 'Balineras / rodamientos', unitPrice: 40000, labor: 30000 },
   electrocerradura: { name: 'Electrocerradura', unitPrice: 150000, labor: 40000 },
   lampara: { name: 'Lámpara de cortesía', unitPrice: 25000, labor: 15000 },
+  // Paquete de puertas (10-nov-2026). Sin precio todavía: Arlen pone los de su lista.
+  mantenimiento: { name: 'Mantenimiento general preventivo', unitPrice: 0, labor: 0, needsQuote: true },
+  condensador: { name: 'Capacitor de arranque', unitPrice: 0, labor: 0, needsQuote: true },
+  electroiman: { name: 'Electroimán', unitPrice: 0, labor: 0, needsQuote: true },
+  panel_limpieza: { name: 'Limpieza y ajuste de panel solar', unitPrice: 0, labor: 0, needsQuote: true },
+  modulo_receptor: { name: 'Módulo receptor externo', unitPrice: 0, labor: 0, needsQuote: true },
+  brazo_barrera: { name: 'Brazo de aluminio para barrera', unitPrice: 0, labor: 0, needsQuote: true },
+  bisagra: { name: 'Reparación de bisagras', unitPrice: 0, labor: 0, needsQuote: true },
+  base_motor: { name: 'Base metálica para motor corredizo', unitPrice: 0, labor: 0, needsQuote: true },
+  tope: { name: 'Tope de cierre', unitPrice: 0, labor: 0, needsQuote: true },
+  impermeabilizacion: { name: 'Impermeabilización de cajas de paso', unitPrice: 0, labor: 0, needsQuote: true },
 };
 
 const CHECKLIST_COMMON = [
@@ -58,41 +79,52 @@ const CHECKLIST_COMMON = [
   { id: 'cliente', label: 'Explicación al cliente' },
 ];
 
+// Checklists de puertas: paquete de Arlen (10-nov-2026), en el orden en que se hace el trabajo.
 const CHECKLIST_MANTENIMIENTO = [
-  { id: 'pinon', label: 'Estado de piñón' },
-  { id: 'cremallera', label: 'Estado y alineación de cremallera' },
-  { id: 'lubricacion', label: 'Lubricación' },
-  { id: 'fotoceldas', label: 'Limpieza y prueba de fotoceldas' },
-  { id: 'ruedas', label: 'Ruedas, rodamientos y guías' },
-  { id: 'fines', label: 'Fines de carrera / encoder' },
-  { id: 'controles', label: 'Controles y receptores' },
-  { id: 'ruido', label: 'Ruidos o holguras' },
+  { id: 'visual', label: 'Revisión visual de la estructura' },
+  { id: 'manual', label: 'Prueba de movimiento manual (roces y fricción)' },
+  { id: 'ruedas', label: 'Balineras, ruedas y bisagras' },
+  { id: 'riel', label: 'Limpieza del riel o las guías' },
+  { id: 'lubricacion', label: 'Engrase de partes móviles' },
+  { id: 'cremallera', label: 'Holgura entre piñón y cremallera' },
+  { id: 'fotoceldas', label: 'Limpieza y alineación de fotoceldas' },
+  { id: 'tarjeta', label: 'Limpieza de la tarjeta con limpiacontactos' },
+  { id: 'fines', label: 'Topes y finales de carrera calibrados' },
+  { id: 'controles', label: 'Alcance de los controles' },
+  { id: 'bateria', label: 'Batería de respaldo o panel solar (si tiene)' },
+  { id: 'cliente', label: 'Explicación al cliente' },
 ];
 
 const CHECKLIST_INSTALACION = [
-  { id: 'vano', label: 'Verificación de vano y nivel' },
-  { id: 'anclaje', label: 'Anclaje de motor y riel' },
-  { id: 'engrane', label: 'Engrane piñón / cremallera' },
-  { id: 'electrico', label: 'Punto eléctrico y polo a tierra' },
-  { id: 'programacion', label: 'Programación de controles' },
-  { id: 'seguridad_inst', label: 'Instalación de fotoceldas' },
-  { id: 'entrega', label: 'Prueba de entrega con cliente' },
+  { id: 'vano', label: 'Medidas, plomo y nivel del piso' },
+  { id: 'base', label: 'Base o soportes fundidos o soldados' },
+  { id: 'anclaje', label: 'Motor fijado firme' },
+  { id: 'engrane', label: 'Cremallera con 2 mm de luz (corrediza) o brazos montados (batiente)' },
+  { id: 'fines', label: 'Finales de carrera instalados' },
+  { id: 'seguridad_inst', label: 'Fotoceldas y electroimán instalados (si lleva)' },
+  { id: 'electrico', label: 'Conexión eléctrica y polo a tierra' },
+  { id: 'solar', label: 'Si es solar: panel sin sombra, batería y voltajes medidos' },
+  { id: 'programacion', label: 'Recorrido y fuerza programados en la tarjeta' },
+  { id: 'controles', label: 'Controles grabados' },
+  { id: 'seguridad', label: 'Prueba de fuerza y antiaplastamiento' },
+  { id: 'entrega', label: 'Prueba con el cliente y explicación del desbloqueo manual' },
 ];
 
 const CHECKLIST_REPARACION = [
-  { id: 'diagnostico', label: 'Diagnóstico de la falla' },
-  { id: 'causa', label: 'Causa raíz identificada' },
-  { id: 'repuesto', label: 'Repuesto instalado o pendiente' },
-  { id: 'prueba_falla', label: 'Prueba después de la intervención' },
-  { id: 'recomendacion', label: 'Recomendación informada al cliente' },
+  { id: 'entrevista', label: 'Qué notó o escuchó el cliente' },
+  { id: 'desenergizar', label: 'Equipo desenergizado' },
+  { id: 'manual', label: 'Prueba manual con el motor liberado' },
+  { id: 'medicion', label: 'Voltajes de entrada y continuidad de accesorios' },
+  { id: 'repuesto', label: 'Repuesto dañado identificado y cambiado' },
+  { id: 'calibracion', label: 'Parámetros de la tarjeta recalibrados (si aplica)' },
+  { id: 'prueba_falla', label: 'Prueba en vacío y con la puerta acoplada' },
+  { id: 'entrega', label: 'Equipo entregado funcionando al cliente' },
 ];
 
 function doorChecklist(serviceType) {
-  const extra =
-    serviceType === 'instalacion' ? CHECKLIST_INSTALACION
-      : serviceType === 'reparacion' ? CHECKLIST_REPARACION
-        : CHECKLIST_MANTENIMIENTO;
-  return [...extra, ...CHECKLIST_COMMON];
+  return serviceType === 'instalacion' ? CHECKLIST_INSTALACION
+    : serviceType === 'reparacion' ? CHECKLIST_REPARACION
+      : CHECKLIST_MANTENIMIENTO;
 }
 
 // ─── Cerrajería y Metalmecánica ────────────────────────────────────────────
@@ -199,7 +231,7 @@ export const EQUIPMENT_TYPES = PACK.equipment;
 export const QUICK_CHIPS = PACK.chips;
 export const CAPTURE_HINT = ACTIVE_OFICIO === 'metalmecanica'
   ? 'O escriba: encontré los resortes sin tensión, lubriqué guías y eje…'
-  : 'O escriba: encontré desgaste del piñón, ajusté la cremallera…';
+  : 'O escriba: el portón está pesado, las balineras reventadas, toca cambiar el piñón…';
 /** Repuestos de todos los oficios: las reglas de cualquier oficio encuentran su precio. */
 export const PART_CATALOG = { ...DOOR_PARTS, ...METAL_PARTS };
 

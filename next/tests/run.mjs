@@ -369,6 +369,31 @@ section('Oficio Cerrajería y Metalmecánica');
   assert(!puerta.recommendations.some((r) => /guías laterales|lamas|resortes/.test(r.text)), 'notas de puertas no mezclan cerrajería');
 }
 
+section('Paquete de puertas: así habla Arlen (10-nov)');
+{
+  const guion = 'El portón está muy pesado en manual porque tiene las balineras reventadas. El motor suena pero no mueve porque el piñón está desdentado del esfuerzo. Además, los ojitos están tapados de pantano. Toca hacerle un mantenimiento general preventivo, cambiarle las balineras al portón, ponerle un piñón de arrastre nuevo y limpiar y alinear los sensores.';
+  const p = parseTechnicianNote(guion);
+  const a = buildAssistance(p);
+  const hall = p.findings.map((f) => f.text).join(' | ');
+  const recs = a.recommendations.map((r) => r.text);
+  assert(/fotoceldas están con suciedad/i.test(hall), '"ojitos tapados de pantano" sale como fotoceldas con suciedad');
+  assert(!/ojitos|pantano/i.test(hall + recs.join(' ')), 'el informe no dice "ojitos" ni "pantano"');
+  assert(/balineras/i.test(hall) && /desdentado/i.test(hall), 'hallazgos de balineras y piñón');
+  assert(p.unmatched.length === 0, 'no quedan frases sueltas ("Además")');
+  assert(recs.includes('Limpieza y alineación de sensores'), 'limpiar y alinear queda en una sola recomendación');
+  assert(!recs.some((r) => /^Limpiar$/i.test(r)), 'no queda un "Limpiar" suelto');
+  assert(recs.filter((r) => /pi[nñ][oó]n/i.test(r)).length === 1, 'el piñón se recomienda una sola vez');
+  const q = a.quoteItems.map((i) => i.partId);
+  assert(q.includes('pinon') && q.includes('rueda') && q.includes('mantenimiento'), 'cotiza piñón, balineras y mantenimiento');
+  assert(!q.includes('fotocelda'), 'fotoceldas solo se limpian: no se cotizan nuevas');
+  const cap = buildAssistance(parseTechnicianNote('Encontré el capacitor estallado y los controles desprogramados.'));
+  assert(cap.quoteItems.some((i) => i.partId === 'condensador'), 'capacitor estallado se cotiza');
+  assert(cap.recommendations.some((r) => /control/i.test(r.text)), 'controles desprogramados: reprogramar');
+  const solar = buildAssistance(parseTechnicianNote('Encontré el panel solar sucio y la batería no retiene carga.'));
+  assert(solar.quoteItems.some((i) => i.partId === 'bateria') && solar.recommendations.some((r) => /panel/i.test(r.text)), 'solar: panel y batería');
+  assert(getChecklist('instalacion').some((i) => /solar/i.test(i.label)), 'instalación incluye el paso solar');
+}
+
 section('Historial de cerrajería importado');
 {
   const { mapClassicHistorial } = await import('../js/legacy.js');
