@@ -855,6 +855,9 @@
     const viewRoot = document.getElementById('view-cotizacion');
     if (!jsPDF || !html2canvas || !viewRoot) return null;
 
+    // El nombre del cliente se lee ANTES de preparar el PDF: beginCotPdfExport cambia las casillas por
+    // texto y después #cot-nombre ya no está, por eso el archivo salía "Cotizacion_…_Cliente.pdf".
+    const clienteArchivo = document.getElementById('cot-nombre')?.value.trim() || 'Cliente';
     const ctx = beginCotPdfExport();
     const printStyle = injectCotWhatsAppPrintCss();
     document.body.classList.add('cot-pdf-fixed-width');
@@ -978,7 +981,7 @@
 
       const blob = pdf.output('blob');
       const numeroArchivo = numero || document.getElementById('numero-cot')?.value.trim() || 'Cotizacion';
-      const cliente = document.getElementById('cot-nombre')?.value.trim() || 'Cliente';
+      const cliente = clienteArchivo;
       // Nombre del archivo en el idioma del documento ("Estimate_…" con English; igual que siempre con Español).
       const filename = `${global.ArpaDocLang?.text?.('file.cot', 'Cotizacion') ?? 'Cotizacion'}_${sanitizeCotFilenamePart(numeroArchivo)}_${sanitizeCotFilenamePart(cliente)}.pdf`;
       return new File([blob], filename, { type: 'application/pdf' });
@@ -996,9 +999,15 @@
     if (!(await asegurarNumeroCot())) return;
     saveCotMetadata();
 
-    const ctx = beginCotPdfExport();
+    // Nombre del archivo guardado = el mismo del PDF compartido: Cotizacion_<número>_<cliente>.
+    // El cliente se lee antes de beginCotPdfExport (después #cot-nombre ya no está en la página).
     const numCot = document.getElementById('numero-cot')?.value.trim() || 'Cotización';
-    document.title = numCot;
+    const clienteCot = document.getElementById('cot-nombre')?.value.trim() || '';
+    const ctx = beginCotPdfExport();
+    const prefijoCot = global.ArpaDocLang?.text?.('file.cot', 'Cotizacion') ?? 'Cotizacion';
+    document.title = clienteCot
+      ? `${prefijoCot}_${sanitizeCotFilenamePart(numCot)}_${sanitizeCotFilenamePart(clienteCot)}`
+      : numCot;
 
     window.print();
 
