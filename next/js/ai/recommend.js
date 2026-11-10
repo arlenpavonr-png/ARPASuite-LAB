@@ -50,7 +50,7 @@ const RULES = [
   },
   {
     id: 'pinon_wear',
-    test: (f) => /pi[nñ][oó]n/i.test(f) && /desgaste|gastad|avanzad/i.test(f),
+    test: (f) => /pi[nñ][oó]n/i.test(f) && /desgaste|gastad|avanzad|desdentad|comid|reventad/i.test(f),
     recommendation: 'Cambio de piñón de ataque.',
     partId: 'pinon',
     followUp: 'repair',
@@ -58,7 +58,7 @@ const RULES = [
   },
   {
     id: 'cremallera',
-    test: (f) => /cremallera/i.test(f) && /desaline|desgaste|suelta|floja|dan/i.test(f),
+    test: (f) => /cremallera/i.test(f) && /desaline|desgaste|suelta|floja|dan|comid|desdentad|desoldad/i.test(f),
     recommendation: 'Alineación o reemplazo de tramos de cremallera.',
     partId: 'cremallera',
     followUp: 'repair',
@@ -66,7 +66,7 @@ const RULES = [
   },
   {
     id: 'fotocelda',
-    test: (f) => /fotocelda|fotocélula/i.test(f) && /sucia|falla|no (?:detecta|funciona)|roto/i.test(f),
+    test: (f) => /fotocelda|fotocélula/i.test(f) && /sucia|suciedad|desaline|falla|no (?:detecta|funciona)|roto/i.test(f),
     recommendation: 'Limpieza profunda o reemplazo del par de fotoceldas.',
     partId: 'fotocelda',
     followUp: 'repair',
@@ -74,8 +74,8 @@ const RULES = [
   },
   {
     id: 'control',
-    test: (f) => /control/i.test(f) && /falla|no funciona|agotad|bater/i.test(f),
-    recommendation: 'Cambio de control remoto y prueba de alcance.',
+    test: (f) => /control/i.test(f) && /falla|no funciona|agotad|bater|desprogramad|no responde/i.test(f),
+    recommendation: 'Reprogramación o cambio de control remoto y prueba de alcance.',
     partId: 'control',
     followUp: 'quote',
     quote: true,
@@ -90,13 +90,131 @@ const RULES = [
   },
   {
     id: 'ruedas',
-    test: (f) => /rueda|rodamiento/i.test(f) && /holgura|desgaste|ruido|roto/i.test(f),
-    recommendation: 'Cambio de ruedas o rodamientos y nivelación.',
+    test: (f) => /rueda|rodamiento|balinera/i.test(f) && /holgura|desgaste|ruido|roto|reventad|da[nñ]ad|mal[oa]s/i.test(f),
+    recommendation: 'Cambio de balineras (rodamientos) y nivelación.',
     partId: 'rueda',
     followUp: 'repair',
     quote: true,
   },
+  // ─── Paquete de puertas de Arlen (10-nov-2026) ───
+  {
+    id: 'mantenimiento',
+    test: (f) => /(?:toca|hay que|recomiend\w*|necesita|hacerle)\s+(?:[\wáéíóúñ]+\s+){0,3}mantenimiento/i.test(f),
+    recommendation: 'Mantenimiento general preventivo.',
+    partId: 'mantenimiento',
+    followUp: 'maintenance',
+    quote: true,
+  },
+  {
+    id: 'capacitor',
+    test: (f) => near(f, 'capacitor|condensador', 'estallad|quemad|da[nñ]ad|inflad|malo|falla'),
+    recommendation: 'Cambio de capacitor de arranque.',
+    partId: 'condensador',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'tarjeta',
+    test: (f) => near(f, 'tarjeta|placa', 'quemad|da[nñ]ad|falla|metralleta|bloquead'),
+    recommendation: 'Diagnóstico y reparación o cambio de la tarjeta electrónica.',
+    partId: 'tarjeta',
+    followUp: 'quote',
+    quote: true,
+  },
+  {
+    id: 'fin_carrera',
+    test: (f) => near(f, 'fin(?:es)? de carrera|im[aá]n(?:es)?\\b', 'suelt|perdid|da[nñ]ad|falla|se pasa'),
+    recommendation: 'Ajuste o cambio del fin de carrera y calibración de límites.',
+    partId: 'fin_carrera',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'panel_solar',
+    test: (f) => near(f, 'panel', 'suci|polvo|no carga|tapad|sulfatad'),
+    recommendation: 'Limpieza del panel solar y revisión de conexiones.',
+    partId: 'panel_limpieza',
+    followUp: 'maintenance',
+    quote: true,
+  },
+  {
+    id: 'bateria',
+    test: (f) => near(f, 'bater[ií]a', 'no retiene|descarg|agotad|en corto|hinchad|mala|vencid'),
+    recommendation: 'Cambio de batería de respaldo.',
+    partId: 'bateria',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'electroiman',
+    test: (f) => near(f, 'electro.?im[aá]n', 'pegad|reventad|falla|da[nñ]ad|no (?:pega|sostiene)'),
+    recommendation: 'Revisión o cambio del electroimán.',
+    partId: 'electroiman',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'bisagras',
+    test: (f) => near(f, 'bisagra', 'fisurad|vencid|rot|da[nñ]ad|desoldad|partid'),
+    recommendation: 'Refuerzo o cambio de bisagras.',
+    partId: 'bisagra',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'brazo_barrera',
+    test: (f) => near(f, 'brazo|barrera', 'quebrad|rot|partid|doblad'),
+    recommendation: 'Cambio del brazo de la barrera.',
+    partId: 'brazo_barrera',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'tope',
+    test: (f) => near(f, 'tope', 'arrancad|reventad|rot|da[nñ]ad'),
+    recommendation: 'Cambio del tope de cierre y calibración de límites.',
+    partId: 'tope',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'agua',
+    test: (f) => /entr[oó] agua|le entr[oó] agua|humedad en (?:la caja|el motor|la tarjeta)/i.test(f),
+    recommendation: 'Secado del equipo e impermeabilización de cajas de paso.',
+    partId: 'impermeabilizacion',
+    followUp: 'repair',
+    quote: true,
+  },
+  {
+    id: 'sulfatado',
+    test: (f) => /sulfatad/i.test(f) && !/panel/i.test(f),
+    recommendation: 'Rehacer empalmes y conexiones sulfatadas.',
+    followUp: 'repair',
+    quote: false,
+  },
 ];
+
+/** Cómo se nombra cada pieza en una recomendación del técnico. */
+const PIECE_RE = {
+  pinon: /pi[nñ][oó]n/i,
+  cremallera: /cremallera/i,
+  fotocelda: /fotocelda|fotocélula|sensores/i,
+  control: /control/i,
+  rueda: /balinera|rueda|rodamiento/i,
+  mantenimiento: /mantenimiento/i,
+  condensador: /capacitor|condensador/i,
+  tarjeta: /tarjeta|placa/i,
+  fin_carrera: /fin(?:es)? de carrera/i,
+  panel_limpieza: /panel/i,
+  bateria: /bater[ií]a/i,
+  electroiman: /electro.?im[aá]n/i,
+  bisagra: /bisagra/i,
+  brazo_barrera: /brazo/i,
+  tope: /\btope/i,
+  resorte: /resorte/i,
+  lama: /\blama|fleje/i,
+  chapa: /chapa|cerradura/i,
+};
 
 function uniqueByText(items) {
   const out = [];
@@ -130,9 +248,16 @@ export function buildAssistance(parsed) {
   for (const rule of RULES) {
     const hit = findings.some((f) => rule.test(f.text)) || rule.test(allText);
     if (!hit) continue;
-    extraRecs.push({ text: rule.recommendation, source: 'engine', ruleId: rule.id });
+    // Si el técnico ya dijo qué hacer con esa pieza, no se repite la recomendación (sí va a la cotización).
+    const piece = PIECE_RE[rule.partId];
+    const dichas = piece ? existingRecs.filter((r) => piece.test(r.text)) : [];
+    if (!dichas.length) extraRecs.push({ text: rule.recommendation, source: 'engine', ruleId: rule.id });
     followUpTypes.add(rule.followUp);
-    if (rule.quote && rule.partId && !usedParts.has(rule.partId)) {
+    // Si el técnico pidió solo limpiar o ajustar esa pieza, no se cotiza una nueva.
+    const soloServicio = dichas.length > 0
+      && rule.partId !== 'mantenimiento'
+      && !dichas.some((r) => /cambi|reemplaz|nuev|instal|poner/i.test(r.text));
+    if (rule.quote && rule.partId && !soloServicio && !usedParts.has(rule.partId)) {
       usedParts.add(rule.partId);
       const cat = PART_CATALOG[rule.partId];
       if (cat) {
