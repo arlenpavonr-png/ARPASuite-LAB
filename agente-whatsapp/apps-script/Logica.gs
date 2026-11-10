@@ -180,8 +180,12 @@ function decidirHandoff_(texto, ctx) {
       return /\b(comprar|compro|lo quiero|la quiero|me lo llevo|quiero (el|ese|uno|un) motor|como (le )?pago|donde pago|anticipo|consign|transferencia|cuenta bancaria|nequi|daviplata|separar(lo|la)?)\b/.test(t);
     }],
     ['persona', function () {
-      return /(hablar con|una persona|un humano|asesor|alguien real|con arlen|llamame|llameme|me llaman|me puede llamar|me pueden llamar|eres (un )?(robot|bot)|es (un )?(robot|bot))/.test(t);
+      return /(hablar con|una persona|un humano|asesor|alguien real|con arlen|llamame|llameme|me llaman|me puede llamar|me pueden llamar)/.test(t);
     }],
+    // "¿Es un robot?": en Automatismos se pasa a Arlen; ARPA Suite responde que es un asistente.
+    ['robot', function () {
+      return /(eres (un )?(robot|bot)|es (un )?(robot|bot))/.test(t);
+    }, 'persona'],
     ['molesto', function () {
       return /(molest|pesimo|terrible|estafa|ladron|nadie (me )?responde|no responden|no contestan|queja|reclamo|demanda|mal servicio|no me (vuelvan a )?escrib|groser|incumpl|enojad|furios|indignad|que falta de)/.test(t);
     }],
@@ -189,8 +193,11 @@ function decidirHandoff_(texto, ctx) {
       return !!ctx.tieneFotos && /\d+([.,]\d+)?\s*(x|por)\s*\d+|\d+([.,]\d+)?\s*(m|mt|mts|metros|cm)\b/.test(t);
     }]
   ];
+  // ctx.reglas: si el negocio la trae, solo se aplican esas reglas (por nombre).
+  var permitidas = ctx.reglas || null;
   for (var i = 0; i < reglas.length; i += 1) {
-    if (reglas[i][1]()) return { pasar: true, motivo: reglas[i][0] };
+    if (permitidas && permitidas.indexOf(reglas[i][0]) === -1) continue;
+    if (reglas[i][1]()) return { pasar: true, motivo: reglas[i][2] || reglas[i][0] };
   }
   return { pasar: false, motivo: '' };
 }
@@ -218,8 +225,9 @@ function parsearMonto_(numero, sufijo) {
  * Regla de respaldo: busca valores en dinero en la respuesta. Si aparece uno que NO está
  * en la lista de precios permitidos (o un precio de instalación), la respuesta no se envía.
  */
-function filtrarPrecios_(texto, permitidos) {
+function filtrarPrecios_(texto, permitidos, opciones) {
   var t = String(texto || '');
+  var op = opciones || {};
   var encontrados = [];
   var re1 = /\$\s*(\d[\d.,\s]*\d|\d)(?:\s*(mil|millones|millón|millon|k|m)\b)?/gi;
   var re2 = /\b(\d[\d.,]*)\s*(mil(?:es)?|millones|millón|millon|pesos|cop|lucas|palos)\b/gi;
@@ -229,14 +237,22 @@ function filtrarPrecios_(texto, permitidos) {
     var suf = normalizar_(m[2]);
     encontrados.push(parsearMonto_(m[1], /^(pesos|cop)$/.test(suf) ? '' : suf));
   }
+  if (op.permiteUsd) {
+    // "83 USD", "83 dólares", "USD 83", "US$ 190" (sin $ delante, que ya se contó arriba).
+    var re3 = /(?:^|[^$\d.,])(\d[\d.,]*)\s*(?:usd|us\$|d[oó]lares)\b/gi;
+    var re4 = /\b(?:usd)\s*(\d[\d.,]*)/gi;
+    while ((m = re3.exec(t)) !== null) encontrados.push(parsearMonto_(m[1], ''));
+    while ((m = re4.exec(t)) !== null) encontrados.push(parsearMonto_(m[1], ''));
+  }
   var prohibidos = encontrados.filter(function (v) {
     return isNaN(v) || (permitidos || []).indexOf(v) === -1;
   });
   var motivos = [];
   if (prohibidos.length) motivos.push('precio_no_permitido');
-  if (/\b(usd|us\$|dolares|dólares|euros)\b/i.test(t)) motivos.push('moneda_extranjera');
+  var monedas = op.permiteUsd ? /\b(euros|mxn|soles|clp)\b/i : /\b(usd|us\$|dolares|dólares|euros)\b/i;
+  if (monedas.test(t)) motivos.push('moneda_extranjera');
   // Un valor en la misma frase que "instalación" sin aclarar que va aparte.
-  var frases = t.split(/[!?\n]|\.(?=\s|$)/);
+  var frases = op.revisaInstalacion === false ? [] : t.split(/[!?\n]|\.(?=\s|$)/);
   frases.forEach(function (f) {
     var fn = normalizar_(f);
     var tieneValor = /\$\s*\d|\d\s*(mil|millones|pesos)\b/.test(fn);
@@ -248,7 +264,14 @@ function filtrarPrecios_(texto, permitidos) {
   return { ok: motivos.length === 0, encontrados: encontrados, prohibidos: prohibidos, motivos: motivos };
 }
 
-/** ¿La respuesta tutea al cliente? (el asistente siempre habla de usted). */
+/** Acuse de recibo de una foto, audio, etc., con el trato de cada negocio. */
+function textoAcuse_(negocio, tipo, cuando) {
+  var base = (negocio.acuseMedia || {})[tipo] ||
+    (negocio.trato === 'tu' ? 'Recibimos tu mensaje, gracias.' : 'Recibimos su mensaje, gracias.');
+  return base + (negocio.acuseFinal || ' Arlen le responde ') + cuando + '.';
+}
+
+/** ¿La respuesta tutea al cliente? (Automatismos siempre habla de usted). */
 function tieneTuteo_(texto) {
   return /(^|[^\wáéíóúñ])(tú|tienes|puedes|quieres|necesitas|cuéntame|cuentame|dime|escríbeme|escribeme|envíame|enviame|mándame|mandame|contigo|te (paso|ayudo|cuento|escribo|envío|envio|respondo|comparto|explico)|tu (puerta|casa|garaje|pedido|correo|número|numero|barrio|caso))(?=$|[^\wáéíóúñ])/i
     .test(String(texto || ''));
@@ -312,6 +335,11 @@ function descripcionTipo_(tipo) {
   })[tipo] || ('un mensaje de tipo ' + tipo);
 }
 
+/** El cerebro puede ser texto o una función que lo arma (p. ej. con un link de las propiedades). */
+function textoCerebro_(negocio) {
+  return typeof negocio.cerebro === 'function' ? negocio.cerebro() : negocio.cerebro;
+}
+
 /** Bloques de sistema: el cerebro (fijo, cacheable) + el contexto del momento. */
 function construirSistema_(negocio, ctx) {
   var lineas = [
@@ -326,7 +354,7 @@ function construirSistema_(negocio, ctx) {
       MARCA_HANDOFF + ', diga que le pasa el caso a Arlen y que le responde ' + ctx.cuando + '.');
   }
   return [
-    { type: 'text', text: negocio.cerebro, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: textoCerebro_(negocio), cache_control: { type: 'ephemeral' } },
     { type: 'text', text: lineas.join('\n') }
   ];
 }
@@ -379,7 +407,7 @@ function planificar_(ev, ctx) {
   if (TIPOS_MEDIA.indexOf(ev.msgTipo) !== -1) return { accion: 'acuse', motivo: 'media_' + ev.msgTipo };
   if (!String(ev.texto || '').trim()) return { accion: 'registrar', motivo: 'sin_texto' };
   var tieneFotos = ctx.historial.some(function (f) { return f.rol === 'cliente' && f.tipo === 'image'; });
-  var h = decidirHandoff_(ev.texto, { tieneFotos: tieneFotos });
+  var h = decidirHandoff_(ev.texto, { tieneFotos: tieneFotos, reglas: ctx.negocio.reglasHandoff });
   return { accion: 'responder', motivo: h.pasar ? 'handoff_' + h.motivo : 'normal', handoff: h.pasar ? h.motivo : '' };
 }
 
@@ -390,13 +418,15 @@ function planificar_(ev, ctx) {
 function revisarRespuesta_(negocio, textoClaude, plan, cuando) {
   var marca = String(textoClaude || '').indexOf(MARCA_HANDOFF) !== -1;
   var limpio = limpiarRespuesta_(textoClaude);
-  var filtro = filtrarPrecios_(limpio, negocio.preciosPermitidos);
+  var filtro = filtrarPrecios_(limpio, negocio.preciosPermitidos,
+    { permiteUsd: !!negocio.permiteUsd, revisaInstalacion: negocio.revisaInstalacion });
   if (!limpio || !filtro.ok) {
-    return { enviar: mensajeHandoffFijo_(cuando), handoff: true, bloqueada: !!limpio, motivos: filtro.motivos.length ? filtro.motivos : ['respuesta_vacia'] };
+    var respaldo = negocio.mensajeHandoff ? negocio.mensajeHandoff(cuando) : mensajeHandoffFijo_(cuando);
+    return { enviar: respaldo, handoff: true, bloqueada: !!limpio, motivos: filtro.motivos.length ? filtro.motivos : ['respuesta_vacia'] };
   }
   var handoff = marca || !!plan.handoff;
   if (handoff && !/arlen/i.test(limpio)) {
-    limpio += '\nLe paso su caso a Arlen, que le responde ' + cuando + '.';
+    limpio += '\n' + (negocio.fraseHandoff || 'Le paso su caso a Arlen, que le responde ') + cuando + '.';
   }
   return { enviar: limpio, handoff: handoff, bloqueada: false, motivos: [] };
 }

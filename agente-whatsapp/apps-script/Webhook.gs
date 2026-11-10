@@ -17,7 +17,7 @@ function doGet(e) {
   if (p['hub.mode'] === 'subscribe' && token && p['hub.verify_token'] === token) {
     return ContentService.createTextOutput(String(p['hub.challenge'] || ''));
   }
-  if (p.chat) return chatPrueba_(p.chat);
+  if (p.chat) return chatPrueba_(p.chat, p.negocio);
   return ContentService.createTextOutput('ARPA contestador');
 }
 
@@ -101,8 +101,7 @@ function procesarEvento_(ev, config, ahoraMs) {
     var claveAcuse = 'ack_' + negocio.clave + '_' + ev.cliente;
     if (cache.get(claveAcuse)) return plan; // ya acusamos recibo hace poco (varias fotos seguidas)
     cache.put(claveAcuse, '1', CONTESTADOR_DEFAULTS.AVISO_MEDIA_MIN * 60);
-    var acuse = (negocio.acuseMedia[ev.msgTipo] || 'Recibimos su mensaje, gracias.') +
-      ' Arlen le responde ' + horario.cuando + '.';
+    var acuse = textoAcuse_(negocio, ev.msgTipo, horario.cuando);
     entregar_(config, negocio, ev, acuse, plan.motivo, hoja, ahoraMs);
     avisarArlen_(config, negocio, ev, plan.motivo, historial, acuse, null, true);
     return plan;

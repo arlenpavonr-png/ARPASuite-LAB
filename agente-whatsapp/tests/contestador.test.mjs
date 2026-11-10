@@ -166,3 +166,56 @@ test('regla precio fijo, sin rebajas (Arlen 7-nov): está en el cerebro y pasa a
   assert.match(s, /no manejamos rebajas/);
   assert.match(s, /insiste en un descuento/);
 });
+
+// ── ARPA Suite (301 609 2542), Arlen 9-nov-2026 ──
+const AS = gs.NEGOCIOS.arpasuite;
+const opAS = { permiteUsd: true, revisaInstalacion: false };
+
+test('ARPA Suite: activo, con cerebro, link de prueba y precio fijo', () => {
+  assert.equal(AS.activo, true);
+  const c = gs.textoCerebro_(AS);
+  assert.match(c, /Asistente ARPA Suite/);
+  assert.match(c, /link de la prueba gratis: https:\/\/arpatechnologyglobal\.com/); // sin la propiedad, la página principal
+  assert.match(c, /NO ofrezcas descuentos/);
+  assert.match(c, /No digas que eres una persona/);
+  assert.equal(gs.textoCerebro_(NEG), NEG.cerebro);
+});
+
+test('ARPA Suite: precios en USD y COP permitidos; los demás no', () => {
+  for (const t of ['La licencia Técnico vale 83 USD, pago único.', 'PYME: 190 USD. Marca blanca: USD 333.',
+    'Son $83 USD de por vida.', 'En Colombia: $340.000, $779.000 y $1.365.000 COP.', '83 dólares, sin mensualidades']) {
+    assert.equal(gs.filtrarPrecios_(t, AS.preciosPermitidos, opAS).ok, true, t);
+  }
+  for (const t of ['Hoy te la dejo en 59 USD.', 'Cuesta $59.', 'Son 1.616 MXN aprox.', 'Vale 75 dólares', 'Son 300 soles']) {
+    assert.equal(gs.filtrarPrecios_(t, AS.preciosPermitidos, opAS).ok, false, t);
+  }
+});
+
+test('ARPA Suite: "instalar la app" no se confunde con mano de obra', () => {
+  assert.equal(gs.filtrarPrecios_('Son 83 USD y para instalar la app tocas el botón Instalar.', AS.preciosPermitidos, opAS).ok, true);
+  assert.equal(gs.decidirHandoff_('¿Cuánto cuesta instalar la app?', { reglas: AS.reglasHandoff }).pasar, false);
+  assert.equal(gs.decidirHandoff_('¿Cómo la descargo?', { reglas: AS.reglasHandoff }).pasar, false);
+});
+
+test('ARPA Suite: pasa a Arlen al pagar, pedir persona o estar molesto; "¿eres un bot?" lo responde el asistente', () => {
+  const r = { reglas: AS.reglasHandoff };
+  assert.equal(gs.decidirHandoff_('Ya quiero comprar, ¿cómo pago?', r).motivo, 'compra');
+  assert.equal(gs.decidirHandoff_('Quiero hablar con una persona', r).motivo, 'persona');
+  assert.equal(gs.decidirHandoff_('Pésimo, nadie responde', r).motivo, 'molesto');
+  assert.equal(gs.decidirHandoff_('¿Eres un bot?', r).pasar, false);
+  assert.equal(gs.decidirHandoff_('¿Pueden venir mañana?', r).pasar, false);
+  // Automatismos no cambia: el robot sí se pasa a Arlen.
+  assert.equal(gs.decidirHandoff_('¿Es un robot?').motivo, 'persona');
+});
+
+test('ARPA Suite: respaldo y acuse de tú', () => {
+  const rev = gs.revisarRespuesta_(AS, 'Hoy te la dejo en 59 USD.', { handoff: '' }, 'mañana a las 8 a. m.');
+  assert.equal(rev.bloqueada, true);
+  assert.match(rev.enviar, /Te paso tu caso a Arlen/);
+  assert.match(rev.enviar, /probar ARPA Suite gratis 7 días/);
+  const ok = gs.revisarRespuesta_(AS, '[ARLEN] Listo, para el pago le aviso a Arlen.', { handoff: 'compra' }, 'hoy');
+  assert.equal(ok.handoff, true);
+  assert.equal(ok.bloqueada, false);
+  assert.equal(gs.textoAcuse_(AS, 'image', 'hoy'), 'Recibimos tu foto, gracias. Arlen te responde hoy.');
+  assert.equal(gs.textoAcuse_(NEG, 'image', 'hoy'), 'Recibimos su foto, gracias. Arlen le responde hoy.');
+});
