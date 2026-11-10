@@ -18,6 +18,7 @@
  *   PERMITIR_SIN_RELAY      SI / NO. Con NO (por defecto) solo acepta mensajes que traen RELAY_TOKEN.
  *   PHONE_ID_AUTOMATISMOS   phone_number_id de Meta del 300 568 3914.
  *   PHONE_ID_ARPASUITE      phone_number_id de Meta del 301 609 2542 (cuando se active).
+ *   LINK_PRUEBA_ARPASUITE   Link de la prueba gratis de la app (el ?start=1 de producción). Sin él, se manda la página principal.
  *   CORREO_ARLEN            Correo donde llegan los avisos de "pasar a Arlen".
  *   SILENCIO_HORAS          Opcional. Horas que se calla en un chat después de que Arlen escribe. Por defecto 12.
  *   NUMEROS_EXCLUIDOS       Opcional. Números que nunca se responden, separados por coma (573001112233,...).

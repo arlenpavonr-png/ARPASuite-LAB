@@ -21,11 +21,18 @@ function chatPruebaValido_(token) {
   return !!bueno && token === bueno;
 }
 
-function chatPrueba_(token) {
+/** ?chat=<token>&negocio=arpasuite prueba el 301; sin "negocio" prueba Automatismos. */
+function negocioPrueba_(clave) {
+  return NEGOCIOS[clave] || NEGOCIOS.automatismos;
+}
+
+function chatPrueba_(token, clave) {
   if (!chatPruebaValido_(token)) return ContentService.createTextOutput('ARPA contestador');
-  var html = HTML_CHAT_PRUEBA.replace('__TOKEN__', token);
+  var negocio = negocioPrueba_(clave);
+  var html = HTML_CHAT_PRUEBA.replace('__TOKEN__', token).replace('__NEGOCIO__', negocio.clave)
+    .split('__NOMBRE__').join(negocio.nombre);
   return HtmlService.createHtmlOutput(html)
-    .setTitle('Prueba del robot · Automatismos ARPA')
+    .setTitle('Prueba del robot · ' + negocio.nombre)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
@@ -33,23 +40,23 @@ function chatPrueba_(token) {
  * Lo llama la página. historial: [{ rol: 'cliente'|'asistente', tipo, texto }], ya con el
  * último mensaje del cliente al final. Devuelve { texto, nota }.
  */
-function responderPrueba(token, historial) {
+function responderPrueba(token, historial, clave) {
   if (!chatPruebaValido_(token)) throw new Error('Link de prueba no válido');
   var config = leerConfig_();
-  var negocio = NEGOCIOS.automatismos;
+  var negocio = negocioPrueba_(clave);
   var ahora = Date.now();
   var horario = cuandoResponde_(ahora, negocio.horario, config.festivosExtra);
   var ultimo = historial[historial.length - 1] || {};
 
   if (TIPOS_MEDIA.indexOf(ultimo.tipo) !== -1) {
     return {
-      texto: (negocio.acuseMedia[ultimo.tipo] || 'Recibimos su mensaje, gracias.') + ' Arlen le responde ' + horario.cuando + '.',
+      texto: textoAcuse_(negocio, ultimo.tipo, horario.cuando),
       nota: 'A Arlen le llegaría un correo con la foto.'
     };
   }
 
   var tieneFotos = historial.some(function (f) { return f.rol === 'cliente' && f.tipo === 'image'; });
-  var h = decidirHandoff_(ultimo.texto, { tieneFotos: tieneFotos });
+  var h = decidirHandoff_(ultimo.texto, { tieneFotos: tieneFotos, reglas: negocio.reglasHandoff });
   var plan = { handoff: h.pasar ? h.motivo : '' };
   var sistema = construirSistema_(negocio, {
     fecha: fechaLegible_(ahora), enHorario: horario.enHorario, cuando: horario.cuando, handoff: plan.handoff
@@ -77,18 +84,18 @@ var HTML_CHAT_PRUEBA = [
   'button{border:0;border-radius:22px;background:var(--verde);color:#fff;font-size:15px;padding:0 16px;cursor:pointer}',
   'button.sec{background:#fff;color:var(--verde);border:1px solid var(--verde)}button:disabled{opacity:.5}',
   '</style></head><body>',
-  '<header><b>Prueba del robot · Automatismos ARPA</b><span>Escriba como si fuera un cliente. No se envía nada por WhatsApp.</span></header>',
+  '<header><b>Prueba del robot · __NOMBRE__</b><span>Escriba como si fuera un cliente. No se envía nada por WhatsApp.</span></header>',
   '<div id="chat"><div class="nota">Mismas reglas y precios que tendrá en WhatsApp. Para empezar de cero, recargue la página.</div></div>',
   '<form id="f"><button type="button" class="sec" id="foto" title="Simular que el cliente manda una foto">📷</button>',
   '<textarea id="t" placeholder="Escriba un mensaje"></textarea><button id="b">Enviar</button></form>',
   '<script>',
-  'var TOKEN="__TOKEN__",hist=[],chat=document.getElementById("chat"),t=document.getElementById("t"),b=document.getElementById("b"),fb=document.getElementById("foto");',
+  'var TOKEN="__TOKEN__",NEGOCIO="__NEGOCIO__",hist=[],chat=document.getElementById("chat"),t=document.getElementById("t"),b=document.getElementById("b"),fb=document.getElementById("foto");',
   'function burbuja(cls,txt){var d=document.createElement("div");d.className=cls;d.textContent=txt;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d;}',
   'function ocupado(s){b.disabled=fb.disabled=s;}',
   'function mandar(tipo,txt){hist.push({rol:"cliente",tipo:tipo,texto:txt});burbuja("m yo",tipo==="image"?"📷 (foto de la puerta)":txt);',
   ' var esp=burbuja("m el","escribiendo…");ocupado(true);',
   ' google.script.run.withSuccessHandler(function(r){esp.textContent=r.texto;hist.push({rol:"asistente",tipo:"text",texto:r.texto});if(r.nota)burbuja("nota",r.nota);ocupado(false);t.focus();})',
-  ' .withFailureHandler(function(e){esp.textContent="(Error: "+e.message+")";ocupado(false);}).responderPrueba(TOKEN,hist);}',
+  ' .withFailureHandler(function(e){esp.textContent="(Error: "+e.message+")";ocupado(false);}).responderPrueba(TOKEN,hist,NEGOCIO);}',
   'document.getElementById("f").addEventListener("submit",function(e){e.preventDefault();var x=t.value.trim();if(!x||b.disabled)return;t.value="";mandar("text",x);});',
   't.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();document.getElementById("f").requestSubmit();}});',
   'fb.addEventListener("click",function(){if(!fb.disabled)mandar("image","");});',
