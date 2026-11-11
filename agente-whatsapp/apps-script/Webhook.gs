@@ -88,7 +88,8 @@ function procesarEvento_(ev, config, ahoraMs) {
 
   if (plan.accion === 'registrar_eco') {
     if (!negocio || duplicado) return plan;
-    guardarFila_(hoja, negocio, ev.cliente, '', 'arlen', ev.msgTipo, ev.texto, ev.wamid, 'eco', ev.timestampMs || ahoraMs);
+    var notaEco = 'eco' + (ev.archivo ? ';archivo=' + String(ev.archivo).replace(/;/g, ',') : '');
+    guardarFila_(hoja, negocio, ev.cliente, '', 'arlen', ev.msgTipo, ev.texto, ev.wamid, notaEco, ev.timestampMs || ahoraMs);
     return plan;
   }
 

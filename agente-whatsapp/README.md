@@ -93,6 +93,22 @@ instante, revisa la firma y le pasa el mensaje a Apps Script.
    correo cada respuesta que **enviaría**. Escríbale al 300 568 3914 desde otro celular y revise los correos.
 2. Cuando le guste cómo responde, cambie `MODO_BORRADOR` a `NO`. Desde ese momento responde solo.
 
+### 5. Contador de clientes (informe diario y semanal)
+Ejecute **`activarInformes`** una sola vez. Desde ese día le llega al `CORREO_ARLEN`:
+- **Cada día a las 7 p. m.** (solo si escribió alguien): cuántos clientes escribieron, cuántos son nuevos, qué
+  preguntaron, a cuántos se les cotizó, cuántos compraron y cuántos solo preguntaron (mirones).
+- **Los lunes a las 7 a. m.**: lo mismo de la semana, la lista de las ventas "casi seguras" por si alguna no fue,
+  y un renglón **solo con números** para pasarle a Gemini (sin nombres ni teléfonos).
+
+Usted no marca nada. El asistente detecta la venta solo:
+- **Usted le manda al cliente la cuenta de cobro de ARPA Suite** (`CuentaCobro_…pdf`): venta.
+- **Usted escribe** "gracias por su compra", "quedó instalado" o "recibí el pago": venta.
+- **Usted le manda la cotización** (`Cotizacion_…pdf`, o un mensaje con el valor): cotizado.
+- **El cliente escribe** "ya le consigné", "¿cuándo vienen?" o "mi dirección es…", o manda una foto después de la
+  cotización (posible comprobante): venta casi segura.
+
+Para probarlo sin esperar: ejecute `informeDiario` o `informeSemanal`.
+
 ## Cómo apagarlo
 
 - **Rápido:** en el editor de Apps Script ejecute **`apagarAsistente`** (o cambie `ASISTENTE_ACTIVO` a `NO` en las
