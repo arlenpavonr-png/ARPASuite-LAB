@@ -115,9 +115,15 @@
     if (existe) existe.cant = (Number(existe.cant) || 0) + 1;
     else filas.push({ cod: prod.cod, nom: prod.nom, pvp: precioCatalogo(prod), cant: 1, tipo: 'producto' });
     const val = function (id) { return document.getElementById(id)?.value || ''; };
+    const iva = document.getElementById('iva-check-cot');
+    // Se pasan todos los campos que loadCotizacion toca (observaciones, firma, validez, IVA)
+    // para que agregar un motor no borre nada de lo que ya está escrito.
     cot.loadCotizacion({
       numero: val('numero-cot'), cliente: val('cot-nombre'), ciudad: val('cot-ciudad'), fecha: val('cot-fecha'),
-      nit: val('cot-nit'), tel: val('cot-tel'), email: val('cot-email'), filas: filas,
+      nit: val('cot-nit'), tel: val('cot-tel'), email: val('cot-email'),
+      validez: val('cot-validez'), obs: val('cot-obs'), firmaClienteNombre: val('cot-firma-cliente-nombre'),
+      conIva: iva ? iva.checked : null,
+      filas: filas,
     });
     cot.recalcularCotizacion?.();
     cot.scheduleCotDraftSave?.();
