@@ -26,6 +26,8 @@ const LOCAL_ASSETS = [
   './js/arpa-cobros.js',
   './js/arpa-ot.js',
   './js/arpa-cotizacion.js',
+  './js/arpa-pegar-pedido.js',
+  './js/arpa-calculadora-peso.js',
   './js/arpa-cuenta-cobro.js',
   './js/arpa-formato-tipo.js',
   './js/arpa-historial.js',
