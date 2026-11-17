@@ -60,6 +60,157 @@
     global.ArpaChecklistNtc?.stripPhotos?.(next.fullSnapshot);
     return next;
   }
+  // ── Fotos del formato en el dispositivo (IndexedDB) ──────────────────────
+  // localStorage tiene ~5 MB: con varios formatos con fotos se llenaba y el
+  // Historial guardaba el documento SIN fotos (AP-031, 16-nov-2026). Ahora las
+  // fotos van a IndexedDB (mucho más espacio) y el registro solo guarda la marca
+  // _fotosEnDispositivo. La nube nunca lleva fotos: se buscan aquí por id o por
+  // número. Sin IndexedDB todo sigue como antes (fotos dentro del registro).
+  const FOTOS_DB = 'arpa_suite_fotos';
+  const FOTOS_STORE = 'fotos';
+  let fotosDbPromise = null;
+  function fotosDbDisponible() {
+    try { return !!global.indexedDB; } catch (e) { return false; }
+  }
+  function abrirFotosDb() {
+    if (!fotosDbDisponible()) return Promise.reject(new Error('sin IndexedDB'));
+    if (!fotosDbPromise) {
+      fotosDbPromise = new Promise((resolve, reject) => {
+        let req;
+        try { req = global.indexedDB.open(FOTOS_DB, 1); } catch (e) { reject(e); return; }
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(FOTOS_STORE)) db.createObjectStore(FOTOS_STORE);
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      }).catch((e) => { fotosDbPromise = null; throw e; });
+    }
+    return fotosDbPromise;
+  }
+  /** Corre fn(store) en una transacción; fn puede devolver una promesa con el resultado. */
+  function fotosTx(mode, fn) {
+    return abrirFotosDb().then((db) => new Promise((resolve, reject) => {
+      const tx = db.transaction(FOTOS_STORE, mode);
+      let result;
+      Promise.resolve(fn(tx.objectStore(FOTOS_STORE))).then((r) => { result = r; });
+      tx.oncomplete = () => resolve(result);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    }));
+  }
+  function fotosKeyId(id) { return 'id:' + id; }
+  function fotosKeyNumero(numero) { return 'formato:' + String(numero || '').trim().toUpperCase(); }
+  function esFoto(v) { return typeof v === 'string' && v.indexOf('data:image/') === 0; }
+  /** Saca las fotos de un snapshot del formato: { snapshot sin fotos, fotos }, o null si no tiene. */
+  function separarFotos(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return null;
+    const antes = Array.isArray(snapshot.fotosAntes) ? snapshot.fotosAntes.filter(esFoto) : [];
+    const despues = Array.isArray(snapshot.fotosDespues) ? snapshot.fotosDespues.filter(esFoto) : [];
+    const ntc = {};
+    const items = snapshot._checklistNtc && snapshot._checklistNtc.items;
+    if (items && typeof items === 'object') {
+      Object.keys(items).forEach((k) => { if (items[k] && esFoto(items[k].foto)) ntc[k] = items[k].foto; });
+    }
+    if (!antes.length && !despues.length && !Object.keys(ntc).length) return null;
+    const limpio = Object.assign({}, snapshot, { fotosAntes: [], fotosDespues: [] });
+    if (Object.keys(ntc).length) {
+      const nuevosItems = {};
+      Object.keys(items).forEach((k) => {
+        nuevosItems[k] = ntc[k] ? Object.assign({}, items[k], { foto: '' }) : items[k];
+      });
+      limpio._checklistNtc = Object.assign({}, snapshot._checklistNtc, { items: nuevosItems });
+    }
+    return { snapshot: limpio, fotos: { antes, despues, ntc } };
+  }
+  /** Devuelve las fotos a una copia del snapshot (no pisa fotos que ya tenga). */
+  function unirFotos(snapshot, fotos) {
+    if (!snapshot || !fotos) return snapshot;
+    const tiene = (arr) => Array.isArray(arr) && arr.some(esFoto);
+    const out = Object.assign({}, snapshot, {
+      fotosAntes: tiene(snapshot.fotosAntes) ? snapshot.fotosAntes : (fotos.antes || []).slice(),
+      fotosDespues: tiene(snapshot.fotosDespues) ? snapshot.fotosDespues : (fotos.despues || []).slice()
+    });
+    const ntc = fotos.ntc || {};
+    const items = snapshot._checklistNtc && snapshot._checklistNtc.items;
+    if (items && Object.keys(ntc).length) {
+      const nuevosItems = {};
+      Object.keys(items).forEach((k) => {
+        nuevosItems[k] = ntc[k] && !esFoto(items[k] && items[k].foto)
+          ? Object.assign({}, items[k], { foto: ntc[k] }) : items[k];
+      });
+      out._checklistNtc = Object.assign({}, snapshot._checklistNtc, { items: nuevosItems });
+    }
+    return out;
+  }
+  function guardarFotosDispositivo(record, fotos) {
+    return fotosTx('readwrite', (store) => {
+      store.put(fotos, fotosKeyId(record.id));
+      if (String(record.numero || '').trim()) store.put(fotos, fotosKeyNumero(record.numero));
+    });
+  }
+  function leerFotosDispositivo(record) {
+    if (!record || !fotosDbDisponible()) return Promise.resolve(null);
+    return fotosTx('readonly', (store) => new Promise((resolve) => {
+      const r1 = store.get(fotosKeyId(record.id));
+      r1.onsuccess = () => {
+        if (r1.result || !String(record.numero || '').trim()) { resolve(r1.result || null); return; }
+        const r2 = store.get(fotosKeyNumero(record.numero));
+        r2.onsuccess = () => resolve(r2.result || null);
+        r2.onerror = () => resolve(null);
+      };
+      r1.onerror = () => resolve(null);
+    })).catch(() => null);
+  }
+  function borrarFotosDispositivo(record) {
+    if (!record || !fotosDbDisponible()) return Promise.resolve();
+    const numero = String(record.numero || '').trim();
+    // La copia por número solo se borra si ningún otro registro usa ese número.
+    const otroConNumero = numero && getRecords().some((r) => r.id !== record.id && String(r.numero || '').trim() === numero);
+    return fotosTx('readwrite', (store) => {
+      store.delete(fotosKeyId(record.id));
+      if (numero && !otroConNumero) store.delete(fotosKeyNumero(numero));
+    }).catch(() => {});
+  }
+  /**
+   * Antes de guardar un registro: si tiene fotos y hay IndexedDB, el registro se guarda
+   * sin fotos y las fotos van al dispositivo. Si IndexedDB falla, el registro se vuelve a
+   * guardar CON sus fotos (como antes): este cambio nunca hace perder fotos.
+   */
+  function moverFotosAlDispositivo(record) {
+    if (!record || !fotosDbDisponible()) return record;
+    const sep = separarFotos(record.fullSnapshot);
+    if (!sep) return record;
+    const liviano = Object.assign({}, record, { fullSnapshot: sep.snapshot, _fotosEnDispositivo: true });
+    guardarFotosDispositivo(liviano, sep.fotos).catch((e) => {
+      console.warn('[arpa-historial] fotos al dispositivo', e);
+      const recs = getRecords();
+      const idx = recs.findIndex((r) => r.id === record.id);
+      if (idx !== -1) {
+        recs[idx] = Object.assign({}, recs[idx], { fullSnapshot: unirFotos(recs[idx].fullSnapshot, sep.fotos) });
+        delete recs[idx]._fotosEnDispositivo;
+        saveRecords(recs);
+      }
+    });
+    return liviano;
+  }
+  /** Los registros que aún tienen fotos en localStorage las pasan al dispositivo (libera espacio). */
+  function migrarFotosAlDispositivo() {
+    if (!fotosDbDisponible()) return Promise.resolve(0);
+    const conFotos = getRecords().map((r) => ({ r, sep: separarFotos(r.fullSnapshot) })).filter((x) => x.sep);
+    if (!conFotos.length) return Promise.resolve(0);
+    return Promise.all(conFotos.map((x) => guardarFotosDispositivo(x.r, x.sep.fotos).then(() => x.r.id).catch(() => null)))
+      .then((ids) => {
+        const ok = new Set(ids.filter(Boolean));
+        if (!ok.size) return 0;
+        saveRecords(getRecords().map((r) => {
+          if (!ok.has(r.id)) return r;
+          const sep = separarFotos(r.fullSnapshot);
+          return sep ? Object.assign({}, r, { fullSnapshot: sep.snapshot, _fotosEnDispositivo: true }) : r;
+        }));
+        return ok.size;
+      });
+  }
   function saveRecords(records) {
     var list = records.slice(0, MAX_RECORDS);
     while (list.length) {
@@ -401,6 +552,7 @@
       numeroRepetido = true;
       finalRecord = { ...record, numeroRepetido: true };
     }
+    finalRecord = moverFotosAlDispositivo(finalRecord);
     records.unshift(finalRecord);
     saveRecords(records);
     if (numero) marcarEdicion(modulo, finalRecord.id, numero);
@@ -515,6 +667,8 @@
     });
   }
   function removeRecord(id) {
+    const borrado = getRecords().find((r) => r.id === id);
+    if (borrado) borrarFotosDispositivo(borrado);
     const data = getEdiciones();
     Object.keys(data).forEach((m) => { if (data[m] && data[m].id === id) delete data[m]; });
     setEdiciones(data);
@@ -595,7 +749,7 @@
   }
   function verDocumento(id) {
     const records = getVisibleRecords();
-    const r = records.find((rec) => rec.id === id);
+    let r = records.find((rec) => rec.id === id);
     if (!r) {
       alert(window.ArpaI18n.t('alert.historial.registro_no_encontrado'));
       return;
@@ -605,7 +759,10 @@
     marcarEdicion(modulo, r.id, r.numero);
     if (modulo === 'formato') {
       document.querySelector('.main-menu-btn[onclick*="scrollToTopMenu"]')?.click();
-      setTimeout(() => {
+      // Las fotos viven en el dispositivo (IndexedDB): se traen antes de abrir el documento.
+      const fotosListas = r.fullSnapshot ? leerFotosDispositivo(r) : Promise.resolve(null);
+      setTimeout(() => fotosListas.then((fotos) => {
+        if (fotos && r.fullSnapshot) r = Object.assign({}, r, { fullSnapshot: unirFotos(r.fullSnapshot, fotos) });
         if (r.fullSnapshot && global.applyFormatoDraft) {
           try {
             var draftKey = global.ArpaBrand?.FORMATO_DRAFT_KEY || 'arpa_formato_borrador';
@@ -638,7 +795,7 @@
         }
         window.scrollTo(0, 0);
         alert(window.ArpaI18n.t('alert.historial.documento_restaurado'));
-      }, 400);
+      }), 400);
     } else if (modulo === 'cotizacion') {
       document.querySelector('.main-menu-btn[onclick*="openCotizacionView"]')?.click();
       setTimeout(() => {
@@ -893,6 +1050,10 @@
     exportCSV,
     removeRecord,
     verDocumento,
+    separarFotos,
+    unirFotos,
+    leerFotosDispositivo,
+    migrarFotosAlDispositivo,
     initFiltros
   };
   global.guardarPDFYHistorial = guardarPDFYHistorial;
@@ -900,6 +1061,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     patchCloseSettingsForHistorial();
     dedupeRecords();
+    // Fotos de registros viejos: de localStorage (5 MB) a IndexedDB, para que no se llene.
+    migrarFotosAlDispositivo().catch((e) => console.warn('[arpa-historial] migrar fotos', e));
     initFiltros();
     (function migrarModulos() {
       try {
