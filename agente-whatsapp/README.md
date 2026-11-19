@@ -119,6 +119,16 @@ Para probarlo sin esperar: ejecute `informeDiario` o `informeSemanal`.
   separados por coma, con el 57 adelante. Ej.: `573001112233, 573104445566`.
 - **Del todo:** en Meta, quite la URL del webhook. Su WhatsApp Business sigue funcionando normal.
 
+## Topes y avisos (desde el 19-nov-2026)
+
+- **Tope de gasto:** como mucho 200 respuestas con Claude al día (unos USD 2) y 30 por chat. Al pasarlo, el
+  cliente recibe el mensaje fijo de "le paso su caso a Arlen" y a usted le llega un correo. Se cambia con
+  `MAX_RESPUESTAS_DIA` y `MAX_RESPUESTAS_CHAT_DIA`.
+- **Si algo falla** (Claude, Meta, la hoja): le llega un correo "[FALLA] Robot de WhatsApp", como mucho uno por
+  hora por cada tipo de falla.
+- **Para priorizar:** cada correo de "Pasar a Arlen" trae una pista de ciudad, urgencia y si ya tiene motor; si el
+  cliente escribió que es urgente, el asunto dice [PRIORIDAD ALTA].
+
 ## Cuánto cuesta (aprox., octubre de 2026)
 
 - **Claude (modelo `claude-sonnet-5-5`, USD 2 por millón de tokens —pedacitos de texto— que lee y USD 10 por millón que escribe):** cada

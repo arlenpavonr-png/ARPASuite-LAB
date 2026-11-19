@@ -109,6 +109,18 @@ function procesarEvento_(ev, config, ahoraMs) {
   }
 
   // plan.accion === 'responder'
+  var cupo = usarCupoClaude_(config, ev.cliente, ahoraMs);
+  if (!cupo.ok) {
+    var fijo = negocio.mensajeHandoff ? negocio.mensajeHandoff(horario.cuando) : mensajeHandoffFijo_(horario.cuando);
+    entregar_(config, negocio, ev, fijo, plan.motivo + ',' + cupo.motivo, hoja, ahoraMs);
+    if (cupo.recienLlego) {
+      avisarFalla_(cupo.motivo, cupo.motivo === 'tope_dia'
+        ? 'El robot llegó al tope de ' + config.limites.dia + ' respuestas de hoy. Hasta mañana, a cada cliente le contesta el mensaje fijo de "le paso su caso a Arlen" y usted debe responderle. Si quiere subir el tope, cambie MAX_RESPUESTAS_DIA en las propiedades del script.'
+        : 'Un chat llegó al tope de ' + config.limites.chat + ' respuestas de hoy: +' + ev.cliente + ' (https://wa.me/' + ev.cliente + '). Puede ser alguien escribiendo sin parar. Desde ahora ese chat recibe el mensaje fijo y lo atiende usted.');
+    }
+    avisarArlen_(config, negocio, ev, plan.motivo + ',' + cupo.motivo, historial, fijo, null, false);
+    return plan;
+  }
   var sistema = construirSistema_(negocio, {
     fecha: fechaLegible_(ahoraMs), enHorario: horario.enHorario, cuando: horario.cuando,
     nombre: ev.nombre, handoff: plan.handoff
@@ -202,6 +214,9 @@ function avisarArlen_(config, negocio, ev, motivo, historial, respuesta, bloquea
   var clave = 'aviso_' + negocio.clave + '_' + ev.cliente;
   if (!urgente && cache.get(clave)) return;
   cache.put(clave, '1', CONTESTADOR_DEFAULTS.AVISO_HANDOFF_HORAS * 3600);
+  var textosCliente = historial.filter(function (f) { return f.rol === 'cliente'; })
+    .map(function (f) { return f.texto; }).concat([ev.texto || '']);
+  var lead = resumenLead_(textosCliente);
   var ultimos = historial.slice(-8).map(function (f) {
     return '  ' + ({ cliente: 'Cliente', asistente: 'Asistente', arlen: 'Arlen', sistema: 'Sistema' }[f.rol] || f.rol) +
       ': ' + (f.texto || '(' + f.tipo + ')');
@@ -212,6 +227,11 @@ function avisarArlen_(config, negocio, ev, motivo, historial, respuesta, bloquea
     'Motivo: ' + motivo,
     'Responder por WhatsApp: https://wa.me/' + ev.cliente,
     '',
+    'Para priorizar (pista sacada de lo que escribió el cliente):',
+    '  Urgencia: ' + lead.urgencia,
+    '  Ciudad: ' + lead.ciudad,
+    '  Motor actual: ' + lead.motor,
+    '',
     'Último mensaje del cliente: ' + (ev.texto || '(' + ev.msgTipo + ')'),
     'Lo que respondió el asistente: ' + respuesta,
     bloqueada ? '\nOJO: la respuesta de Claude traía un precio no permitido y NO se envió. Decía:\n' + bloqueada : '',
@@ -221,7 +241,42 @@ function avisarArlen_(config, negocio, ev, motivo, historial, respuesta, bloquea
     '',
     'Si usted le escribe desde su celular, el asistente se calla en ese chat por ' + config.silencioHoras + ' horas.'
   ].join('\n');
-  enviarCorreo_(config, (urgente ? '[URGENTE] ' : '') + 'Pasar a Arlen: ' + (ev.nombre || '+' + ev.cliente) + ' (' + negocio.nombre + ')', cuerpo);
+  var prioridad = lead.urgencia === 'ALTA' ? '[PRIORIDAD ALTA] ' : '';
+  enviarCorreo_(config, (urgente ? '[URGENTE] ' : '') + prioridad + 'Pasar a Arlen: ' + (ev.nombre || '+' + ev.cliente) + ' (' + negocio.nombre + ')', cuerpo);
+}
+
+/** Cuenta una respuesta con Claude contra los topes del día (se guarda en CUPO_CLAUDE). */
+function usarCupoClaude_(config, cliente, ahoraMs) {
+  var props = PropertiesService.getScriptProperties();
+  var guardado = null;
+  try { guardado = JSON.parse(props.getProperty('CUPO_CLAUDE') || 'null'); } catch (err) { guardado = null; }
+  var r = decidirCupo_(guardado, horaColombia_(ahoraMs).ymd, cliente, config.limites);
+  props.setProperty('CUPO_CLAUDE', JSON.stringify(r.estado));
+  return r;
+}
+
+/**
+ * Aviso a Arlen cuando algo falla (Arlen, 19-nov-2026): correo "[FALLA] Robot de WhatsApp".
+ * Como mucho uno por tipo de falla cada AVISO_FALLA_MIN minutos, para no llenarle el buzón.
+ */
+function avisarFalla_(tipo, detalle) {
+  try {
+    var correo = prop_('CORREO_ARLEN');
+    if (!correo) return;
+    var cache = CacheService.getScriptCache();
+    var clave = 'falla_' + String(tipo).replace(/[^\w]/g, '_').slice(0, 60);
+    if (cache.get(clave)) return;
+    cache.put(clave, '1', CONTESTADOR_DEFAULTS.AVISO_FALLA_MIN * 60);
+    MailApp.sendEmail({
+      to: correo,
+      subject: '[FALLA] Robot de WhatsApp: ' + tipo,
+      body: 'El robot de WhatsApp tuvo un problema.\n\nTipo: ' + tipo + '\nDetalle: ' + String(detalle || '').slice(0, 1500) +
+        '\n\nMientras tanto, revise los chats nuevos desde su celular. Si la falla sigue, avísele al PC.' +
+        '\nPara apagar el robot: corra apagarAsistente() en Apps Script.'
+    });
+  } catch (err) {
+    console.log('aviso de falla no enviado', tipo, err);
+  }
 }
 
 function enviarCorreo_(config, asunto, cuerpo) {
@@ -261,6 +316,8 @@ function leerHistorial_(hoja, negocioClave, cliente) {
 }
 
 function registrar_(nivel, evento, detalle) {
+  // Toda falla (Claude, Meta, hoja, doPost) le llega a Arlen por correo. La del correo no, para no dar vueltas.
+  if (nivel === 'error' && evento !== 'correo') avisarFalla_(evento, detalle);
   try {
     var id = prop_('SHEET_ID_CONTESTADOR');
     if (!id) { console.log(nivel, evento, detalle); return; }

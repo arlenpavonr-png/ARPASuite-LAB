@@ -414,6 +414,58 @@ function planificar_(ev, ctx) {
 }
 
 /**
+ * Tope de gasto (Arlen, 19-nov-2026): cuántas respuestas con Claude se permiten por día en total
+ * y por chat. Sin efectos: recibe el conteo guardado y devuelve el nuevo.
+ *   estado: { fecha, total, chats: { cliente: n } } (o vacío)
+ * Devuelve { ok, motivo: '' | 'tope_dia' | 'tope_chat', estado, recienLlego }
+ * recienLlego = es la primera vez que se pasa ese tope hoy (para avisar a Arlen una sola vez).
+ */
+function decidirCupo_(estado, fecha, cliente, limites) {
+  var e = estado && estado.fecha === fecha ? estado : { fecha: fecha, total: 0, chats: {}, avisos: {} };
+  e.chats = e.chats || {};
+  e.avisos = e.avisos || {};
+  var delChat = e.chats[cliente] || 0;
+  var motivo = '';
+  if (e.total >= limites.dia) motivo = 'tope_dia';
+  else if (delChat >= limites.chat) motivo = 'tope_chat';
+  if (motivo) {
+    var claveAviso = motivo === 'tope_dia' ? 'dia' : 'chat_' + cliente;
+    var recien = !e.avisos[claveAviso];
+    e.avisos[claveAviso] = 1;
+    return { ok: false, motivo: motivo, estado: e, recienLlego: recien };
+  }
+  e.total += 1;
+  e.chats[cliente] = delChat + 1;
+  return { ok: true, motivo: '', estado: e, recienLlego: false };
+}
+
+var MUNICIPIOS_ZONA = ['medellin', 'envigado', 'itagui', 'bello', 'sabaneta', 'la estrella', 'copacabana',
+  'caldas', 'girardota', 'barbosa', 'rionegro'];
+
+/**
+ * Resumen para que Arlen sepa a quién atender primero (Arlen, 19-nov-2026): ciudad, urgencia y si
+ * ya tiene motor, sacado de lo que escribió el cliente. Es una pista: si no se sabe, dice "sin dato".
+ */
+function resumenLead_(textosCliente) {
+  var t = normalizar_((textosCliente || []).join(' \n ')).replace(/ñ/g, 'n');
+  var ciudad = 'sin dato';
+  for (var i = 0; i < MUNICIPIOS_ZONA.length; i += 1) {
+    if (new RegExp('\\b' + MUNICIPIOS_ZONA[i] + '\\b').test(t)) { ciudad = MUNICIPIOS_ZONA[i] + ' (zona de instalación)'; break; }
+  }
+  if (ciudad === 'sin dato' && /\b(bogota|cali|barranquilla|cartagena|bucaramanga|pereira|manizales|armenia|monteria|villavicencio|pasto|neiva|ibague|cucuta|santa marta|tunja|popayan|sincelejo|valledupar)\b/.test(t)) {
+    ciudad = 'fuera del Valle de Aburrá (envío)';
+  }
+  var urgencia = 'sin dato';
+  if (/\b(urgente|urgencia|hoy|ya mismo|lo antes posible|cuanto antes|manana|esta semana|de inmediato|no abre|no cierra|se quedo (abierta|pegada))\b/.test(t)) urgencia = 'ALTA';
+  else if (/\b(este mes|proximo mes|la otra semana|proxima semana|en (unos|un par de) dias|en diciembre|en enero)\b/.test(t)) urgencia = 'media';
+  else if (/\b(averiguando|cotizando|solo (quiero )?(saber|preguntar)|mas adelante|para el otro ano|no tengo afan|sin afan)\b/.test(t)) urgencia = 'baja (averiguando)';
+  var motor = 'sin dato';
+  if (/\b(no tiene motor|sin motor|primera vez|es nueva|no tengo motor|motorizar|automatizar (mi|la) puerta)\b/.test(t)) motor = 'primera vez';
+  else if (/\b(ya tiene motor|ya tengo (un )?motor|tengo un motor|el motor (se dano|no sirve|no funciona|esta malo|se quemo)|motor (viejo|danado|malo|quemado)|cambiar (el )?motor)\b/.test(t)) motor = 'ya tiene motor (cambio)';
+  return { ciudad: ciudad, urgencia: urgencia, motor: motor };
+}
+
+/**
  * Revisa la respuesta de Claude antes de enviarla. Devuelve
  *   { enviar: texto, handoff: bool, bloqueada: bool, motivos: [] }
  */

@@ -277,3 +277,83 @@ test('contador: el eco guarda el nombre del PDF que manda Arlen', () => {
   assert.equal(ev[0].archivo, 'Cotizacion_AP-COT-213_Diego_Villa.pdf');
   assert.equal(gs.archivoDeNota_('eco;archivo=Cotizacion_AP-COT-213_Diego_Villa.pdf'), 'Cotizacion_AP-COT-213_Diego_Villa.pdf');
 });
+
+/* ---------- 19-nov-2026: visita reembolsable, calificar al cliente, topes y avisos de falla ---------- */
+
+test('cerebro: visita reembolsable en Medellín y las preguntas para calificar', () => {
+  const c = gs.CEREBRO_AUTOMATISMOS;
+  assert.match(c, /reembolsable/);
+  assert.match(c, /se le descuentan de la compra/);
+  assert.doesNotMatch(c, /descontar o no cobrar, diga que eso lo revisa Arlen/);
+  assert.match(c, /Para cuándo lo necesita/);
+  assert.match(c, /ya tiene motor/);
+  assert.match(c, /Ciudad o municipio/);
+  assert.match(c, /nunca como menú/);
+});
+
+test('tope diario: por chat y en total, avisando una sola vez', () => {
+  const lim = { dia: 3, chat: 2 };
+  let e = null;
+  let r = gs.decidirCupo_(e, '2026-11-19', 'A', lim); assert.equal(r.ok, true); e = r.estado;
+  r = gs.decidirCupo_(e, '2026-11-19', 'A', lim); assert.equal(r.ok, true); e = r.estado;
+  r = gs.decidirCupo_(e, '2026-11-19', 'A', lim); assert.equal(r.ok, false); assert.equal(r.motivo, 'tope_chat'); assert.equal(r.recienLlego, true); e = r.estado;
+  r = gs.decidirCupo_(e, '2026-11-19', 'A', lim); assert.equal(r.recienLlego, false); e = r.estado;
+  r = gs.decidirCupo_(e, '2026-11-19', 'B', lim); assert.equal(r.ok, true); e = r.estado;
+  r = gs.decidirCupo_(e, '2026-11-19', 'C', lim); assert.equal(r.ok, false); assert.equal(r.motivo, 'tope_dia'); assert.equal(r.recienLlego, true); e = r.estado;
+  // Día nuevo: arranca de cero.
+  r = gs.decidirCupo_(e, '2026-11-20', 'A', lim); assert.equal(r.ok, true); assert.equal(r.estado.total, 1);
+});
+
+test('resumen para priorizar: ciudad, urgencia y motor actual', () => {
+  let r = gs.resumenLead_(['Hola, vivo en Envigado', 'lo necesito urgente, la puerta no cierra', 'el motor se dañó']);
+  assert.equal(r.ciudad, 'envigado (zona de instalación)');
+  assert.equal(r.urgencia, 'ALTA');
+  assert.equal(r.motor, 'ya tiene motor (cambio)');
+  r = gs.resumenLead_(['Soy de Bogotá, solo estoy averiguando', 'es la primera vez, no tiene motor']);
+  assert.equal(r.ciudad, 'fuera del Valle de Aburrá (envío)');
+  assert.equal(r.urgencia, 'baja (averiguando)');
+  assert.equal(r.motor, 'primera vez');
+  r = gs.resumenLead_(['para mañana si se puede']);
+  assert.equal(r.urgencia, 'ALTA');
+  r = gs.resumenLead_(['Hola']);
+  assert.deepEqual({ ...r }, { ciudad: 'sin dato', urgencia: 'sin dato', motor: 'sin dato' });
+});
+
+test('integración: al pasar el tope del chat responde el mensaje fijo y avisa a Arlen una vez', async () => {
+  const sim = await import('../ensayo/simulador.mjs');
+  const ent = sim.instalar(sim.crearEntorno({ silencioso: true }), { MAX_RESPUESTAS_CHAT_DIA: '2' });
+  for (let i = 0; i < 4; i += 1) {
+    ent.estado.reloj += 60000;
+    sim.postear(ent, sim.texto(ent, '573001112233', 'Ana', 'Hola, info del motor corredizo ' + i));
+  }
+  assert.equal(ent.estado.llamadasClaude.length, 2, 'solo 2 llamadas a Claude');
+  assert.equal(ent.estado.enviados.length, 4, 'el cliente siempre recibe respuesta');
+  assert.match(ent.estado.enviados[3].texto, /Le paso su caso a Arlen/);
+  const fallas = ent.estado.correos.filter((c) => /^\[FALLA\]/.test(c.subject));
+  assert.equal(fallas.length, 1);
+  assert.match(fallas[0].subject, /tope_chat/);
+});
+
+test('integración: si Claude falla, a Arlen le llega un correo de falla (uno por hora)', async () => {
+  const sim = await import('../ensayo/simulador.mjs');
+  const ent = sim.instalar(sim.crearEntorno({ silencioso: true, claude: () => ({ __status: 500, type: 'error' }) }));
+  for (let i = 0; i < 3; i += 1) {
+    ent.estado.reloj += 60000;
+    sim.postear(ent, sim.texto(ent, '57300999000' + i, 'Cliente', 'Hola'));
+  }
+  const fallas = ent.estado.correos.filter((c) => /^\[FALLA\]/.test(c.subject));
+  assert.equal(fallas.length, 1, 'no llena el buzón');
+  assert.match(fallas[0].subject, /claude_500/);
+  assert.equal(ent.estado.enviados.length, 3, 'el cliente igual recibe el mensaje fijo');
+});
+
+test('integración: el correo de "pasar a Arlen" trae la pista para priorizar', async () => {
+  const sim = await import('../ensayo/simulador.mjs');
+  const ent = sim.instalar(sim.crearEntorno({ silencioso: true }));
+  sim.postear(ent, sim.texto(ent, '573004445566', 'Luis', 'Vivo en Itagüí y es urgente, quiero agendar una visita'));
+  const caso = ent.estado.correos.find((c) => /Pasar a Arlen/.test(c.subject));
+  assert.ok(caso, 'llega el aviso');
+  assert.match(caso.subject, /\[PRIORIDAD ALTA\]/);
+  assert.match(caso.body, /Ciudad: itagui \(zona de instalación\)/);
+  assert.match(caso.body, /Urgencia: ALTA/);
+});
