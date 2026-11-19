@@ -23,7 +23,12 @@
  *   SILENCIO_HORAS          Opcional. Horas que se calla en un chat después de que Arlen escribe. Por defecto 12.
  *   NUMEROS_EXCLUIDOS       Opcional. Números que nunca se responden, separados por coma (573001112233,...).
  *   FESTIVOS_EXTRA          Opcional. Fechas AAAA-MM-DD sin atención, separadas por coma.
+ *   MAX_RESPUESTAS_DIA      Opcional. Tope de respuestas con Claude por día entre todos los chats. Por defecto 200.
+ *   MAX_RESPUESTAS_CHAT_DIA Opcional. Tope por chat y por día. Por defecto 30.
+ *                           Al pasar un tope, el cliente recibe el mensaje fijo de "le paso su caso a Arlen"
+ *                           y a Arlen le llega un correo (una vez por día por tope).
  *   SHEET_ID_CONTESTADOR    Lo escribe configurar(). Es la hoja PROPIA del contestador.
+ *   CUPO_CLAUDE             Lo escribe el contestador: conteo de respuestas del día (no tocar).
  */
 
 var CONTESTADOR_DEFAULTS = {
@@ -36,6 +41,9 @@ var CONTESTADOR_DEFAULTS = {
   MAX_ANTIGUEDAD_MIN: 120,
   AVISO_MEDIA_MIN: 15,
   AVISO_HANDOFF_HORAS: 6,
+  MAX_RESPUESTAS_DIA: 200,      // tope de respuestas con Claude por día, entre todos los chats (~USD 2)
+  MAX_RESPUESTAS_CHAT_DIA: 30,  // tope por chat y por día (alguien que escribe sin parar)
+  AVISO_FALLA_MIN: 60,          // como mucho un correo de falla del mismo tipo cada 60 minutos
   ZONA_HORARIA: 'America/Bogota'
 };
 
@@ -73,7 +81,11 @@ function leerConfig_() {
       automatismos: prop_('PHONE_ID_AUTOMATISMOS'),
       arpasuite: prop_('PHONE_ID_ARPASUITE')
     },
-    sheetId: prop_('SHEET_ID_CONTESTADOR')
+    sheetId: prop_('SHEET_ID_CONTESTADOR'),
+    limites: {
+      dia: propNumero_('MAX_RESPUESTAS_DIA', CONTESTADOR_DEFAULTS.MAX_RESPUESTAS_DIA),
+      chat: propNumero_('MAX_RESPUESTAS_CHAT_DIA', CONTESTADOR_DEFAULTS.MAX_RESPUESTAS_CHAT_DIA)
+    }
   };
 }
 
