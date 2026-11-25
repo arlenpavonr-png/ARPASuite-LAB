@@ -75,6 +75,7 @@ ${P} #formato-section-observaciones:not(:has(.pdf-valor:not(:empty))){display:no
 
 ${P} #formato-video-section:not(:has(.pdf-valor:not(:empty))){display:none!important}
 html body.is-printing-formato .section:has(> #brand-bank-block-formato){display:none!important}
+html body.is-printing-formato #view-formato .nota{display:none!important}
 ${P} .verification-seal{border:none!important;background:none!important;padding:4px 0!important;text-align:center!important}
 
 ${P} .firma-box{border:1px solid ${LINE}!important;background:#fff!important;box-shadow:none!important}
@@ -124,11 +125,45 @@ ${P} .brand-bank-info{background:#F5F6F9!important;border:none!important;border-
     });
   }
 
+  // Una sola validez (Arlen 24-nov): la nota dice "válida hasta el <fecha>" en vez de "por 15 días calendario".
+  function notaValidez() {
+    const nota = document.getElementById('cot-nota-legal');
+    if (!nota || nota.dataset.arpaNotaOriginal != null) return;
+    if (global.ArpaDocLang?.isEnglish?.()) return;
+    const lbl = document.querySelector('#view-cotizacion [data-i18n="cot.label.valida_hasta"]');
+    let fecha = String(lbl?.parentElement?.querySelector('.pdf-valor')?.textContent || '').trim();
+    const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
+    if (iso && MESES[Number(iso[2]) - 1]) fecha = `${Number(iso[3])} de ${MESES[Number(iso[2]) - 1]} de ${iso[1]}`;
+    if (!fecha) return;
+    const html = nota.innerHTML;
+    const nuevo = html.replace(/v[áa]lida\s+por\s*(<strong>)?\s*\d+\s*d[íi]as(\s+calendario)?\s*(<\/strong>)?/i, `válida hasta el <strong>${fecha}</strong>`);
+    if (nuevo === html) return;
+    nota.dataset.arpaNotaOriginal = html;
+    nota.innerHTML = nuevo;
+  }
+
+  function restoreNota() {
+    const nota = document.getElementById('cot-nota-legal');
+    if (!nota || nota.dataset.arpaNotaOriginal == null) return;
+    nota.innerHTML = nota.dataset.arpaNotaOriginal;
+    delete nota.dataset.arpaNotaOriginal;
+  }
+
+  function onPrintState() {
+    if (document.body?.classList.contains('is-printing')) {
+      prettyDates();
+      notaValidez();
+    } else {
+      restoreNota();
+    }
+  }
+
   function init() {
     injectStyle();
-    global.addEventListener?.('beforeprint', prettyDates);
+    global.addEventListener?.('beforeprint', onPrintState);
+    global.addEventListener?.('afterprint', () => setTimeout(onPrintState, 0));
     if (typeof MutationObserver === 'function' && document.body) {
-      new MutationObserver(() => prettyDates()).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      new MutationObserver(() => onPrintState()).observe(document.body, { attributes: true, attributeFilter: ['class'] });
     }
   }
 
