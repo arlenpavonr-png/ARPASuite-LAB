@@ -23,6 +23,17 @@
     } catch (e) { /* sin link de pago */ }
   }
 
+  // Cara nueva de cotización e informe en PDF (js/arpa-doc-estilo.js): solo estilos al imprimir; mismo camino para no tocar index.html.
+  if (typeof document !== 'undefined' && !global.ArpaDocEstilo && !document.querySelector('script[data-arpa-doc-estilo]')) {
+    try {
+      const s2 = document.createElement('script');
+      s2.src = './js/arpa-doc-estilo.js';
+      s2.async = false;
+      s2.setAttribute('data-arpa-doc-estilo', '1');
+      (document.head || document.documentElement).appendChild(s2);
+    } catch (e) { /* sin estilo nuevo: queda el de siempre */ }
+  }
+
   // Idioma del documento para el cliente (ArpaDocLang en arpa-i18n.js). Con Español devuelven el texto
   // y la fecha exactamente como antes; con English, el PDF y el mensaje salen en inglés.
   function dt(key, esText) {
