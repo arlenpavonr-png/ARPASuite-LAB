@@ -553,6 +553,16 @@
     });
   }
 
+  // Fecha legible en el PDF: "24 de noviembre de 2026" (con English sigue MM/DD/YYYY de ArpaDocLang).
+  const MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function fdLarga(value) {
+    if (global.ArpaDocLang?.isEnglish?.()) return fd(value);
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+    if (!m) return fd(value);
+    const mes = MESES_ES[Number(m[2]) - 1];
+    return mes ? `${Number(m[3])} de ${mes} de ${m[1]}` : fd(value);
+  }
+
   async function renderCcToPdf(d, jsPDF) {
     // En México el documento fiscal es el RFC; en los demás países, NIT / C.C.
     const taxLabel = global.ArpaPricing?.getTaxIdLabel?.() || 'NIT';
@@ -561,241 +571,320 @@
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
-    const m = 14;
+    const m = 16;
+    const cw = pw - m * 2;
+    // Cara nueva (24-nov-2026): azul de noche y dorado, igual a cotización e informe.
+    const C_NAVY = [22, 40, 75];
+    const C_GOLD = [201, 168, 76];
+    const C_GOLD_TXT = [226, 196, 107];
+    const C_GOLD_DARK = [122, 90, 18];
+    const C_INK = [28, 36, 52];
+    const C_SOFT = [74, 84, 104];
+    const C_LABEL = [138, 147, 166];
+    const C_LINE = [227, 230, 238];
+    const C_HEAD_SUB = [174, 184, 204];
     let y = 0;
 
-    doc.setFillColor(...NAVY);
-    doc.rect(0, 0, pw, 38, 'F');
+    function label(text, x, ly, color) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...(color || C_LABEL));
+      doc.text(String(text), x, ly);
+    }
+
+    function newPage() {
+      doc.addPage();
+      return m;
+    }
+
+    // ── Encabezado ──
+    const headH = 34;
+    doc.setFillColor(...C_NAVY);
+    doc.rect(0, 0, pw, headH, 'F');
+    doc.setFillColor(...C_GOLD);
+    doc.rect(0, headH, pw, 1.4, 'F');
 
     const logoData = await loadImageDataUrl(d.logo);
+    let hx = m;
     if (logoData) {
       try {
-        doc.addImage(logoData, 'PNG', m, 6, 22, 22);
-      } catch (e) { /* skip logo */ }
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(m, 7, 21, 21, 3, 3, 'F');
+        doc.addImage(logoData, 'PNG', m + 1.5, 8.5, 18, 18);
+        hx = m + 26;
+      } catch (e) { /* sin logo */ }
     }
+
+    // Quien cobra: la empresa si existe; si no, la persona (no las dos).
+    const conEmpresa = Boolean(d.cobrador.empresa);
+    const quien = conEmpresa ? d.cobrador.empresa : (d.cobrador.nombre || 'Empresa');
+    const quienId = conEmpresa ? d.cobrador.nit : d.cobrador.doc;
+    const quienIdLabel = conEmpresa ? dt('cc.pdf.tax_id', taxLabel) : dt('cc.pdf.id_tax', idLabel);
 
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    const company = d.cobrador.empresa || 'Empresa';
-    doc.text(company, m + (logoData ? 26 : 0), 14);
+    doc.text(doc.splitTextToSize(String(quien).toUpperCase(), 100)[0], hx, 15);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    let hy = 20;
-    if (d.cobrador.nit) { doc.text(`${dt('cc.pdf.tax_id', taxLabel)}: ${d.cobrador.nit}`, m + (logoData ? 26 : 0), hy); hy += 5; }
-    if (d.cobrador.tel) { doc.text(`${dt('cc.pdf.tel', 'Tel')}: ${d.cobrador.tel}`, m + (logoData ? 26 : 0), hy); }
+    doc.setFontSize(8);
+    doc.setTextColor(...C_HEAD_SUB);
+    const headLine1 = [quienId ? `${quienIdLabel}: ${quienId}` : '', d.cobrador.tel ? `${dt('cc.pdf.tel', 'Tel')}: ${d.cobrador.tel}` : ''].filter(Boolean).join('  ·  ');
+    const headLine2 = [d.cobrador.dir, d.cobrador.web].filter(Boolean).join('  ·  ');
+    if (headLine1) doc.text(headLine1, hx, 21);
+    if (headLine2) doc.text(doc.splitTextToSize(headLine2, 100)[0], hx, 25.5);
 
-    doc.setFillColor(...GOLD);
-    doc.rect(0, 38, pw, 1.2, 'F');
-    y = 46;
-
-    doc.setTextColor(...NAVY);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text(dt('cc.pdf.title', 'CUENTA DE COBRO'), pw / 2, y, { align: 'center' });
-    y += 8;
-    doc.setFontSize(14);
-    doc.setTextColor(...GOLD);
-    doc.text(d.numero || 'CC-000', pw / 2, y, { align: 'center' });
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C_GOLD_TXT);
+    doc.text(dt('cc.pdf.title', 'CUENTA DE COBRO'), pw - m, 14, { align: 'right' });
+    doc.setFontSize(15);
+    doc.setTextColor(255, 255, 255);
+    doc.text(d.numero || 'CC-000', pw - m, 22, { align: 'right' });
+
+    y = headH + 12;
+
+    // ── Cliente y cobrador ──
+    const leftW = cw * 0.6;
+    const rightX = m + leftW + 8;
+    const rightW = cw - leftW - 8;
+    label(dt('cc.pdf.bill_to', 'CLIENTE'), m, y);
+    label(dt('cc.pdf.from', 'COBRADOR'), rightX, y);
+    let yL = y + 6;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...C_NAVY);
+    const cliNom = doc.splitTextToSize(d.cliente.nombre || '—', leftW);
+    doc.text(cliNom, m, yL);
+    yL += cliNom.length * 5 + 1;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C_SOFT);
+    [
+      d.cliente.doc ? `${dt('cc.pdf.id_tax', clientIdLabel)}: ${d.cliente.doc}` : '',
+      d.cliente.dir ? `${dt('cc.pdf.address', 'Dir')}: ${d.cliente.dir}` : '',
+      d.cliente.tel ? `${dt('cc.pdf.tel', 'Tel')}: ${d.cliente.tel}` : ''
+    ].filter(Boolean).forEach((line) => {
+      const w = doc.splitTextToSize(line, leftW);
+      doc.text(w, m, yL);
+      yL += w.length * 4;
+    });
+
+    let yR = y + 6;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...C_NAVY);
+    const quienW = doc.splitTextToSize(quien, rightW);
+    doc.text(quienW, rightX, yR);
+    yR += quienW.length * 4.2;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C_SOFT);
+    if (quienId) { doc.text(`${quienIdLabel}: ${quienId}`, rightX, yR); yR += 4; }
+    y = Math.max(yL, yR) + 4;
+
+    // ── Fechas ──
+    doc.setDrawColor(...C_LINE);
+    doc.setLineWidth(0.3);
+    doc.line(m, y, pw - m, y);
+    y += 6;
+    doc.setFontSize(8.5);
+    let fx = m;
+    if (d.ciudad) {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...C_SOFT);
+      doc.text(d.ciudad, fx, y);
+      fx += (Number(doc.getTextWidth?.(d.ciudad)) || 22) + 8;
+    }
+    if (d.fechaEmision) {
+      const t = `${dt('cc.pdf.issued', 'Emisión')}: ${fdLarga(d.fechaEmision)}`;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...C_SOFT);
+      doc.text(t, fx, y);
+      fx += (Number(doc.getTextWidth?.(t)) || 60) + 8;
+    }
+    if (d.fechaVencimiento) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(154, 59, 30);
+      doc.text(`${dt('cc.pdf.due', 'Vence')}: ${fdLarga(d.fechaVencimiento)}`, fx, y);
+    }
     y += 10;
 
-    const colW = (pw - m * 2 - 6) / 2;
-    const leftX = m;
-    const rightX = m + colW + 6;
-
-    function blockTitle(x, by, title) {
-      doc.setFillColor(232, 237, 245);
-      doc.rect(x, by - 4, colW, 7, 'F');
+    // ── Tabla ──
+    const xQty = m + cw * 0.62;
+    const xUnit = m + cw * 0.81;
+    const xTot = pw - m;
+    function tableHead() {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(...NAVY);
-      doc.text(title, x + 2, by);
-    }
-
-    function blockLines(x, by, lines) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(30, 41, 59);
-      lines.forEach(([label, val]) => {
-        if (!val) return;
-        doc.setFont('helvetica', 'bold');
-        doc.text(`${label}:`, x + 2, by);
-        doc.setFont('helvetica', 'normal');
-        const wrapped = doc.splitTextToSize(String(val), colW - 28);
-        doc.text(wrapped, x + 24, by);
-        by += wrapped.length * 4 + 1;
-      });
-      return by;
-    }
-
-    blockTitle(leftX, y, dt('cc.pdf.from', 'COBRADOR'));
-    blockTitle(rightX, y, dt('cc.pdf.bill_to', 'CLIENTE'));
-    let yL = y + 6;
-    let yR = y + 6;
-    yL = blockLines(leftX, yL, [
-      [dt('cc.pdf.name', 'Nombre'), d.cobrador.nombre],
-      [dt('cc.pdf.id_tax', idLabel), d.cobrador.doc],
-      [dt('cc.pdf.company', 'Empresa'), d.cobrador.empresa],
-      [dt('cc.pdf.tax_id', taxLabel), d.cobrador.nit],
-      [dt('cc.pdf.tel', 'Tel'), d.cobrador.tel],
-      [dt('cc.pdf.address', 'Dir'), d.cobrador.dir],
-      [dt('cc.pdf.web', 'Web'), d.cobrador.web]
-    ]);
-    yR = blockLines(rightX, yR, [
-      [dt('cc.pdf.name', 'Nombre'), d.cliente.nombre],
-      [dt('cc.pdf.id_tax', clientIdLabel), d.cliente.doc],
-      [dt('cc.pdf.address', 'Dir'), d.cliente.dir],
-      [dt('cc.pdf.tel', 'Tel'), d.cliente.tel]
-    ]);
-    y = Math.max(yL, yR) + 6;
-
-    if (d.ciudad || d.fechaEmision) {
-      doc.setFontSize(8);
-      doc.setTextColor(...MUTED);
-      const meta = [d.ciudad, d.fechaEmision ? `${dt('cc.pdf.issued', 'Emisión')}: ${fd(d.fechaEmision)}` : '', d.fechaVencimiento ? `${dt('cc.pdf.due', 'Vence')}: ${fd(d.fechaVencimiento)}` : ''].filter(Boolean).join('  ·  ');
-      doc.text(meta, m, y);
+      doc.setFontSize(7);
+      doc.setTextColor(...C_LABEL);
+      doc.text(dt('cc.pdf.col_desc', 'Descripción'), m, y);
+      doc.text(dt('cc.pdf.col_qty', 'Cant.'), xQty, y, { align: 'center' });
+      doc.text(dt('cc.pdf.col_unit', 'V. Unit.'), xUnit, y, { align: 'right' });
+      doc.text(dt('cc.pdf.col_total', 'Total'), xTot, y, { align: 'right' });
+      y += 2.5;
+      doc.setDrawColor(...C_NAVY);
+      doc.setLineWidth(0.6);
+      doc.line(m, y, pw - m, y);
       y += 6;
     }
+    tableHead();
 
-    const cols = [m, m + 78, m + 92, m + 118, m + 148];
-    doc.setFillColor(...NAVY);
-    doc.rect(m, y, pw - m * 2, 7, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    [dt('cc.pdf.col_desc', 'Descripción'), dt('cc.pdf.col_qty', 'Cant.'), dt('cc.pdf.col_unit', 'V. Unit.'), dt('cc.pdf.col_total', 'Total')].forEach((h, i) => {
-      const x = [cols[0] + 2, cols[1] + 2, cols[2] + 2, cols[3] + 2][i];
-      doc.text(h, x, y + 4.5);
-    });
-    y += 7;
-
-    d.servicios.forEach((row, i) => {
-      const descLines = doc.splitTextToSize(row.desc || '—', 72);
-      const rowHeight = Math.max(7, descLines.length * 4 + 2);
-      if (y + rowHeight > ph - 70) {
-        doc.addPage();
-        y = m;
+    d.servicios.forEach((row) => {
+      doc.setFontSize(9);
+      const descLines = doc.splitTextToSize(row.desc || '—', cw * 0.55);
+      const rowHeight = Math.max(9, descLines.length * 4.2 + 5);
+      if (y + rowHeight > ph - 60) {
+        y = newPage();
+        tableHead();
       }
-      if (i % 2 === 1) {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(m, y, pw - m * 2, rowHeight, 'F');
-      }
-      doc.setTextColor(30, 41, 59);
+      const neg = Number(row.total) < 0;
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...(neg ? C_SOFT : C_INK));
+      doc.text(descLines, m, y);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text(descLines, cols[0] + 2, y + 4.5);
-      doc.text(global.ArpaPricing?.formatoCantidad ? global.ArpaPricing.formatoCantidad(row.cant) : String(row.cant), cols[1] + 2, y + 4.5);
-      doc.text(formatoPesos(row.unit), cols[2] + 2, y + 4.5);
-      doc.text(formatoPesos(row.total), cols[3] + 2, y + 4.5);
-      y += rowHeight;
+      doc.text(global.ArpaPricing?.formatoCantidad ? global.ArpaPricing.formatoCantidad(row.cant) : String(row.cant), xQty, y, { align: 'center' });
+      doc.text(formatoPesos(row.unit), xUnit, y, { align: 'right' });
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatoPesos(row.total), xTot, y, { align: 'right' });
+      y += rowHeight - 3;
+      doc.setDrawColor(...C_LINE);
+      doc.setLineWidth(0.3);
+      doc.line(m, y, pw - m, y);
+      y += 6;
     });
-    y += 4;
+    y += 1;
 
-    const totX = pw - m - 62;
-    doc.setFontSize(9);
+    // ── Totales ──
+    const totW = 82;
+    const totX = pw - m - totW;
     const totales = [
       [dt('cc.pdf.subtotal', 'Subtotal'), formatoPesos(d.subtotal)],
       ...(d.conIva ? [[(global.ArpaDocLang?.taxLabel?.() || global.ArpaPricing?.getTaxLabelText?.()?.full || 'IVA (0%)'), formatoPesos(d.iva)]] : []),
       ...(d.conRet ? [[`${dt('cc.pdf.withholding', 'Retención')} (${d.retPct}%)`, '- ' + formatoPesos(d.retencion)]] : [])
     ];
-    totales.forEach(([label, val]) => {
-      doc.setTextColor(...MUTED);
+    if (y + totales.length * 5 + 22 > ph - m) y = newPage();
+    doc.setFontSize(9);
+    totales.forEach(([lab, val]) => {
       doc.setFont('helvetica', 'normal');
-      doc.text(label, totX, y);
-      doc.setTextColor(26, 58, 110);
+      doc.setTextColor(...C_SOFT);
+      doc.text(lab, totX, y);
       doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...C_NAVY);
       doc.text(val, pw - m, y, { align: 'right' });
       y += 5;
     });
-    y += 2;
-    doc.setDrawColor(...NAVY);
-    doc.line(totX, y, pw - m, y);
-    y += 5;
-    doc.setFontSize(11);
-    doc.setTextColor(...NAVY);
-    doc.text(dt('cc.pdf.total', 'TOTAL A COBRAR'), totX, y);
-    doc.text(formatoPesos(d.total), pw - m, y, { align: 'right' });
-    y += 10;
+    y += 1;
+    doc.setFillColor(...C_NAVY);
+    doc.roundedRect(totX, y, totW, 14, 2.5, 2.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...C_HEAD_SUB);
+    doc.text(dt('cc.pdf.total', 'TOTAL A COBRAR'), totX + 5, y + 8.6);
+    doc.setFontSize(14);
+    doc.setTextColor(...C_GOLD_TXT);
+    doc.text(formatoPesos(d.total), pw - m - 5, y + 9, { align: 'right' });
+    y += 22;
 
+    // ── Datos para consignar ──
     const consigLines = [
       d.pago.bankName && `${dt('cc.pdf.bank', 'Banco')}: ${d.pago.bankName}`,
       d.pago.accountType && `${dt('cc.pdf.account_type', 'Tipo')}: ${dt('cc.pdf.account.' + d.pago.accountType, d.pago.accountType)}`,
-      d.pago.accountNumber && `${dt('cc.pdf.account_no', 'Cuenta N°')}: ${d.pago.accountNumber}`,
       d.pago.accountHolder && `${dt('cc.pdf.holder', 'Titular')}: ${d.pago.accountHolder}`,
       d.pago.accountHolderDocument && `${dt('cc.pdf.holder_doc', taxLabel === 'NIT' ? 'NIT/C.C.' : taxLabel)}: ${d.pago.accountHolderDocument}`
     ].filter(Boolean);
-    const consigBoxH = 10 + consigLines.length * 4.5 + 4;
-    if (y > ph - (consigBoxH + 15)) { doc.addPage(); y = m; }
-    doc.setFillColor(220, 252, 231);
-    doc.setDrawColor(22, 163, 74);
-    doc.roundedRect(m, y, pw - m * 2, consigBoxH, 2, 2, 'FD');
-    doc.setTextColor(21, 128, 61);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text(dt('cc.pdf.payment', 'DATOS PARA CONSIGNACIÓN'), m + 4, y + 6);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    let py = y + 12;
-    consigLines.forEach((line) => {
-      doc.text(line, m + 4, py);
-      py += 4.5;
-    });
-    y += consigBoxH + 6;
+    const cuentaLine = d.pago.accountNumber ? `${dt('cc.pdf.account_no', 'Cuenta N°')}: ${d.pago.accountNumber}` : '';
+    if (consigLines.length || cuentaLine) {
+      const consigBoxH = 11 + (cuentaLine ? 7 : 0) + consigLines.length * 4.4 + 3;
+      if (y + consigBoxH > ph - m) y = newPage();
+      doc.setFillColor(251, 248, 238);
+      doc.setDrawColor(...C_GOLD);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(m, y, cw, consigBoxH, 2.5, 2.5, 'FD');
+      label(dt('cc.pdf.payment', 'DATOS PARA CONSIGNACIÓN'), m + 5, y + 7, C_GOLD_DARK);
+      let py = y + 13;
+      if (cuentaLine) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(...C_NAVY);
+        doc.text(cuentaLine, m + 5, py + 1);
+        py += 7;
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...C_SOFT);
+      consigLines.forEach((line) => {
+        doc.text(line, m + 5, py);
+        py += 4.4;
+      });
+      y += consigBoxH + 7;
+    }
 
     if (global.ArpaLinkPago?.get?.()) {
-      y = await global.ArpaLinkPago.addToPdf(doc, { x: m, y, width: pw - m * 2, pageHeight: ph, margin: m });
+      y = await global.ArpaLinkPago.addToPdf(doc, { x: m, y, width: cw, pageHeight: ph, margin: m });
     }
 
     if (d.observaciones) {
-      const obsLines = doc.splitTextToSize(d.observaciones, pw - m * 2);
-      const obsHeight = obsLines.length * 4 + 13;
-      if (y + obsHeight > ph - m) { doc.addPage(); y = m; }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(...NAVY);
-      doc.text(dt('cc.pdf.notes', 'Observaciones'), m, y);
+      doc.setFontSize(8.5);
+      const obsLines = doc.splitTextToSize(d.observaciones, cw);
+      const obsHeight = obsLines.length * 4 + 10;
+      if (y + obsHeight > ph - m) y = newPage();
+      label(dt('cc.pdf.notes', 'Observaciones'), m, y);
       y += 5;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
-      doc.setTextColor(30, 41, 59);
+      doc.setTextColor(...C_SOFT);
       doc.text(obsLines, m, y);
       y += obsLines.length * 4 + 8;
     }
 
-    if (y > ph - 35) { doc.addPage(); y = m; }
-    const sigW = (pw - m * 2 - 10) / 2;
+    // ── Firmas ──
+    if (y > ph - 48) y = newPage();
+    y = Math.max(y, ph - 62);
+    const sigW = (cw - 16) / 2;
     const sigH = 14;
     const sigCobrador = global.ArpaSignature?.getDataUrl?.('canvas-cc-cobrador');
     const sigCliente = global.ArpaSignature?.getDataUrl?.('canvas-cc-cliente');
     if (sigCobrador) {
-      try { doc.addImage(sigCobrador, 'PNG', m + 2, y, sigW * 0.85, sigH); } catch (e) { /* skip */ }
+      try { doc.addImage(sigCobrador, 'PNG', m, y, sigW * 0.8, sigH); } catch (e) { /* skip */ }
     }
     if (sigCliente) {
-      try { doc.addImage(sigCliente, 'PNG', m + sigW + 12, y, sigW * 0.85, sigH); } catch (e) { /* skip */ }
+      try { doc.addImage(sigCliente, 'PNG', m + sigW + 16, y, sigW * 0.8, sigH); } catch (e) { /* skip */ }
     }
     y += sigH + 2;
-    doc.setDrawColor(180, 180, 180);
-    doc.line(m, y + 12, m + sigW, y + 12);
-    doc.line(m + sigW + 10, y + 12, pw - m, y + 12);
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text(dt('cc.pdf.sig_provider', 'Firma cobrador'), m + sigW / 2, y + 17, { align: 'center' });
-    doc.text(dt('cc.pdf.sig_customer', 'Firma cliente'), m + sigW + 10 + sigW / 2, y + 17, { align: 'center' });
-    doc.setTextColor(30, 41, 59);
+    doc.setDrawColor(...C_NAVY);
+    doc.setLineWidth(0.3);
+    doc.line(m, y, m + sigW, y);
+    doc.line(m + sigW + 16, y, pw - m, y);
     doc.setFont('helvetica', 'bold');
-    doc.text(d.cobrador.nombre || '—', m + sigW / 2, y + 22, { align: 'center' });
-    doc.text(d.cliente.nombre || '—', m + sigW + 10 + sigW / 2, y + 22, { align: 'center' });
-
-    doc.setFillColor(...NAVY);
-    doc.rect(0, ph - 14, pw, 14, 'F');
-    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8.5);
+    doc.setTextColor(...C_NAVY);
+    doc.text(d.cobrador.nombre || quien || '—', m, y + 5);
+    doc.text(d.cliente.nombre || '—', m + sigW + 16, y + 5);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(7.5);
+    doc.setTextColor(...C_LABEL);
+    doc.text(dt('cc.pdf.sig_provider', 'Firma cobrador'), m, y + 9.5);
+    doc.text(dt('cc.pdf.sig_customer', 'Firma cliente'), m + sigW + 16, y + 9.5);
+
+    // ── Pie en todas las hojas ──
     // Con English el pie sale en inglés; con Español, el mismo de siempre.
     const arpaFooter = (global.ArpaDocLang?.isEnglish?.() && dt('cc.pdf.footer', ''))
       || global.ArpaBrand?.GLOBAL_FOOTER_TEXT
       || '© 2026 ARPA Technology Global · arpatechnologyglobal.com · Todos los derechos reservados.';
-    doc.text(arpaFooter, pw / 2, ph - 5.5, { align: 'center' });
+    const totalPages = Number(doc.getNumberOfPages?.()) || 1;
+    const pageWord = global.ArpaDocLang?.isEnglish?.() ? 'Page' : 'Página';
+    const ofWord = global.ArpaDocLang?.isEnglish?.() ? 'of' : 'de';
+    for (let p = 1; p <= totalPages; p += 1) {
+      if (typeof doc.setPage === 'function') doc.setPage(p);
+      doc.setDrawColor(...C_LINE);
+      doc.setLineWidth(0.3);
+      doc.line(m, ph - 13, pw - m, ph - 13);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...C_LABEL);
+      doc.text(`${d.numero || ''}  ·  ${pageWord} ${p} ${ofWord} ${totalPages}`, m, ph - 8);
+      doc.text(arpaFooter, pw - m, ph - 8, { align: 'right' });
+    }
 
     const filename = `${dt('file.cc', 'CuentaCobro')}_${d.numero || 'CC'}_${sanitizeFilename(d.cliente.nombre)}.pdf`;
     return { doc, filename };

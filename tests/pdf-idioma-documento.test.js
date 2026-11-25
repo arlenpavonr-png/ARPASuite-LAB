@@ -321,7 +321,8 @@ async function renderInvoice(docLang) {
 test('Cuenta de Cobro con Español: textos de siempre', async () => {
   const { record, sb } = await renderInvoice('es');
   const all = record.texts.join('\n');
-  for (const s of ['CUENTA DE COBRO', 'COBRADOR', 'CLIENTE', 'Emisión: 2026-10-10', 'Vence: 2026-10-25',
+  // Desde la cara nueva (24-nov-2026) la fecha en español sale escrita: "10 de octubre de 2026".
+  for (const s of ['CUENTA DE COBRO', 'COBRADOR', 'CLIENTE', 'Emisión: 10 de octubre de 2026', 'Vence: 25 de octubre de 2026',
     'Descripción', 'V. Unit.', 'TOTAL A COBRAR', 'DATOS PARA CONSIGNACIÓN', 'Banco: Chase', 'Tipo: Corriente',
     'Observaciones', 'Firma cobrador', 'Firma cliente', 'NIT: 98-7654321']) {
     assert.ok(all.includes(s), 'falta "' + s + '"');
