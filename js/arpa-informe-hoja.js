@@ -473,6 +473,7 @@
     };
     const share = async function compartirFormatoWhatsAppHoja() {
       if (!usarHojaNueva() || typeof origShare !== 'function') return origShare?.apply(this, arguments);
+      if (!(await global.ArpaBrand?.ensureCompanyName?.() ?? true)) return;
       const telRaw = val('formato-cliente-tel');
       const message = W2.buildFormatoMessage?.() || '';
       try {
@@ -486,6 +487,7 @@
         if (err?.name === 'AbortError') return;
         console.warn('[arpa-informe-hoja] compartir', err);
       }
+      try { global.alert?.(global.ArpaI18n?.t?.('alert.pdf.adjuntar_manual') || 'Adjunte el PDF desde su dispositivo.'); } catch (e) { /* sin aviso */ }
       W2.openWhatsAppWithMessage?.(telRaw, message + ' (Adjunte el PDF desde su dispositivo.)');
     };
     W2.compartirFormatoWhatsApp = share;
