@@ -33,7 +33,7 @@ ${P} .page > .header .no-field input,${P} .page > .header .pdf-valor-numero-cot{
 ${P} .page > .gold-bar{height:4px!important;background:${GOLD}!important}
 
 ${P} .no-print{display:none!important}
-${P} .section{border:none!important;box-shadow:none!important}
+${P} .section{border:none!important;box-shadow:none!important;padding-top:14px!important;padding-bottom:2px!important}
 ${P} .section-title{border:none!important;background:none!important;color:${LABEL}!important;font-size:10px!important;font-weight:700!important;letter-spacing:.12em!important;text-transform:uppercase!important;padding:0!important;margin:0 0 6px!important}
 ${P} .section-title .dot{display:none!important}
 ${P} .field > label,${P} .dim-field > label{color:${LABEL}!important;font-size:9.5px!important;font-weight:700!important;letter-spacing:.08em!important;text-transform:uppercase!important;margin-bottom:1px!important}
