@@ -30,6 +30,8 @@ ${P} .page > .header .doc-type{background:none!important;border:none!important;c
 ${P} .page > .header .no-field{justify-content:flex-end!important;margin:0!important}
 ${P} .page > .header .no-field label{display:none!important}
 ${P} .page > .header .no-field input,${P} .page > .header .pdf-valor-numero-cot{background:transparent!important;border:none!important;color:#fff!important;font-size:19px!important;font-weight:800!important;text-align:right!important;padding:0!important;min-width:0!important;box-shadow:none!important}
+${P} .page > .header .no-field input[data-arpa-num-oculto]{display:none!important}
+${P} .page > .header .arpa-num-pdf{color:#fff!important;font-size:19px!important;font-weight:800!important;text-align:right!important;white-space:nowrap!important}
 ${P} .page > .gold-bar{height:4px!important;background:${GOLD}!important}
 
 ${P} .no-print{display:none!important}
@@ -64,6 +66,8 @@ ${P} #formato-equipo-accesorios:not(:has(input:checked)){display:none!important}
 ${P} #formato-medidas-section:not(:has(.pdf-valor-dim:not(:empty))):not(:has(.dims-extra .pdf-valor:not(:empty))){display:none!important}
 ${P} .dims{background:none!important;border:none!important;padding:0!important}
 ${P} .dims-extra .dim-field:has(.pdf-valor:empty){display:none!important}
+${P} .dims-table .pdf-valor-dim,${P} .dims-extra .pdf-valor{font-family:inherit!important;color:${NAVY}!important}
+${P} [data-arpa-vacio]{visibility:hidden!important}
 
 ${P} #formato-materiales-section:not(:has(#formato-materiales-body tr td:first-child .pdf-valor:not(:empty))){display:none!important}
 ${P} #formato-materiales-section > p{display:none!important}
@@ -149,12 +153,53 @@ ${P} .brand-bank-info{background:#F5F6F9!important;border:none!important;border-
     delete nota.dataset.arpaNotaOriginal;
   }
 
+  // Medidas sin dato (por ejemplo MD y MI) no se imprimen: se ocultan su título y su línea.
+  function hideEmptyDims() {
+    document.querySelectorAll('.dims-table').forEach((tabla) => {
+      const filas = tabla.querySelectorAll('tr');
+      const celdas = tabla.querySelectorAll('td');
+      celdas.forEach((td) => {
+        const span = td.querySelector('.pdf-valor-dim');
+        if (!span || String(span.textContent || '').trim()) return;
+        const col = Array.prototype.indexOf.call(td.parentElement.children, td);
+        td.setAttribute('data-arpa-vacio', '1');
+        filas.forEach((tr) => { const th = tr.children[col]; if (th && th.tagName === 'TH') th.setAttribute('data-arpa-vacio', '1'); });
+      });
+    });
+  }
+
+  // El número del formato se imprime como texto: el PDF dibujaba el campo cortado ("A" en vez de "AP-038").
+  function numeroComoTexto() {
+    const input = document.getElementById('numero-formato');
+    if (!input || input.hasAttribute('data-arpa-num-oculto')) return;
+    const valor = String(input.value || '').trim();
+    if (!valor) return;
+    const span = document.createElement('span');
+    span.className = 'arpa-num-pdf';
+    span.textContent = valor;
+    input.setAttribute('data-arpa-num-oculto', '1');
+    input.insertAdjacentElement('afterend', span);
+  }
+
+  function restaurarNumero() {
+    document.querySelectorAll('.arpa-num-pdf').forEach((el) => el.remove());
+    document.querySelectorAll('[data-arpa-num-oculto]').forEach((el) => el.removeAttribute('data-arpa-num-oculto'));
+  }
+
+  function clearEmptyDims() {
+    document.querySelectorAll('[data-arpa-vacio]').forEach((el) => el.removeAttribute('data-arpa-vacio'));
+  }
+
   function onPrintState() {
     if (document.body?.classList.contains('is-printing')) {
       prettyDates();
       notaValidez();
+      hideEmptyDims();
+      numeroComoTexto();
     } else {
       restoreNota();
+      clearEmptyDims();
+      restaurarNumero();
     }
   }
 
