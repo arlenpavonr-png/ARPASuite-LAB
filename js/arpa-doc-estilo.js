@@ -213,6 +213,17 @@ ${P} .brand-bank-info{background:#F5F6F9!important;border:none!important;border-
   }
 
   global.ArpaDocEstilo = { CSS, prettyDates };
+
+  // Informe de servicio en una hoja (js/arpa-informe-hoja.js), mismo camino de carga para no tocar index.html.
+  if (!global.ArpaInformeHoja && !document.querySelector('script[data-arpa-informe-hoja]')) {
+    try {
+      const s = document.createElement('script');
+      s.src = './js/arpa-informe-hoja.js';
+      s.async = false;
+      s.setAttribute('data-arpa-informe-hoja', '1');
+      (document.head || document.documentElement).appendChild(s);
+    } catch (e) { /* sin hoja nueva: queda el PDF de siempre */ }
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })(typeof window !== 'undefined' ? window : globalThis);
