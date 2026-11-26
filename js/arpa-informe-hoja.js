@@ -1,5 +1,5 @@
 /**
- * Informe de servicio en UNA hoja (boceto 2 aprobado por Arlen el 26-nov-2026).
+ * Informe de servicio en una o dos hojas (boceto 2 aprobado por Arlen el 26-nov-2026).
  * Arma el PDF del Formato de Servicio desde los datos del formulario, con una plantilla propia:
  *  - Arriba: "Trabajo terminado" y un resumen de una línea.
  *  - Cliente y equipo en una sola columna (se lee en el celular sin zoom).
@@ -248,13 +248,17 @@
 .aih .malos{margin-top:6px;background:#FDF0EF;border-left:5px solid #C0392B;border-radius:8px;padding:8px 12px;font-size:13px}
 .aih .malos b{color:#C0392B}
 .aih .norma{font-size:11.5px;color:#4A5570;margin-top:4px}
-.aih .fotos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.aih .fotos figure{position:relative;margin:0}
-.aih .fotos img{width:100%;object-fit:cover;border-radius:10px;display:block}
+.aih.medir{height:auto}
+.aih .blk{display:flow-root}
+.aih .hdr.corta{padding:12px 36px}
+.aih .hdr.corta .emp h1{font-size:16px}
+.aih .hdr.corta .num .n{font-size:20px}
+.aih .fotos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.aih .fotos figure{height:240px}
+.aih .fotos figure{position:relative;margin:0;background:#EEF1F6;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.aih .fotos img{display:block;max-width:none}
 .aih .tag{position:absolute;top:8px;left:8px;color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:5px}
 .aih .tag.a{background:#16284B}.aih .tag.d{background:#1F8A4C}
-.aih .mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
-.aih .mini img{height:70px}
 .aih .obs{font-size:13.5px;color:#2E3A52}
 .aih .obs li{margin-left:18px}
 .aih .gar{background:#F3F5F9;border-radius:10px;padding:9px 14px;font-size:12.5px;line-height:1.45}
@@ -277,15 +281,38 @@
 .aih .firmas .linea{border-top:1.5px solid #16284B;padding-top:5px}
 .aih .firmas b{display:block;color:#16284B;font-size:13.5px}
 .aih .gracias{text-align:center;font-size:13px;color:#2E3A52;margin-top:10px}
-.aih .pie{position:absolute;left:0;right:0;bottom:0;border-top:1px solid #DDE1EA;padding:8px 36px;display:flex;justify-content:space-between;font-size:11px;color:#4A5570;background:#fff}
+.aih .pie{position:absolute;left:0;right:0;bottom:0;border-top:1px solid #DDE1EA;padding:8px 36px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#4A5570;background:#fff}
+.aih .pie .ad{color:#16284B;font-size:11.5px}
+.aih .pie .ad b{color:#16284B}
+.aih .pie .ad u{text-decoration:none;color:#B8902F;font-weight:700}
 `;
 
   function fila(etq, v) { return v ? '<tr><td>' + esc(etq) + '</td><td>' + esc(v) + '</td></tr>' : ''; }
 
-  function buildHtml(d, qr) {
+  function cabeceraHtml(d, corta) {
     const e = d.empresa;
+    if (corta) {
+      return '<div class="hdr corta"><div class="emp"><h1>' + esc(e.nombre || 'Mi empresa') + '</h1></div>' +
+        '<div class="num"><div class="t">INFORME DE SERVICIO</div><div class="n">' + esc(d.numero || '') + '</div></div></div><div class="gold"></div>';
+    }
     const contacto = [e.nit ? 'NIT ' + e.nit : '', e.tel ? 'WhatsApp ' + telefonoLegible(e.tel) : ''].filter(Boolean).join(' · ');
     const linea2 = [e.direccion, e.web].filter(Boolean).join(' · ');
+    return '<div class="hdr">' + (e.logo ? '<div class="logo"><img src="' + esc(e.logo) + '"></div>' : '') +
+      '<div class="emp"><h1>' + esc(e.nombre || 'Mi empresa') + '</h1>' +
+      (contacto || linea2 ? '<p>' + esc(contacto) + (contacto && linea2 ? '<br>' : '') + esc(linea2) + '</p>' : '') + '</div>' +
+      '<div class="num"><div class="t">INFORME DE SERVICIO</div><div class="n">' + esc(d.numero || '') + '</div><div class="f">' + esc(fechaLarga(d.fecha)) + '</div></div></div>' +
+      '<div class="gold"></div>';
+  }
+
+  function pieHtml(d, n, total) {
+    return '<div class="pie"><span>' + esc(d.numero || '') + ' · Página ' + n + ' de ' + total + '</span>' +
+      '<span class="ad" data-link="https://arpatechnologyglobal.com">Generado con <b>ARPA Suite</b> · Pruébala gratis en <u>arpatechnologyglobal.com</u></span></div>';
+  }
+
+  /** Bloques del informe en orden. Cada bloque va entero en una hoja (nunca se parte). */
+  function bloquesHtml(d, qr) {
+    const e = d.empresa;
+    const b = [];
     const titulo = d.esPuerta ? 'Trabajo terminado. Su puerta quedó funcionando.' : 'Trabajo terminado.';
     const res = resumen(d);
     const equipoTxt = [d.marca, d.referencia].filter(Boolean).join(' · ') + (d.voltaje ? ' · ' + d.voltaje : '');
@@ -293,15 +320,8 @@
       ? [d.puertas.join(' / '), d.ancho && d.alto ? d.ancho + ' × ' + d.alto + ' m' : '', d.material].filter(Boolean).join(' · ')
       : d.puertas.join(' / ');
 
-    let h = '<div class="aih">';
-    h += '<div class="hdr">' + (e.logo ? '<div class="logo"><img src="' + esc(e.logo) + '"></div>' : '') +
-      '<div class="emp"><h1>' + esc(e.nombre || 'Mi empresa') + '</h1>' +
-      (contacto || linea2 ? '<p>' + esc(contacto) + (contacto && linea2 ? '<br>' : '') + esc(linea2) + '</p>' : '') + '</div>' +
-      '<div class="num"><div class="t">INFORME DE SERVICIO</div><div class="n">' + esc(d.numero || '') + '</div><div class="f">' + esc(fechaLarga(d.fecha)) + '</div></div></div>';
-    h += '<div class="gold"></div><div class="main">';
-    h += '<div class="ok"><div class="ic">✓</div><div><b>' + esc(titulo) + '</b>' + (res ? '<span>' + esc(res) + '</span>' : '') + '</div></div>';
-
-    h += '<h2>Cliente y equipo</h2><table>' +
+    b.push('<div class="ok"><div class="ic">✓</div><div><b>' + esc(titulo) + '</b>' + (res ? '<span>' + esc(res) + '</span>' : '') + '</div></div>');
+    b.push('<h2>Cliente y equipo</h2><table>' +
       fila('Cliente', [d.cliente.nombre, d.cliente.nit ? 'NIT ' + d.cliente.nit : ''].filter(Boolean).join(' · ')) +
       fila('Teléfono', telefonoLegible(d.cliente.tel)) +
       fila('Dirección', d.cliente.direccion) +
@@ -309,58 +329,57 @@
       fila(d.esPuerta ? 'Puerta' : 'Trabajo', puertaTxt) +
       fila('Equipo', equipoTxt.replace(/^ · /, '')) +
       fila('Accesorios', d.accesorios.join(', ')) +
-      '</table>';
+      '</table>');
 
     if (d.pruebas) {
-      h += '<h2>Pruebas de seguridad hechas</h2>';
-      if (d.pruebas.ok.length) h += '<div class="checks">' + d.pruebas.ok.slice(0, 10).map((t) => '<div><i>✓</i>' + esc(t) + '</div>').join('') + '</div>';
+      let h = '<h2>Pruebas de seguridad hechas</h2>';
+      if (d.pruebas.ok.length) h += '<div class="checks">' + d.pruebas.ok.slice(0, 12).map((t) => '<div><i>✓</i>' + esc(t) + '</div>').join('') + '</div>';
       if (d.pruebas.no.length) h += '<div class="malos"><b>Para revisar:</b> ' + d.pruebas.no.map((n) => esc(n.texto + (n.obs ? ' (' + n.obs + ')' : ''))).join(' · ') + '</div>';
       h += '<p class="norma">Revisión de seguridades según la norma colombiana NTC 5926-3.</p>';
+      b.push(h);
     }
 
-    const antes = d.fotosAntes;
-    const despues = d.fotosDespues;
-    if (antes.length || despues.length) {
-      const grandes = [];
-      if (antes.length && despues.length) grandes.push(['a', antes[0]], ['d', despues[0]]);
-      else (antes.length ? antes : despues).slice(0, 2).forEach((f) => grandes.push([antes.length ? 'a' : 'd', f]));
-      const usadas = new Set(grandes.map((g) => g[1]));
-      const resto = antes.map((f) => ['a', f]).concat(despues.map((f) => ['d', f])).filter((g) => !usadas.has(g[1])).slice(0, 4);
-      const altoGrande = d.pruebas ? (resto.length ? 150 : 175) : (resto.length ? 175 : 210);
-      h += '<h2>Fotos del trabajo</h2><div class="fotos">' + grandes.map((g) =>
-        '<figure><img src="' + esc(g[1]) + '" style="height:' + altoGrande + 'px"><span class="tag ' + g[0] + '">' + (g[0] === 'a' ? 'ANTES' : 'DESPUÉS') + '</span></figure>').join('') + '</div>';
-      if (resto.length) h += '<div class="mini fotos">' + resto.map((g) => '<figure><img src="' + esc(g[1]) + '"></figure>').join('') + '</div>';
+    // Fotos grandes, completas y con su forma real (vertical u horizontal): nunca se estiran ni se recortan.
+    // Todas en una sola cuadrícula de 2 en 2 (primero las de antes), cada una con su etiqueta.
+    const todas = d.fotosAntes.slice(0, 6).map((f) => [f, 'ANTES', 'a']).concat(d.fotosDespues.slice(0, 6).map((f) => [f, 'DESPUÉS', 'd']));
+    for (let i = 0; i < todas.length; i += 2) {
+      b.push((i === 0 ? '<h2>Fotos del trabajo</h2>' : '') + '<div class="fotos">' +
+        todas.slice(i, i + 2).map((t) => '<figure><img data-fit="1" src="' + esc(t[0]) + '"><span class="tag ' + t[2] + '">' + t[1] + '</span></figure>').join('') + '</div>');
     }
 
-    if (d.obs.length > 1) h += '<h2>Observaciones</h2><ul class="obs">' + d.obs.slice(1).map((o) => '<li>' + esc(o) + '</li>').join('') + '</ul>';
+    if (d.obs.length > 1) b.push('<h2>Observaciones</h2><ul class="obs">' + d.obs.slice(1).map((o) => '<li>' + esc(o) + '</li>').join('') + '</ul>');
 
     const prox = (d.tipoValor === 'instalacion' || d.tipoValor === 'mantenimiento') && d.fecha ? sumarMeses(d.fecha, 6) : null;
     // El mantenimiento ya va en "Siguiente paso": en la garantía no se repite.
     const garantia = prox ? d.garantia.filter((g) => !/manten/i.test(g.titulo)) : d.garantia;
     if (garantia.length) {
-      h += '<h2>Garantía</h2><div class="gar">' + garantia.map((g) => (g.titulo ? '<b>' + esc(g.titulo) + ':</b> ' : '') + esc(g.texto)).join(' ') + '</div>';
+      b.push('<h2>Garantía</h2><div class="gar">' + garantia.map((g) => (g.titulo ? '<b>' + esc(g.titulo) + ':</b> ' : '') + esc(g.texto)).join(' ') + '</div>');
     }
 
     const wa = waLink(e.tel);
     if (prox || d.resena || wa) {
-      h += '<div class="sig"><div class="fila"><div class="prox"><small>SIGUIENTE PASO</small>' +
+      b.push('<div class="sig"><div class="fila"><div class="prox"><small>SIGUIENTE PASO</small>' +
         (prox ? '<div class="fecha">Mantenimiento en ' + esc(mesAnio(prox).toLowerCase()) + '</div><p>Le escribimos antes para apartar el día.</p>'
           : '<div class="fecha">¿Necesita algo más?</div><p>Escríbanos cuando lo necesite.</p>') +
         '</div>' + (d.resena && qr ? '<div class="qr"><img src="' + qr + '">Reseña</div>' : '') + '</div>' +
         '<div class="btns">' +
         (d.resena ? '<a class="btn g" data-link="' + esc(d.resena) + '">★ Califique nuestro servicio</a>' : '') +
         (wa ? '<a class="btn w" data-link="' + esc(wa) + '">WhatsApp ' + esc(telefonoLegible(e.tel)) + '</a>' : '') +
-        '</div></div>';
+        '</div></div>');
     }
 
     // La firma va en su propio espacio, encima de la línea: nunca se monta sobre el recuadro de arriba.
     const firmaHtml = (img, nombre, rol) => '<div class="f"><div class="trazo">' + (img ? '<img src="' + img + '">' : '') + '</div>' +
       '<div class="linea"><b>' + esc(nombre) + '</b>' + rol + '</div></div>';
-    h += '<div class="firmas">' + firmaHtml(d.firmaCliente, d.cliente.nombre || 'Cliente', 'Recibido por el cliente') +
-      firmaHtml(d.firmaTecnico, d.tecnico || e.nombre || '', 'Técnico') + '</div>';
-    h += '<p class="gracias">Gracias por confiar en nosotros.</p>';
-    h += '</div><div class="pie"><span>' + esc(d.numero || '') + ' · Página 1 de 1</span><span>Generado con ARPA Suite</span></div></div>';
-    return h;
+    b.push('<div class="firmas">' + firmaHtml(d.firmaCliente, d.cliente.nombre || 'Cliente', 'Recibido por el cliente') +
+      firmaHtml(d.firmaTecnico, d.tecnico || e.nombre || '', 'Técnico') + '</div><p class="gracias">Gracias por confiar en nosotros.</p>');
+    return b;
+  }
+
+  /** Vista previa en una sola pieza (para pruebas). */
+  function buildHtml(d, qr) {
+    return '<div class="aih medir">' + cabeceraHtml(d, false) + '<div class="main">' +
+      bloquesHtml(d, qr).map((x) => '<div class="blk">' + x + '</div>').join('') + '</div>' + pieHtml(d, 1, 1) + '</div>';
   }
 
   function qrDataUrl(url) {
@@ -378,48 +397,101 @@
     return 'Formato_' + parte(d.numero) + '_' + parte(d.cliente.nombre) + '.pdf';
   }
 
-  /** Arma el PDF de una hoja y devuelve un File. Lanza error si no puede (el llamador usa el PDF de siempre). */
+  /** Ajusta cada foto a su cajita sin deformarla (html2canvas no entiende object-fit). */
+  function ajustarFotos(root) {
+    // Cada fila de fotos toma la altura que necesita: baja si son horizontales, alta (máx. 240) si son verticales.
+    root.querySelectorAll('.fotos').forEach((fila) => {
+      const figs = Array.from(fila.querySelectorAll('figure'));
+      if (!figs.length) return;
+      const ancho = figs[0].clientWidth;
+      const alto = Math.min(240, Math.max.apply(null, figs.map((f) => {
+        const img = f.querySelector('img');
+        const nw = img?.naturalWidth || 4;
+        const nh = img?.naturalHeight || 3;
+        return Math.round(ancho * nh / nw);
+      })));
+      figs.forEach((f) => { f.style.height = alto + 'px'; });
+    });
+    root.querySelectorAll('img[data-fit]').forEach((img) => {
+      const caja = img.parentElement;
+      const bw = caja.clientWidth;
+      const bh = caja.clientHeight;
+      const nw = img.naturalWidth || bw;
+      const nh = img.naturalHeight || bh;
+      const k = Math.min(bw / nw, bh / nh);
+      img.style.width = Math.round(nw * k) + 'px';
+      img.style.height = Math.round(nh * k) + 'px';
+    });
+  }
+
+  /** Arma el PDF (una o más hojas, sin partir bloques) y devuelve un File. Lanza error si no puede. */
   async function generarPdfFile() {
     const jsPDF = global.jspdf?.jsPDF || global.jsPDF;
     const html2canvas = global.html2canvas;
     if (!jsPDF || !html2canvas) throw new Error('sin jsPDF/html2canvas');
     const d = leerDatos();
     const qr = await qrDataUrl(d.resena);
+    const bloques = bloquesHtml(d, qr);
 
     const host = document.createElement('div');
     host.setAttribute('aria-hidden', 'true');
     host.style.cssText = 'position:fixed;left:-20000px;top:0;width:' + W + 'px;z-index:-1;pointer-events:none;';
-    host.innerHTML = '<style>' + CSS + '</style>' + buildHtml(d, qr);
     document.body.appendChild(host);
     try {
-      const hoja = host.querySelector('.aih');
-      await esperarImagenes(hoja);
+      // 1) Medir: cabeceras, pie y cada bloque.
+      host.innerHTML = '<style>' + CSS + '</style>' +
+        '<div class="aih medir">' + cabeceraHtml(d, false) + '<div class="main">' + bloques.map((x) => '<div class="blk">' + x + '</div>').join('') + '</div>' + pieHtml(d, 1, 1) + '</div>' +
+        '<div class="aih medir">' + cabeceraHtml(d, true) + '</div>';
+      await esperarImagenes(host);
       if (document.fonts?.ready) { try { await document.fonts.ready; } catch (e) { /* sin fuentes */ } }
+      ajustarFotos(host);
+      const medidas = host.querySelectorAll('.aih.medir');
+      const m1 = medidas[0];
+      const m2 = medidas[1];
+      const main = m1.querySelector('.main');
+      const pieH = m1.querySelector('.pie').offsetHeight;
+      const cab1 = main.offsetTop + 14;
+      const cab2 = m2.scrollHeight + 14;
+      const blks = Array.from(main.children);
+      const altos = blks.map((el) => el.offsetHeight);
 
-      // Si el contenido no cabe, se achica todo un poco para que quede en una hoja.
-      const main = hoja.querySelector('.main');
-      const libre = H - 40;
-      const alto = main.offsetTop + main.scrollHeight;
-      if (alto > libre) {
-        const z = Math.max(0.72, (libre - main.offsetTop) / main.scrollHeight);
-        main.style.transformOrigin = 'top left';
-        main.style.transform = 'scale(' + z + ')';
-        main.style.width = (100 / z) + '%';
-      }
-
-      const links = Array.from(hoja.querySelectorAll('[data-link]')).map((a) => {
-        const r = a.getBoundingClientRect();
-        const base = hoja.getBoundingClientRect();
-        return { url: a.getAttribute('data-link'), x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
+      // 2) Repartir los bloques en hojas sin partir ninguno.
+      const paginas = [[]];
+      let libre = H - cab1 - pieH - 16;
+      altos.forEach((h, idx) => {
+        if (h > libre && paginas[paginas.length - 1].length) {
+          paginas.push([]);
+          libre = H - cab2 - pieH - 16;
+        }
+        paginas[paginas.length - 1].push(idx);
+        libre -= h;
       });
+      m2.remove();
 
-      const canvas = await html2canvas(hoja, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', width: W, height: H, windowWidth: W });
+      // 3) Armar cada hoja con los mismos nodos (fotos ya ajustadas) y capturarla.
       const pdf = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
       const pw = pdf.internal.pageSize.getWidth();
       const ph = pdf.internal.pageSize.getHeight();
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pw, ph);
       const k = pw / W;
-      links.forEach((l) => pdf.link(l.x * k, l.y * k, l.w * k, l.h * k, { url: l.url }));
+      for (let p = 0; p < paginas.length; p++) {
+        const hoja = document.createElement('div');
+        hoja.className = 'aih';
+        hoja.innerHTML = cabeceraHtml(d, p > 0) + '<div class="main"></div>' + pieHtml(d, p + 1, paginas.length);
+        const cont = hoja.querySelector('.main');
+        paginas[p].forEach((idx) => cont.appendChild(blks[idx]));
+        host.appendChild(hoja);
+        await esperarImagenes(hoja);
+        const base = hoja.getBoundingClientRect();
+        const links = Array.from(hoja.querySelectorAll('[data-link]')).map((a) => {
+          const r = a.getBoundingClientRect();
+          return { url: a.getAttribute('data-link'), x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
+        });
+        const canvas = await html2canvas(hoja, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', width: W, height: H, windowWidth: W });
+        if (p > 0) pdf.addPage('letter', 'portrait');
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pw, ph);
+        links.forEach((l) => pdf.link(l.x * k, l.y * k, l.w * k, l.h * k, { url: l.url }));
+        hoja.remove();
+      }
       return new File([pdf.output('blob')], nombreArchivo(d), { type: 'application/pdf' });
     } finally {
       host.remove();
