@@ -214,6 +214,17 @@ ${P} .brand-bank-info{background:#F5F6F9!important;border:none!important;border-
 
   global.ArpaDocEstilo = { CSS, prettyDates };
 
+  // App al día al primer intento (js/arpa-al-dia.js): al publicar una mejora no hay que abrir la app dos veces.
+  if (!global.ArpaAlDia && !document.querySelector('script[data-arpa-al-dia]')) {
+    try {
+      const s0 = document.createElement('script');
+      s0.src = './js/arpa-al-dia.js';
+      s0.async = false;
+      s0.setAttribute('data-arpa-al-dia', '1');
+      (document.head || document.documentElement).appendChild(s0);
+    } catch (e) { /* sin recarga automática: queda como antes */ }
+  }
+
   // Informe de servicio en una hoja (js/arpa-informe-hoja.js), mismo camino de carga para no tocar index.html.
   if (!global.ArpaInformeHoja && !document.querySelector('script[data-arpa-informe-hoja]')) {
     try {
