@@ -54,7 +54,9 @@
     return r;
   }
   function telefonoLegible(t) {
-    const d = String(t || '').replace(/\D/g, '');
+    let d = String(t || '').replace(/\D/g, '');
+    const pref = global.ArpaPricing?.getCountryProfile?.()?.phonePrefix || '57';
+    if (d.length > 10 && d.startsWith(pref) && d.length - pref.length === 10) d = d.slice(pref.length);
     return d.length === 10 ? d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6) : String(t || '').trim();
   }
   function waLink(t) {
@@ -268,9 +270,11 @@
 .aih .btn.w{background:#fff;color:#16284B}
 .aih .qr{margin-left:auto;text-align:center;font-size:10px;color:#C9D1E2;flex:none}
 .aih .qr img{width:74px;height:74px;background:#fff;border-radius:6px;padding:3px;display:block;margin-bottom:3px}
-.aih .firmas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:14px}
-.aih .firmas .f{border-top:1.5px solid #16284B;padding-top:5px;font-size:12px;color:#4A5570;position:relative}
-.aih .firmas img{position:absolute;bottom:100%;left:0;height:52px;max-width:100%;object-fit:contain}
+.aih .firmas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:10px}
+.aih .firmas .f{font-size:12px;color:#4A5570}
+.aih .firmas .trazo{height:50px;display:flex;align-items:flex-end}
+.aih .firmas .trazo img{max-height:50px;max-width:100%;object-fit:contain;display:block}
+.aih .firmas .linea{border-top:1.5px solid #16284B;padding-top:5px}
 .aih .firmas b{display:block;color:#16284B;font-size:13.5px}
 .aih .gracias{text-align:center;font-size:13px;color:#2E3A52;margin-top:10px}
 .aih .pie{position:absolute;left:0;right:0;bottom:0;border-top:1px solid #DDE1EA;padding:8px 36px;display:flex;justify-content:space-between;font-size:11px;color:#4A5570;background:#fff}
@@ -349,8 +353,11 @@
         '</div></div>';
     }
 
-    h += '<div class="firmas"><div class="f">' + (d.firmaCliente ? '<img src="' + d.firmaCliente + '">' : '') + '<b>' + esc(d.cliente.nombre || 'Cliente') + '</b>Recibido por el cliente</div>' +
-      '<div class="f">' + (d.firmaTecnico ? '<img src="' + d.firmaTecnico + '">' : '') + '<b>' + esc(d.tecnico || e.nombre || '') + '</b>Técnico</div></div>';
+    // La firma va en su propio espacio, encima de la línea: nunca se monta sobre el recuadro de arriba.
+    const firmaHtml = (img, nombre, rol) => '<div class="f"><div class="trazo">' + (img ? '<img src="' + img + '">' : '') + '</div>' +
+      '<div class="linea"><b>' + esc(nombre) + '</b>' + rol + '</div></div>';
+    h += '<div class="firmas">' + firmaHtml(d.firmaCliente, d.cliente.nombre || 'Cliente', 'Recibido por el cliente') +
+      firmaHtml(d.firmaTecnico, d.tecnico || e.nombre || '', 'Técnico') + '</div>';
     h += '<p class="gracias">Gracias por confiar en nosotros.</p>';
     h += '</div><div class="pie"><span>' + esc(d.numero || '') + ' · Página 1 de 1</span><span>Generado con ARPA Suite</span></div></div>';
     return h;
