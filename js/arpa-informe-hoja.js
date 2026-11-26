@@ -253,8 +253,9 @@
 .aih .hdr.corta{padding:12px 36px}
 .aih .hdr.corta .emp h1{font-size:16px}
 .aih .hdr.corta .num .n{font-size:20px}
-.aih .fotos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.aih .fotos figure{height:240px}
+.aih .fotos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.aih .fotos figure{height:182px;background:#EEF1F6}
+.aih h2 .tag{position:static;display:inline-block;font-size:11px;letter-spacing:.1em}
 .aih .fotos figure{position:relative;margin:0;background:#EEF1F6;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .aih .fotos img{display:block;max-width:none}
 .aih .tag{position:absolute;top:8px;left:8px;color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:5px}
@@ -340,12 +341,17 @@
     }
 
     // Fotos grandes, completas y con su forma real (vertical u horizontal): nunca se estiran ni se recortan.
-    // Todas en una sola cuadrícula de 2 en 2 (primero las de antes), cada una con su etiqueta.
-    const todas = d.fotosAntes.slice(0, 6).map((f) => [f, 'ANTES', 'a']).concat(d.fotosDespues.slice(0, 6).map((f) => [f, 'DESPUÉS', 'd']));
-    for (let i = 0; i < todas.length; i += 2) {
-      b.push((i === 0 ? '<h2>Fotos del trabajo</h2>' : '') + '<div class="fotos">' +
-        todas.slice(i, i + 2).map((t) => '<figure><img data-fit="1" src="' + esc(t[0]) + '"><span class="tag ' + t[2] + '">' + t[1] + '</span></figure>').join('') + '</div>');
-    }
+    // Galería ordenada: todas las fotos del mismo tamaño, de 3 en 3, primero Antes y luego Después.
+    // Cada foto se recorta al centro (nunca se estira) para que la cuadrícula quede pareja.
+    const grupo = (lista, titulo, clase) => {
+      const fotos = lista.slice(0, 6);
+      for (let i = 0; i < fotos.length; i += 3) {
+        b.push((i === 0 ? '<h2><span class="tag ' + clase + '">' + titulo + '</span></h2>' : '') + '<div class="fotos">' +
+          fotos.slice(i, i + 3).map((f) => '<figure><img data-cover="1" src="' + esc(f) + '"></figure>').join('') + '</div>');
+      }
+    };
+    grupo(d.fotosAntes, 'ANTES', 'a');
+    grupo(d.fotosDespues, 'DESPUÉS', 'd');
 
     if (d.obs.length > 1) b.push('<h2>Observaciones</h2><ul class="obs">' + d.obs.slice(1).map((o) => '<li>' + esc(o) + '</li>').join('') + '</ul>');
 
@@ -399,18 +405,26 @@
 
   /** Ajusta cada foto a su cajita sin deformarla (html2canvas no entiende object-fit). */
   function ajustarFotos(root) {
-    // Cada fila de fotos toma la altura que necesita: baja si son horizontales, alta (máx. 240) si son verticales.
-    root.querySelectorAll('.fotos').forEach((fila) => {
-      const figs = Array.from(fila.querySelectorAll('figure'));
-      if (!figs.length) return;
-      const ancho = figs[0].clientWidth;
-      const alto = Math.min(240, Math.max.apply(null, figs.map((f) => {
-        const img = f.querySelector('img');
-        const nw = img?.naturalWidth || 4;
-        const nh = img?.naturalHeight || 3;
-        return Math.round(ancho * nh / nw);
-      })));
-      figs.forEach((f) => { f.style.height = alto + 'px'; });
+    // Galería pareja: cada foto se recorta al centro al tamaño exacto de su cuadro (sin estirarla).
+    root.querySelectorAll('img[data-cover]').forEach((img) => {
+      const caja = img.parentElement;
+      const bw = caja.clientWidth;
+      const bh = caja.clientHeight;
+      const nw = img.naturalWidth;
+      const nh = img.naturalHeight;
+      if (!nw || !nh || !bw || !bh) return;
+      const escala = Math.max(bw / nw, bh / nh);
+      const sw = bw / escala;
+      const sh = bh / escala;
+      const c = document.createElement('canvas');
+      c.width = bw * 2;
+      c.height = bh * 2;
+      try {
+        c.getContext('2d').drawImage(img, (nw - sw) / 2, (nh - sh) / 2, sw, sh, 0, 0, c.width, c.height);
+        img.src = c.toDataURL('image/jpeg', 0.9);
+      } catch (e) { /* si no se puede recortar, queda la foto entera */ }
+      img.style.width = bw + 'px';
+      img.style.height = bh + 'px';
     });
     root.querySelectorAll('img[data-fit]').forEach((img) => {
       const caja = img.parentElement;
