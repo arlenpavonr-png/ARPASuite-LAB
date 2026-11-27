@@ -280,6 +280,27 @@
     btn.textContent = '📐 ' + t('Calcular peso y motor', 'Weight and motor calculator');
     btn.addEventListener('click', abrirModal);
     slot.appendChild(btn);
+    actualizarVisibilidad();
+    // Si el técnico cambia de oficio (Configuración o bienvenida), el botón aparece o se va solo.
+    global.addEventListener?.('arpa-active-oficio-changed', actualizarVisibilidad);
+    global.addEventListener?.('arpa:onboarding-done', actualizarVisibilidad);
+  }
+
+  /**
+   * Solo para puertas y portones (Arlen, 27-nov-2026): a un plomero o un electricista
+   * no le sirve un botón de motores. Si la app no tiene oficios guardados (usuarios
+   * de antes), se deja como estaba: visible.
+   */
+  function esOficioPuertas() {
+    let activos = [];
+    try { activos = global.ArpaOficios?.getActiveOficiosFromSettings?.() || []; } catch (e) { activos = []; }
+    return !activos.length || activos.indexOf('automatismos') >= 0;
+  }
+
+  function actualizarVisibilidad() {
+    const btn = document.getElementById('btn-calculadora-peso');
+    // .cp-boton tiene display:flex, que le gana al atributo hidden: se esconde con el estilo.
+    if (btn) btn.style.display = esOficioPuertas() ? '' : 'none';
   }
 
   global.ArpaCalculadoraPeso = {
@@ -288,6 +309,8 @@
     motoresRecomendados: motoresRecomendados,
     agregarACotizacion: agregarACotizacion,
     abrirModal: abrirModal,
+    esOficioPuertas: esOficioPuertas,
+    actualizarVisibilidad: actualizarVisibilidad,
     init: init,
   };
 
