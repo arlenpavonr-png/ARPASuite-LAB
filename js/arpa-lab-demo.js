@@ -81,8 +81,21 @@
     return sessionWantsDemo();
   }
 
+  function wantsOnboarding() {
+    // LAB: ?labdemo=1&bienvenida=1 muestra la entrada de un técnico nuevo para probarla.
+    try {
+      return new URLSearchParams(global.location.search).get('bienvenida') === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
   function skipOnboarding() {
     try {
+      if (wantsOnboarding()) {
+        global.localStorage.removeItem(ONBOARDING_KEY);
+        return;
+      }
       global.localStorage.setItem(ONBOARDING_KEY, 'true');
     } catch (e) {}
   }
