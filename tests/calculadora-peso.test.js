@@ -66,3 +66,17 @@ test('sin medidas no calcula', () => {
   const api = load();
   assert.strictEqual(api.calcularPeso('corredizo', 'lamina', '', 2), null);
 });
+
+test('el botón es solo para puertas (27-nov): otro oficio no lo ve; sin oficios guardados sí', () => {
+  const win = {};
+  const ctx = { window: win, globalThis: win, Number, String, Math, Array, Object };
+  vm.createContext(ctx);
+  vm.runInContext(src, ctx);
+  const api = win.ArpaCalculadoraPeso;
+  win.ArpaOficios = { getActiveOficiosFromSettings: () => ['plomeria'] };
+  assert.strictEqual(api.esOficioPuertas(), false);
+  win.ArpaOficios = { getActiveOficiosFromSettings: () => ['electricidad', 'automatismos'] };
+  assert.strictEqual(api.esOficioPuertas(), true);
+  win.ArpaOficios = { getActiveOficiosFromSettings: () => [] };
+  assert.strictEqual(api.esOficioPuertas(), true);
+});
