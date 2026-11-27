@@ -57,6 +57,7 @@
     });
     delete next.fullSnapshot.fotosAntes;
     delete next.fullSnapshot.fotosDespues;
+    delete next.fullSnapshot[PLACA_KEY];
     global.ArpaChecklistNtc?.stripPhotos?.(next.fullSnapshot);
     return next;
   }
@@ -66,6 +67,8 @@
   // fotos van a IndexedDB (mucho más espacio) y el registro solo guarda la marca
   // _fotosEnDispositivo. La nube nunca lleva fotos: se buscan aquí por id o por
   // número. Sin IndexedDB todo sigue como antes (fotos dentro del registro).
+  // Foto de la placa del equipo (campo del formulario que pone js/arpa-informe-hoja.js, 27-nov).
+  const PLACA_KEY = 'formato-foto-placa';
   const FOTOS_DB = 'arpa_suite_fotos';
   const FOTOS_STORE = 'fotos';
   let fotosDbPromise = null;
@@ -112,8 +115,10 @@
     if (items && typeof items === 'object') {
       Object.keys(items).forEach((k) => { if (items[k] && esFoto(items[k].foto)) ntc[k] = items[k].foto; });
     }
-    if (!antes.length && !despues.length && !Object.keys(ntc).length) return null;
+    const placa = esFoto(snapshot[PLACA_KEY]) ? snapshot[PLACA_KEY] : '';
+    if (!antes.length && !despues.length && !placa && !Object.keys(ntc).length) return null;
     const limpio = Object.assign({}, snapshot, { fotosAntes: [], fotosDespues: [] });
+    if (placa) limpio[PLACA_KEY] = '';
     if (Object.keys(ntc).length) {
       const nuevosItems = {};
       Object.keys(items).forEach((k) => {
@@ -121,7 +126,7 @@
       });
       limpio._checklistNtc = Object.assign({}, snapshot._checklistNtc, { items: nuevosItems });
     }
-    return { snapshot: limpio, fotos: { antes, despues, ntc } };
+    return { snapshot: limpio, fotos: placa ? { antes, despues, ntc, placa } : { antes, despues, ntc } };
   }
   /** Devuelve las fotos a una copia del snapshot (no pisa fotos que ya tenga). */
   function unirFotos(snapshot, fotos) {
@@ -131,6 +136,7 @@
       fotosAntes: tiene(snapshot.fotosAntes) ? snapshot.fotosAntes : (fotos.antes || []).slice(),
       fotosDespues: tiene(snapshot.fotosDespues) ? snapshot.fotosDespues : (fotos.despues || []).slice()
     });
+    if (esFoto(fotos.placa) && !esFoto(snapshot[PLACA_KEY])) out[PLACA_KEY] = fotos.placa;
     const ntc = fotos.ntc || {};
     const items = snapshot._checklistNtc && snapshot._checklistNtc.items;
     if (items && Object.keys(ntc).length) {

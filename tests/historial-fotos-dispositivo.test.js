@@ -60,4 +60,14 @@ describe('fotos del formato fuera de localStorage', () => {
     assert.equal(rec._fotosEnDispositivo, undefined);
     assert.equal(await app.H.migrarFotosAlDispositivo(), 0);
   });
+
+  it('la foto de la placa también sale del snapshot y vuelve igual (27-nov)', () => {
+    const { H } = crearApp();
+    const original = { numero: 'AP-040', fotosAntes: [], fotosDespues: [], 'formato-foto-placa': F('P') };
+    const sep = H.separarFotos(original);
+    assert.ok(sep, 'solo con la placa ya hay algo que separar');
+    assert.equal(sep.snapshot['formato-foto-placa'], '');
+    assert.equal(sep.fotos.placa, F('P'));
+    assert.deepEqual(JSON.parse(JSON.stringify(H.unirFotos(sep.snapshot, sep.fotos))), original);
+  });
 });
