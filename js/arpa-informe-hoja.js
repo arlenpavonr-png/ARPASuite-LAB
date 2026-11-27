@@ -3,10 +3,13 @@
  * Arma el PDF del Formato de Servicio desde los datos del formulario, con una plantilla propia:
  *  - Arriba: "Trabajo terminado" y un resumen de una línea.
  *  - Cliente y equipo en una sola columna (se lee en el celular sin zoom).
- *  - Pruebas de seguridad hechas (si se usó la lista NTC 5926-3).
- *  - Fotos de antes y después grandes.
- *  - Garantía corta, siguiente paso (próximo mantenimiento) y botones que se pueden tocar:
- *    reseña en Google (link de Configuración) y WhatsApp de la empresa.
+ *  - Pruebas de seguridad hechas (si se usó la lista). La norma NO se nombra en el PDF del
+ *    cliente (Arlen, 27-nov-2026): la NTC queda solo en la app.
+ *  - Fotos de antes, después y de la placa del equipo (la placa: cajita propia, 27-nov).
+ *  - Serie del equipo en "Cliente y equipo".
+ *  - Garantía corta, siguiente paso (próximo mantenimiento, que se puede cambiar o quitar en
+ *    el formulario) y botones que se pueden tocar: reseña en Google (link de Configuración)
+ *    y WhatsApp de la empresa.
  * Sin precios. No cambia datos, numeración, historial ni el nombre del archivo.
  * Con idioma del documento en inglés, o si algo falla, se usa el PDF de siempre.
  */
@@ -102,6 +105,124 @@
     input.addEventListener('change', () => { const u = setReviewLink(input.value); if (u) input.value = u; paint(); });
   }
 
+  // ---------- foto de la placa y próximo mantenimiento (formulario) ----------
+  // Se guardan en campos con id dentro de #view-formato: el borrador y el Historial los
+  // guardan y los devuelven solos (collectFormatoDraft / applyFormatoDraft).
+  const PLACA_ID = 'formato-foto-placa';
+  const PROX_ID = 'formato-prox-mant';
+  function valorDelBorrador(id) {
+    try {
+      const raw = global.localStorage?.getItem(global.ArpaBrand?.FORMATO_DRAFT_KEY || 'arpa_formato_borrador');
+      const v = raw ? JSON.parse(raw)[id] : '';
+      return typeof v === 'string' ? v : '';
+    } catch (e) { return ''; }
+  }
+  function renderPlaca() {
+    const input = $(PLACA_ID);
+    if (!input) return;
+    const src = String(input.value || '');
+    const prev = $('placa-preview');
+    const ph = $('placa-placeholder');
+    if (!prev) return;
+    prev.innerHTML = '';
+    const hay = src.indexOf('data:image/') === 0;
+    prev.style.display = hay ? 'flex' : 'none';
+    if (ph) ph.style.display = hay ? 'none' : '';
+    if (!hay) return;
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = 'Foto de la placa';
+    img.title = 'Toca para quitar';
+    img.style.cssText = 'width:100%;height:120px;object-fit:contain;border-radius:6px;cursor:pointer;background:#f1f5f9;';
+    img.onclick = () => {
+      input.value = '';
+      renderPlaca();
+      global.scheduleFormatoDraftSave?.();
+    };
+    prev.appendChild(img);
+  }
+  function injectPlacaBox() {
+    if ($(PLACA_ID)) return;
+    const grid = document.querySelector('#view-formato .photos-grid');
+    if (!grid) return;
+    const box = document.createElement('div');
+    box.className = 'photo-box';
+    box.id = 'box-placa';
+    box.style.gridColumn = '1 / -1';
+    box.innerHTML =
+      '<div class="photo-badge" style="background:#475569">Placa</div>' +
+      '<input type="hidden" id="' + PLACA_ID + '" value="">' +
+      '<input type="file" id="file-placa-gal" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">' +
+      '<div id="placa-placeholder"><div class="icon">🏷️</div>' +
+      '<div class="ph-label">Foto de la placa del equipo (marca, modelo y serie)</div>' +
+      '<label class="ph-btn-label" for="file-placa-gal">🖼 Galería / Cámara</label></div>' +
+      '<div id="placa-preview" style="display:none;width:100%;padding:4px;"></div>';
+    grid.appendChild(box);
+    const hidden = $(PLACA_ID);
+    hidden.value = valorDelBorrador(PLACA_ID);
+    $('file-placa-gal').addEventListener('change', function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const comprimir = typeof global.compressPhotoToJpeg === 'function'
+          ? global.compressPhotoToJpeg(ev.target.result, 1200, 0.7)
+          : Promise.resolve(ev.target.result);
+        comprimir.then((url) => {
+          hidden.value = url;
+          this.value = '';
+          renderPlaca();
+          global.scheduleFormatoDraftSave?.();
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+    renderPlaca();
+  }
+  function injectProxMant() {
+    if ($(PROX_ID)) return;
+    const obs = $('formato-section-observaciones');
+    if (!obs) return;
+    const sec = document.createElement('div');
+    sec.className = 'section no-print';
+    sec.id = 'formato-prox-mant-section';
+    sec.innerHTML =
+      '<div class="section-title"><span class="dot"></span><span>Próximo mantenimiento</span></div>' +
+      '<div class="field"><label for="' + PROX_ID + '">Sale en el informe como "Siguiente paso"</label>' +
+      '<select id="' + PROX_ID + '">' +
+      '<option value="">Automático: en 6 meses (en reparaciones no sale)</option>' +
+      '<option value="3">En 3 meses</option>' +
+      '<option value="6">En 6 meses</option>' +
+      '<option value="12">En 12 meses</option>' +
+      '<option value="no">No poner</option>' +
+      '</select></div>';
+    obs.parentNode.insertBefore(sec, obs);
+    const sel = $(PROX_ID);
+    const guardado = valorDelBorrador(PROX_ID);
+    if (Array.from(sel.options).some((o) => o.value === guardado)) sel.value = guardado;
+    sel.addEventListener('change', () => global.scheduleFormatoDraftSave?.());
+  }
+  /** Al abrir un borrador o un documento del Historial, o al limpiar el formulario, la placa se vuelve a pintar. */
+  function engancharFormulario() {
+    ['applyFormatoFotosFromDraft', 'clearFormatoDocumentFields'].forEach((nombre) => {
+      const orig = global[nombre];
+      if (typeof orig !== 'function' || orig.__informeHoja) return;
+      const nuevo = function () {
+        const r = orig.apply(this, arguments);
+        try { renderPlaca(); } catch (e) { /* sin placa */ }
+        return r;
+      };
+      nuevo.__informeHoja = true;
+      global[nombre] = nuevo;
+    });
+  }
+  /** Fecha del próximo mantenimiento según lo escogido; null si no va. */
+  function proximoMantenimiento(d) {
+    if (!d.fecha || d.proxMant === 'no') return null;
+    const n = Number(d.proxMant) || ((d.tipoValor === 'instalacion' || d.tipoValor === 'mantenimiento') ? 6 : 0);
+    return n ? sumarMeses(d.fecha, n) : null;
+  }
+
   // ---------- datos del formulario ----------
   function leerGarantia() {
     const custom = document.querySelector('#view-formato .garantia-custom:not([hidden])');
@@ -183,6 +304,10 @@
       marca,
       referencia,
       voltaje: val('formato-voltaje'),
+      // Serie: producción tiene id; versiones viejas del formulario se buscan por su etiqueta.
+      serie: val('formato-serie') || valSel('#formato-equipo-section [data-i18n="formato.label.serie_codigo"] + input'),
+      fotoPlaca: (val(PLACA_ID).indexOf('data:image/') === 0) ? val(PLACA_ID) : '',
+      proxMant: val(PROX_ID),
       accesorios,
       tecnico: val('campo-tecnico-responsable') || String(s.technicianName || '').trim(),
       obs,
@@ -259,7 +384,7 @@
 .aih .fotos figure{position:relative;margin:0;background:#EEF1F6;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .aih .fotos img{display:block;max-width:none}
 .aih .tag{position:absolute;top:8px;left:8px;color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:5px}
-.aih .tag.a{background:#16284B}.aih .tag.d{background:#1F8A4C}
+.aih .tag.a{background:#16284B}.aih .tag.d{background:#1F8A4C}.aih .tag.p{background:#475569}
 .aih .obs{font-size:13.5px;color:#2E3A52}
 .aih .obs li{margin-left:18px}
 .aih .gar{background:#F3F5F9;border-radius:10px;padding:9px 14px;font-size:12.5px;line-height:1.45}
@@ -329,6 +454,7 @@
       fila('Servicio', d.tipoServicio) +
       fila(d.esPuerta ? 'Puerta' : 'Trabajo', puertaTxt) +
       fila('Equipo', equipoTxt.replace(/^ · /, '')) +
+      fila('Serie', d.serie) +
       fila('Accesorios', d.accesorios.join(', ')) +
       '</table>');
 
@@ -336,7 +462,6 @@
       let h = '<h2>Pruebas de seguridad hechas</h2>';
       if (d.pruebas.ok.length) h += '<div class="checks">' + d.pruebas.ok.slice(0, 12).map((t) => '<div><i>✓</i>' + esc(t) + '</div>').join('') + '</div>';
       if (d.pruebas.no.length) h += '<div class="malos"><b>Para revisar:</b> ' + d.pruebas.no.map((n) => esc(n.texto + (n.obs ? ' (' + n.obs + ')' : ''))).join(' · ') + '</div>';
-      h += '<p class="norma">Revisión de seguridades según la norma colombiana NTC 5926-3.</p>';
       b.push(h);
     }
 
@@ -352,10 +477,11 @@
     };
     grupo(d.fotosAntes, 'ANTES', 'a');
     grupo(d.fotosDespues, 'DESPUÉS', 'd');
+    if (d.fotoPlaca) grupo([d.fotoPlaca], 'PLACA DEL EQUIPO', 'p');
 
     if (d.obs.length > 1) b.push('<h2>Observaciones</h2><ul class="obs">' + d.obs.slice(1).map((o) => '<li>' + esc(o) + '</li>').join('') + '</ul>');
 
-    const prox = (d.tipoValor === 'instalacion' || d.tipoValor === 'mantenimiento') && d.fecha ? sumarMeses(d.fecha, 6) : null;
+    const prox = proximoMantenimiento(d);
     // El mantenimiento ya va en "Siguiente paso": en la garantía no se repite.
     const garantia = prox ? d.garantia.filter((g) => !/manten/i.test(g.titulo)) : d.garantia;
     if (garantia.length) {
@@ -592,13 +718,20 @@
     engancharGuardar();
     engancharWhatsApp();
     injectReviewField();
+    injectPlacaBox();
+    injectProxMant();
+    engancharFormulario();
     // Configuración se redibuja: reintentar el campo sin costo.
     if (typeof MutationObserver === 'function' && document.body) {
-      new MutationObserver(() => { if (!$(REVIEW_FIELD_ID)) injectReviewField(); }).observe(document.body, { childList: true, subtree: true });
+      new MutationObserver(() => {
+        if (!$(REVIEW_FIELD_ID)) injectReviewField();
+        if (!$(PLACA_ID)) injectPlacaBox();
+        if (!$(PROX_ID)) injectProxMant();
+      }).observe(document.body, { childList: true, subtree: true });
     }
   }
 
-  global.ArpaInformeHoja = { generarPdfFile, leerDatos, buildHtml, resumen, getReviewLink, setReviewLink, sumarMeses, normalizarUrl, CSS };
+  global.ArpaInformeHoja = { generarPdfFile, leerDatos, buildHtml, resumen, getReviewLink, setReviewLink, sumarMeses, normalizarUrl, proximoMantenimiento, renderPlaca, CSS };
   if (document.readyState === 'complete') init();
   else global.addEventListener('load', init);
 })(typeof window !== 'undefined' ? window : globalThis);
